@@ -120,7 +120,6 @@
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
                 osc.start(); osc.stop(audioCtx.currentTime + 0.2);
             } else if (type === 'attack_fail') {
-                // 修正點 2：加入答錯或失敗的低沉音效
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(150, audioCtx.currentTime);
                 osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.25);
@@ -182,7 +181,6 @@
 
         const indicator = document.getElementById('turnIndicator');
         if (isMyTurn) {
-            // 修正點 3：修正文字錯字
             let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊英雄進攻（答對60點/答錯20點）" : "⭐ 請點選手牌出牌，或點擊英雄進攻";
             indicator.innerText = actionText;
             indicator.style.color = "#4ade80";
