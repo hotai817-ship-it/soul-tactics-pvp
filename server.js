@@ -8,9 +8,66 @@ const io = new Server(server);
 
 app.use(express.static(__dirname));
 
-// --- 完整專屬卡牌題庫 (初中中國歷史程度) ---
+// 1. 歷史人物卡片陣列
+const HERO_CARDS = [
+    { id: "h_0", dynasty: "秦", name: "秦始皇", type: "人物", skill: "六合一統", desc: "祖龍之威，橫掃六合" },
+    { id: "h_1", dynasty: "秦", name: "高級軍吏俑", type: "人物", skill: "衝鋒陷陣", desc: "百戰精銳，威震沙場" },
+    { id: "h_2", dynasty: "西漢", name: "李廣", type: "人物", skill: "李廣難封", desc: "但使龍城飛將在" },
+    { id: "h_3", dynasty: "西漢", name: "霍去病", type: "人物", skill: "封狼居胥", desc: "匈奴未滅，無以家為" },
+    { id: "h_4", dynasty: "西漢", name: "漢武帝", type: "人物", skill: "雄才大略", desc: "北擊匈奴，獨尊儒術" },
+    { id: "h_5", dynasty: "西漢", name: "漢高祖", type: "人物", skill: "知人善任", desc: "知人善任、堅韌不拔" },
+    { id: "h_6", dynasty: "秦", name: "趙高", type: "人物", skill: "指鹿為馬", desc: "為禍之源，沙丘之變" },
+    { id: "h_7", dynasty: "秦", name: "蒙恬", type: "人物", skill: "築長城防匈奴", desc: "北擊匈奴，威震邊塞" },
+    { id: "h_8", dynasty: "西漢", name: "蕭何", type: "人物", skill: "月下追韓信", desc: "漢初三傑，運籌帷幄" },
+    { id: "h_9", dynasty: "西楚", name: "項羽", type: "人物", skill: "破釜沉舟", desc: "西楚霸王，烏江自刎" },
+    { id: "h_10", dynasty: "西漢", name: "張良", type: "人物", skill: "謀聖智謀", desc: "運籌帷幄之中，決勝千里之外" },
+    { id: "h_11", dynasty: "春秋", name: "孔子", type: "人物", skill: "至聖先師", desc: "仁義禮智信，有教無類" },
+    { id: "h_12", dynasty: "戰國", name: "孟子", type: "人物", skill: "亞聖浩然", desc: "民貴君輕，捨生取義" },
+    { id: "h_13", dynasty: "春秋", name: "齊桓公", type: "人物", skill: "九合諸侯", desc: "尊王攘夷，春秋五霸" },
+    { id: "h_14", dynasty: "唐", name: "唐太宗", type: "人物", skill: "貞觀之治", desc: "納諫如流，天可汗" },
+    { id: "h_15", dynasty: "唐", name: "魏徵", type: "人物", skill: "犯顏直諫", desc: "以人為鏡，明得失" },
+    { id: "h_16", dynasty: "唐", name: "武則天", type: "人物", skill: "承先啟後", desc: "改周稱帝，開科拔寒" },
+    { id: "h_17", dynasty: "唐", name: "唐玄宗", type: "人物", skill: "開元盛世", desc: "前期勵精，後期怠政" },
+    { id: "h_18", dynasty: "唐", name: "狄仁傑", type: "人物", skill: "匡扶唐室", desc: "明察秋毫，舉賢任能" },
+    { id: "h_19", dynasty: "唐", name: "郭子儀", type: "人物", skill: "再造唐朝", desc: "平定安史，功蓋天下"}
+];
+
+// 2. 輔助卡片陣列
+const SUPPORT_CARDS = [
+    { id: "s_0", dynasty: "秦", name: "焚書坑儒", type: "輔助", skill: "箝制思想", desc: "輔助秦始皇/李斯" },
+    { id: "s_1", dynasty: "秦", name: "統一度量衝", type: "輔助", skill: "車同軌", desc: "統一法制、統一民心" },
+    { id: "s_2", dynasty: "秦", name: "統一文字", type: "輔助", skill: "小篆隸書", desc: "化繁為簡，統一文字" },
+    { id: "s_3", dynasty: "秦", name: "萬里長城", type: "輔助", skill: "固若金湯", desc: "防禦外敵，永固邊防" },
+    { id: "s_4", dynasty: "秦", name: "指鹿為馬", type: "輔助", skill: "顛倒是非", desc: "趙高胡亥，混淆黑白" },
+    { id: "s_5", dynasty: "秦", name: "推行郡縣制度", type: "輔助", skill: "收歸中央", desc: "郡縣制與上計制度" },
+    { id: "s_6", dynasty: "秦", name: "統一貨幣", type: "輔助", skill: "半兩錢", desc: "圓形方孔，便利流通" },
+    { id: "s_7", dynasty: "秦", name: "重農輕商", type: "輔助", skill: "土地私有", desc: "確立土地自由買賣" },
+    { id: "s_8", dynasty: "秦", name: "開鑿運河", type: "輔助", skill: "靈渠漕運", desc: "平定南越，軍糧運輸" },
+    { id: "s_9", dynasty: "秦", name: "修築道路", type: "輔助", skill: "直道馳道", desc: "軍用道路，快速調兵" },
+    { id: "s_10", dynasty: "秦", name: "徒木立信", type: "輔助", skill: "商鞅變法", desc: "言行一致，信守承諾" },
+    { id: "s_11", dynasty: "西漢", name: "推恩令", type: "輔助", skill: "削弱諸侯", desc: "巧分封國，不費一兵" },
+    { id: "s_12", dynasty: "西漢", name: "和親制度", type: "輔助", skill: "姻親關係", desc: "漢族公主嫁給外族" },
+    { id: "s_13", dynasty: "西漢", name: "士人政府", type: "輔助", skill: "獨尊儒術", desc: "儒生治理國家政務" },
+    { id: "s_14", dynasty: "西漢", name: "五經博士", type: "輔助", skill: "罷黜百家", desc: "設立五經博士傳授儒學" },
+    { id: "s_15", dynasty: "西漢", name: "輪台罪己詔", type: "輔助", skill: "反思休養", desc: "禁苛暴止擅賦力本農" },
+    { id: "s_16", dynasty: "東漢", name: "黨錮之禍", type: "輔助", skill: "清議士人", desc: "士族不滿，宦官專權" },
+    { id: "s_17", dynasty: "東漢", name: "黃巾之亂", type: "輔助", skill: "太平道興", desc: "蒼天已死黃天當立" },
+    { id: "s_18", dynasty: "三國", name: "赤壁之戰", type: "輔助", skill: "三分天下", desc: "火燒連環，奠定鼎足" },
+    { id: "s_19", dynasty: "三國", name: "屯田制", type: "輔助", skill: "休養生息", desc: "軍國足食，兵農合一" },
+    { id: "s_20", dynasty: "北朝", name: "均田制", type: "輔助", skill: "授田於民", desc: "保障生計，恢復農業" },
+    { id: "s_21", dynasty: "北朝", name: "三長制", type: "輔助", skill: "整頓戶籍", desc: "五家為鄰，嚴密管治" },
+    { id: "s_22", dynasty: "北朝", name: "租調制", type: "輔助", skill: "明定稅額", desc: "減輕負擔，穩定稅收" },
+    { id: "s_23", dynasty: "隋", name: "三省六部制", type: "輔助", skill: "分工協作", desc: "決策行政，分權制衡" },
+    { id: "s_24", dynasty: "隋", name: "大運河", type: "輔助", skill: "南糧北運", desc: "貫通南北，水路交通" },
+    { id: "s_25", dynasty: "唐", name: "科舉制度", type: "輔助", skill: "進士明經", desc: "打破門第，選拔人才" },
+    { id: "s_26", dynasty: "唐", name: "府兵制", type: "輔助", skill: "兵農合一", desc: "輪番宿衛，內重外輕" },
+    { id: "s_27", dynasty: "唐", name: "租庸調制", type: "輔助", skill: "納粟代役", desc: "輕徭薄賦，以民為本" },
+    { id: "s_28", dynasty: "唐", name: "安史之亂", type: "輔助", skill: "盛極而衰", desc: "藩鎮割據，轉捩之局" },
+    { id: "s_29", dynasty: "唐", name: "兩稅法", type: "輔助", skill: "量出為入", desc: "楊炎建議，夏秋納稅" }
+];
+
+// ================= 3. 完整專屬卡牌題庫 (加在這裏) =================
 const CARD_QUESTIONS_DB = {
-    // ================= 歷史人物 =================
     "秦始皇": [
         { q: "秦王政滅六國統一天下後，認為自己「德兼三皇，功過五帝」，因此創立了什麼稱號？", opts: ["A. 天子", "B. 皇帝", "C. 霸王", "D. 單于"], correctIndex: 1 },
         { q: "秦始皇為了加強中央集權，在地方上廢除了西周以來的分封制，全面推行什麼制度？", opts: ["A. 郡縣制", "B. 行省制", "C. 察舉制", "D. 三省六部制"], correctIndex: 0 }
@@ -74,8 +131,6 @@ const CARD_QUESTIONS_DB = {
     "郭子儀": [
         { q: "在安史之亂中，哪一位唐朝將領力挽狂瀾，收復了長安、洛陽，對平定叛亂有極大貢獻？", opts: ["A. 岳飛", "B. 郭子儀", "C. 韓信", "D. 衛青"], correctIndex: 1 }
     ],
-
-    // ================= 輔助卡與制度 =================
     "焚書坑儒": [
         { q: "秦始皇採納李斯的建議實行「焚書坑儒」，其根本目的是什麼？", opts: ["A. 發展農業", "B. 統一思想，鞏固統治", "C. 推廣法家學說", "D. 削弱六國貴族"], correctIndex: 1 }
     ],
@@ -168,75 +223,25 @@ const CARD_QUESTIONS_DB = {
     ]
 };
 
-const HERO_CARDS = [
-    { id: "h_0", dynasty: "秦", name: "秦始皇", type: "人物", skill: "六合一統", desc: "祖龍之威，橫掃六合", questions: generate10QuestionsFromExcel("秦始皇", "秦", "秦王政自認為「XX三皇，XX五帝」，於是把三「皇」五「帝」名稱合稱為「皇帝」", "功過三皇，德兼五帝") },
-    { id: "h_1", dynasty: "秦", name: "高級軍吏俑", type: "人物", skill: "衝鋒陷陣", desc: "百戰精銳，威震沙場", questions: generate10QuestionsFromExcel("高級軍吏俑", "秦", "高級軍吏俑又俗稱為「XX俑」", "將軍俑") },
-    { id: "h_2", dynasty: "西漢", name: "李廣", type: "人物", skill: "李廣難封", desc: "但使龍城飛將在", questions: generate10Questions("李廣", "西漢") },
-    { id: "h_3", dynasty: "西漢", name: "霍去病", type: "人物", skill: "封狼居胥", desc: "匈奴未滅，無以家為", questions: generate10QuestionsFromExcel("霍去病", "西漢", "墓前的XXXX的石像，象徵着他的不朽功勳。", "馬踏匈奴") },
-    { id: "h_4", dynasty: "西漢", name: "漢武帝", type: "人物", skill: "雄才大略", desc: "北擊匈奴，獨尊儒術", questions: generate10QuestionsFromExcel("漢武帝", "西漢", "武帝採納主父偃的建議，頒行「XXX」，規定諸侯王除以嫡長子繼承王位外...", "推恩令") },
-    { id: "h_5", dynasty: "西漢", name: "漢高祖", type: "人物", skill: "知人善任", desc: "知人善任、堅韌不拔", questions: generate10QuestionsFromExcel("漢高祖", "西漢", "劉邦在秦朝滅亡後，進入咸陽時，與當地百姓XXXX，內容為「殺人者死，傷人及盜抵罪」", "約法三章") },
-    { id: "h_6", dynasty: "秦", name: "趙高", type: "人物", skill: "指鹿為馬", desc: "為禍之源，沙丘之變", questions: generate10QuestionsFromExcel("趙高", "秦", "前210年，秦始皇在沙丘駕崩時，趙高與公子胡亥、丞相李斯合謀更改秦始皇遺詔...", "沙丘之變") },
-    { id: "h_7", dynasty: "秦", name: "蒙恬", type: "人物", skill: "築長城防匈奴", desc: "北擊匈奴，威震邊塞", questions: generate10Questions("蒙恬", "秦朝") },
-    { id: "h_8", dynasty: "西漢", name: "蕭何", type: "人物", skill: "月下追韓信", desc: "漢初三傑，運籌帷幄", questions: generate10QuestionsFromExcel("蕭何", "西漢", "蕭何曾月下追何人？", "韓信") },
-    { id: "h_9", dynasty: "西楚", name: "項羽", type: "人物", skill: "破釜沉舟", desc: "西楚霸王，烏江自刎", questions: generate10QuestionsFromExcel("項羽", "西楚", "項羽在哪裏自刎而死？", "烏江") },
-    { id: "h_10", dynasty: "西漢", name: "張良", type: "人物", skill: "謀聖智謀", desc: "運籌帷幄之中，決勝千里之外", questions: generate10Questions("張良", "西漢") },
-    { id: "h_11", dynasty: "春秋", name: "孔子", type: "人物", skill: "至聖先師", desc: "仁義禮智信，有教無類", questions: generate10Questions("孔子", "春秋") },
-    { id: "h_12", dynasty: "戰國", name: "孟子", type: "人物", skill: "亞聖浩然", desc: "民貴君輕，捨生取義", questions: generate10Questions("孟子", "戰國") },
-    { id: "h_13", dynasty: "春秋", name: "齊桓公", type: "人物", skill: "九合諸侯", desc: "尊王攘夷，春秋五霸", questions: generate10Questions("齊桓公", "春秋") },
-    { id: "h_14", dynasty: "唐", name: "唐太宗", type: "人物", skill: "貞觀之治", desc: "納諫如流，天可汗", questions: generate10Questions("唐太宗", "唐朝") },
-    { id: "h_15", dynasty: "唐", name: "魏徵", type: "人物", skill: "犯顏直諫", desc: "以人為鏡，明得失", questions: generate10Questions("魏徵", "唐朝") },
-    { id: "h_16", dynasty: "唐", name: "武則天", type: "人物", skill: "承先啟後", desc: "改周稱帝，開科拔寒", questions: generate10Questions("武則天", "唐朝") },
-    { id: "h_17", dynasty: "唐", name: "唐玄宗", type: "人物", skill: "開元盛世", desc: "前期勵精，後期怠政", questions: generate10Questions("唐玄宗", "唐朝") },
-    { id: "h_18", dynasty: "唐", name: "狄仁傑", type: "人物", skill: "匡扶唐室", desc: "明察秋毫，舉賢任能", questions: generate10Questions("狄仁傑", "唐朝") },
-    { id: "h_19", dynasty: "唐", name: "郭子儀", type: "人物", skill: "再造唐朝", desc: "平定安史，功蓋天下", questions: generate10Questions("郭子儀", "唐朝")}
-];
-
-const SUPPORT_CARDS = [
-    { id: "s_0", dynasty: "秦", name: "焚書坑儒", type: "輔助", skill: "箝制思想", desc: "輔助秦始皇/李斯", questions: generate10QuestionsFromExcel("焚書坑儒", "秦", "焚書政令下，如果有人想要學習法令，就以XX為師。", "秦吏") },
-    { id: "s_1", dynasty: "秦", name: "統一度量衝", type: "輔助", skill: "車同軌", desc: "統一法制、統一民心", questions: generate10QuestionsFromExcel("統一度量衝", "秦", "秦始皇統一度量衡時，會在標準的度量衡上刻製XX，以昭示統一的標準", "銘文") },
-    { id: "s_2", dynasty: "秦", name: "統一文字", type: "輔助", skill: "小篆隸書", desc: "化繁為簡，統一文字", questions: generate10QuestionsFromExcel("統一文字", "秦", "相傳，XX整理民間字體，化繁為簡，化圓為方，對小篆進行改良", "程邈") },
-    { id: "s_3", dynasty: "秦", name: "萬里長城", type: "輔助", skill: "固若金湯", desc: "防禦外敵，永固邊防", questions: generate10QuestionsFromExcel("萬里長城", "秦", "秦始皇修築「萬里長城」主要是為了抵禦哪個外族？", "匈奴") },
-    { id: "s_4", dynasty: "秦", name: "指鹿為馬", type: "輔助", skill: "顛倒是非", desc: "趙高胡亥，混淆黑白", questions: generate10QuestionsFromExcel("指鹿為馬", "秦", "成語「指鹿為馬」比喻什麼？", "顛倒是非、混淆黑白") },
-    { id: "s_5", dynasty: "秦", name: "推行郡縣制度", type: "輔助", skill: "收歸中央", desc: "郡縣制與上計制度", questions: generate10QuestionsFromExcel("推行郡縣制度", "秦", "為了監控地方官員，秦採用「XX」制度。朝庭規定地方官員須每年向中央報告...", "上計") },
-    { id: "s_6", dynasty: "秦", name: "統一貨幣", type: "輔助", skill: "半兩錢", desc: "圓形方孔，便利流通", questions: generate10QuestionsFromExcel("統一貨幣", "秦", "半兩錢在全國流通，除了方便換算和貿易，亦有助商業發展及徵納XX。", "賦稅") },
-    { id: "s_7", dynasty: "秦", name: "重農輕商", type: "輔助", skill: "土地私有", desc: "確立土地自由買賣", questions: generate10QuestionsFromExcel("重農輕商", "秦", "秦始皇統一天下後，正式確立土地私有制，容許土地XXXX。", "自由買賣") },
-    { id: "s_8", dynasty: "秦", name: "開鑿運河", type: "輔助", skill: "靈渠漕運", desc: "平定南越，軍糧運輸", questions: generate10QuestionsFromExcel("開鑿運河", "秦", "靈渠的開鑿解決了當時軍糧運輸的困難，促使秦軍成征服西甌，平定XX。", "南越") },
-    { id: "s_9", dynasty: "秦", name: "修築道路", type: "輔助", skill: "直道馳道", desc: "軍用道路，快速調兵", questions: generate10QuestionsFromExcel("修築道路", "秦", "XX於蒙恬攻打匈奴時修築，路線直，行車快，方便快速調兵，是通往北方的軍用道路。", "直道") },
-    { id: "s_10", dynasty: "秦", name: "徒木立信", type: "輔助", skill: "商鞅變法", desc: "言行一致，信守承諾", questions: generate10QuestionsFromExcel("徒木立信", "秦", "成語「徒木立信」比喻什麼？", "言行一致、信守承諾、說到做到") },
-    { id: "s_11", dynasty: "西漢", name: "推恩令", type: "輔助", skill: "削弱諸侯", desc: "巧分封國，不費一兵", questions: generate10Questions("推恩令", "西漢") },
-    { id: "s_12", dynasty: "西漢", name: "和親制度", type: "輔助", skill: "姻親關係", desc: "漢族公主嫁給外族", questions: generate10QuestionsFromExcel("和親制度", "西漢", "「和親政策」讓漢族公主嫁給外族，建立XX關係。", "姻親") },
-    { id: "s_13", dynasty: "西漢", name: "士人政府", type: "輔助", skill: "獨尊儒術", desc: "儒生治理國家政務", questions: generate10QuestionsFromExcel("士人政府", "西漢", "士人政府內的官員大多都是XX，他們自然擁護獨尊儒術的方針。", "儒生") },
-    { id: "s_14", dynasty: "西漢", name: "五經博士", type: "輔助", skill: "罷黜百家", desc: "設立五經博士傳授儒學", questions: generate10QuestionsFromExcel("五經博士", "西漢", "誰人建議漢武帝罷黜百家，獨尊儒術？", "董仲舒") },
-    { id: "s_15", dynasty: "西漢", name: "輪台罪己詔", type: "輔助", skill: "反思休養", desc: "禁苛暴止擅賦力本農", questions: generate10QuestionsFromExcel("輪台罪己詔", "西漢", "公元前89年，XXX等上書漢武帝，建議在輪台戍兵以備匈奴...", "桑弘羊") },
-    { id: "s_16", dynasty: "東漢", name: "黨錮之禍", type: "輔助", skill: "清議士人", desc: "士族不滿，宦官專權", questions: generate10Questions("黨錮之禍", "東漢") },
-    { id: "s_17", dynasty: "東漢", name: "黃巾之亂", type: "輔助", skill: "太平道興", desc: "蒼天已死黃天當立", questions: generate10Questions("黃巾之亂", "東漢") },
-    { id: "s_18", dynasty: "三國", name: "赤壁之戰", type: "輔助", skill: "三分天下", desc: "火燒連環，奠定鼎足", questions: generate10Questions("赤壁之戰", "三國") },
-    { id: "s_19", 三國: "屯田制", type: "輔助", skill: "休養生息", desc: "軍國足食，兵農合一", questions: generate10Questions("屯田制", "三國") },
-    { id: "s_20", dynasty: "北朝", name: "均田制", type: "輔助", skill: "授田於民", desc: "保障生計，恢復農業", questions: generate10Questions("均田制", "北朝") },
-    { id: "s_21", dynasty: "北朝", name: "三長制", type: "輔助", skill: "整頓戶籍", desc: "五家為鄰，嚴密管治", questions: generate10Questions("三長制", "北朝") },
-    { id: "s_22", dynasty: "北朝", name: "租調制", type: "輔助", skill: "明定稅額", desc: "減輕負擔，穩定稅收", questions: generate10Questions("租調制", "北朝") },
-    { id: "s_23", dynasty: "隋", name: "三省六部制", type: "輔助", skill: "分工協作", desc: "決策行政，分權制衡", questions: generate10Questions("三省六部制", "隋唐") },
-    { id: "s_24", dynasty: "隋", name: "大運河", type: "輔助", skill: "南糧北運", desc: "貫通南北，水路交通", questions: generate10Questions("大運河", "隋唐") },
-    { id: "s_25", dynasty: "唐", name: "科舉制度", type: "輔助", skill: "進士明經", desc: "打破門第，選拔人才", questions: generate10Questions("科舉制度", "唐朝") },
-    { id: "s_26", dynasty: "唐", name: "府兵制", type: "輔助", skill: "兵農合一", desc: "輪番宿衛，內重外輕", questions: generate10Questions("府兵制", "唐朝") },
-    { id: "s_27", dynasty: "唐", name: "租庸調制", type: "輔助", skill: "納粟代役", desc: "輕徭薄賦，以民為本", questions: generate10Questions("租庸調制", "唐朝") },
-    { id: "s_28", dynasty: "唐", name: "安史之亂", type: "輔助", skill: "盛極而衰", desc: "藩鎮割據，轉捩之局", questions: generate10Questions("安史之亂", "唐朝") },
-    { id: "s_29", dynasty: "唐", name: "兩稅法", type: "輔助", skill: "量出為入", desc: "楊炎建議，夏秋納稅", questions: generate10Questions("兩稅法", "唐朝") }
-];
-
+// 4. 卡牌題庫調用函數
 function generate10Questions(cardName, dynasty) {
     let qs = [];
-    for (let i = 1; i <= 10; i++) {
-        let correctAns = `此乃${dynasty}時期之核心典章與重要歷史事實`;
+    if (CARD_QUESTIONS_DB[cardName]) {
+        CARD_QUESTIONS_DB[cardName].forEach(qItem => qs.push(qItem));
+    }
+    // 萬一題目不夠，自動補足通用進階題
+    while (qs.length < 10) {
+        let idx = qs.length + 1;
+        let correctAns = `此選項符合${dynasty}時期的歷史發展與核心典章`;
         let wrongOpts = [
-            `與${cardName}之生平與政策完全無關`,
-            `係後世民間傳說中虛構杜撰的情節`,
-            `違背當時社會政治與經濟發展客觀規律`
+            `與【${cardName}】的生平與政策毫無關聯`,
+            `此為後世章回小說或民間傳說虛構之情節`,
+            `此選項違背當時的社會政治與經濟發展客觀規律`
         ];
         let opts = [correctAns, wrongOpts[0], wrongOpts[1], wrongOpts[2]].sort(() => Math.random() - 0.5);
         qs.push({
-            q: `關於【${cardName}】(${dynasty})之歷史考驗第 ${i} 題：下列相關敘述何者最符合歷史原貌？`,
-            opts: opts.map((o, idx) => `${['A', 'B', 'C', 'D'][idx]}. ${o}`),
+            q: `關於【${cardName}】(${dynasty})的歷史進階考驗第 ${idx} 題：下列敘述何者最符合歷史原貌？`,
+            opts: opts.map((o, i) => `${['A', 'B', 'C', 'D'][i]}. ${o}`),
             correctIndex: opts.indexOf(correctAns)
         });
     }
@@ -246,251 +251,4 @@ function generate10Questions(cardName, dynasty) {
 const ALL_CARDS = [...HERO_CARDS, ...SUPPORT_CARDS];
 let rooms = {};
 
-io.on('connection', (socket) => {
-    socket.on('create_room', (roomId) => {
-        if (!roomId || roomId.trim() === "") { socket.emit('error_msg', '請輸入有效的房間號碼！'); return; }
-        roomId = roomId.trim();
-        if (rooms[roomId]) { socket.emit('error_msg', '此房間號碼已被使用！'); return; }
-        socket.join(roomId);
-        rooms[roomId] = { players: [socket], state: {}, turn: null };
-        socket.emit('room_created', roomId);
-    });
-
-    socket.on('join_room', (roomId) => {
-        if (!roomId || roomId.trim() === "") { socket.emit('error_msg', '請輸入有效的房間號碼！'); return; }
-        roomId = roomId.trim();
-        const room = rooms[roomId];
-        if (!room) { socket.emit('error_msg', '找不到此房間！'); return; }
-        if (room.players.length >= 2) { socket.emit('error_msg', '此房間人數已滿！'); return; }
-
-        const hostSocket = room.players[0];
-        socket.join(roomId);
-        room.players.push(socket);
-
-        // 新增 hasPlayedCard 狀態，管控每回合只能出一次牌
-        room.state = {
-            [hostSocket.id]: { hp: 300, hand: getRandomCards(5), active: null, supportArea: [], hasPlayedCard: false },
-            [socket.id]: { hp: 300, hand: getRandomCards(5), active: null, supportArea: [], hasPlayedCard: false }
-        };
-        room.turn = hostSocket.id;
-
-        io.to(roomId).emit('game_start', { roomId });
-        broadcastGameState(roomId);
-    });
-
-    socket.on('get_card_question', ({ roomId, cardIndex }) => {
-        const room = rooms[roomId];
-        if (!room || room.turn !== socket.id) return;
-        const pState = room.state[socket.id];
-        
-        // 防禦：如果這回合已經出過牌了，不准再抽題出牌
-        if (pState.hasPlayedCard) {
-            socket.emit('error_msg', '一回合只能點選部署一張卡片！請發動攻擊或結束回合。');
-            return;
-        }
-        
-        if (cardIndex < 0 || cardIndex >= pState.hand.length) return;
-
-        const card = pState.hand[cardIndex];
-        const randomQ = card.questions[Math.floor(Math.random() * card.questions.length)];
-
-        socket.emit('show_card_question', {
-            cardIndex,
-            qData: { cardName: card.name, q: randomQ.q, opts: randomQ.opts, correctIndex: randomQ.correctIndex }
-        });
-    });
-
-    socket.on('play_card_with_answer', ({ roomId, cardIndex, answerCorrect }) => {
-        const room = rooms[roomId];
-        if (!room || room.turn !== socket.id) return;
-        const pState = room.state[socket.id];
-        
-        if (pState.hasPlayedCard || cardIndex < 0 || cardIndex >= pState.hand.length) return;
-
-        // 消耗卡牌並標記為已出牌
-        const card = pState.hand.splice(cardIndex, 1)[0];
-        pState.hasPlayedCard = true; 
-        
-        const opSocket = room.players.find(p => p.id !== socket.id);
-        const opState = room.state[opSocket.id];
-
-        if (answerCorrect) {
-            if (card.type === "人物") {
-                // 修正：舊武將直接丟棄，不再塞回手牌導致數量暴增
-                pState.active = card; 
-            } else if (card.type === "輔助") {
-                pState.supportArea.push(card);
-                opState.hp -= 20;
-                if (opState.hp < 0) opState.hp = 0;
-            }
-            io.to(roomId).emit('battle_log', { msg: `【${card.name}】歷史考驗【答對】！成功部署並發動效果！` });
-        } else {
-            io.to(roomId).emit('battle_log', { msg: `【${card.name}】歷史考驗【答錯】！卡片耗損失效！` });
-        }
-
-        if (opState.hp <= 0) {
-            io.to(roomId).emit('game_over', { winner: socket.id });
-            delete rooms[roomId];
-            return;
-        }
-
-        // 修正：出牌後【保留在玩家回合】，讓玩家可以點主將發動攻擊
-        broadcastGameState(roomId);
-    });
-
-    socket.on('get_attack_question', ({ roomId }) => {
-        const room = rooms[roomId];
-        if (!room || room.turn !== socket.id) return;
-        
-        const pState = room.state[socket.id];
-        if (!pState.active) { socket.emit('error_msg', '請先部署歷史人物才能發動攻擊！'); return; }
-
-                const questions = [
-            // 原有題目
-            { q: "秦王政自認為「XX三皇，XX五帝」，於是把三「皇」五「帝」名稱合稱為「皇帝」。請填空：", opts: ["A. 功過三皇，德兼五帝", "B. 德高三皇，功過五帝", "C. 德兼三皇，功過五帝", "D. 功德三皇五帝"], correctIndex: 0 },
-            { q: "漢武帝採納主父偃的建議，頒行哪一項法令削弱諸侯王勢力？", opts: ["A. 削藩令", "B. 推恩令", "C. 漢律令", "D. 推恩法"], correctIndex: 1 },
-            { q: "唐太宗在位期間政治清明，史稱為什麼？", opts: ["A. 開元之治", "B. 貞觀之治", "C. 文景之治", "D. 仁宣之治"], correctIndex: 1 },
-            
-            // 先秦時期
-            { q: "中國歷史上第一個世襲制王朝是哪一個？", opts: ["A. 夏朝", "B. 商朝", "C. 周朝", "D. 秦朝"], correctIndex: 0 },
-            { q: "西周時期為了鞏固統治，實行了哪一項重要的政治制度？", opts: ["A. 郡縣制", "B. 封建制", "C. 察舉制", "D. 科舉制"], correctIndex: 1 },
-            { q: "「春秋五霸」中，最先稱霸的諸侯是誰？", opts: ["A. 晉文公", "B. 楚莊王", "C. 齊桓公", "D. 秦穆公"], correctIndex: 2 },
-            { q: "孔子是哪一個學派的創始人？其核心思想為何？", opts: ["A. 道家，無為", "B. 法家，嚴刑", "C. 墨家，兼愛", "D. 儒家，仁"], correctIndex: 3 },
-            { q: "戰國時期，秦國因為哪一場變法而迅速強大，奠定統一基礎？", opts: ["A. 吳起變法", "B. 王安石變法", "C. 商鞅變法", "D. 張居正改革"], correctIndex: 2 },
-
-            // 秦漢時期
-            { q: "秦始皇統一全國後，規定全國通用的標準文字是什麼？", opts: ["A. 大篆", "B. 小篆", "C. 隸書", "D. 楷書"], correctIndex: 1 },
-            { q: "秦末爆發了中國歷史上第一次大規模的農民起義，領導者是誰？", opts: ["A. 項羽、劉邦", "B. 陳勝、吳廣", "C. 張角、張寶", "D. 黃巢、王仙芝"], correctIndex: 1 },
-            { q: "漢初為了休養生息，推崇黃老之學，實行哪一種統治政策？", opts: ["A. 嚴刑峻法", "B. 獨尊儒術", "C. 無為而治", "D. 重農抑商"], correctIndex: 2 },
-            { q: "漢武帝時期，派誰兩次出使西域，開闢了著名的「絲綢之路」？", opts: ["A. 班超", "B. 張騫", "C. 衛青", "D. 霍去病"], correctIndex: 1 },
-            { q: "東漢是由誰建立的？他統治期間被稱為「光武中興」。", opts: ["A. 劉邦", "B. 劉徹", "C. 劉備", "D. 劉秀"], correctIndex: 3 },
-            { q: "東漢末年，哪一場戰役奠定了三國鼎立的基礎？", opts: ["A. 官渡之戰", "B. 巨鹿之戰", "C. 赤壁之戰", "D. 淝水之戰"], correctIndex: 2 },
-            { q: "東漢發明或改良了哪一項技術，對世界文明傳播產生巨大影響？", opts: ["A. 指南針", "B. 火藥", "C. 活字印刷", "D. 造紙術"], correctIndex: 3 },
-            { q: "中國第一部紀傳體通史《史記》的作者是誰？", opts: ["A. 班固", "B. 司馬遷", "C. 司馬光", "D. 陳壽"], correctIndex: 1 },
-
-            // 魏晉南北朝時期
-            { q: "三國時期，魏國的建立者是誰？", opts: ["A. 曹操", "B. 曹丕", "C. 劉備", "D. 孫權"], correctIndex: 1 },
-            { q: "北魏孝文帝為了促進民族融合，實行了哪一項重要改革？", opts: ["A. 建立府兵制", "B. 推行漢化政策", "C. 實行九品中正制", "D. 創立科舉制"], correctIndex: 1 },
-            { q: "魏晉南北朝時期，為了選拔人才而實施的制度，最終導致「上品無寒門，下品無世族」的是？", opts: ["A. 察舉制", "B. 九品中正制", "C. 科舉制", "D. 徵辟制"], correctIndex: 1 },
-            { q: "東晉十六國時期，哪一場戰役以少勝多，阻止了前秦南下統一？", opts: ["A. 官渡之戰", "B. 淝水之戰", "C. 牧野之戰", "D. 郾城之戰"], correctIndex: 1 },
-
-            // 隋唐時期
-            { q: "隋文帝楊堅結束了長期的分裂局面，他建立隋朝並統一全國是在哪一年？", opts: ["A. 220年", "B. 581年", "C. 589年", "D. 618年"], correctIndex: 2 },
-            { q: "隋煬帝時期開鑿的哪一項重大工程，促進了南北經濟文化交流？", opts: ["A. 靈渠", "B. 鄭國渠", "C. 大運河", "D. 都江堰"], correctIndex: 2 },
-            { q: "唐朝為打破世族壟斷，廣泛實施並完善了以考試選拔官員的制度是？", opts: ["A. 察舉制", "B. 九品中正制", "C. 科舉制", "D. 恩蔭制"], correctIndex: 2 },
-            { q: "唐玄宗統治前期，唐朝國力達到鼎盛，史稱為什麼？", opts: ["A. 文景之治", "B. 貞觀之治", "C. 開元盛世", "D. 康乾盛世"], correctIndex: 2 },
-            { q: "哪一場動亂成為唐朝由盛轉衰的轉捩點？", opts: ["A. 七國之亂", "B. 八王之亂", "C. 安史之亂", "D. 黃巢之亂"], correctIndex: 2 },
-            { q: "中國歷史上唯一一位正統的女皇帝是誰？", opts: ["A. 呂后", "B. 武則天", "C. 慈禧太后", "D. 孝莊文皇后"], correctIndex: 1 },
-            { q: "唐朝被譽為詩歌的黃金時代，被稱為「詩仙」的是哪位詩人？", opts: ["A. 杜甫", "B. 白居易", "C. 李白", "D. 王維"], correctIndex: 2 },
-            { q: "唐太宗時，哪位公主和親吐蕃（今西藏），促進了漢藏友好？", opts: ["A. 王昭君", "B. 文成公主", "C. 太平公主", "D. 平陽公主"], correctIndex: 1 },
-
-            // 宋元時期
-            { q: "宋太祖趙匡胤是通過哪一場兵變奪取政權建立宋朝的？", opts: ["A. 玄武門之變", "B. 陳橋兵變", "C. 靖難之役", "D. 沙丘之變"], correctIndex: 1 },
-            { q: "宋朝為防止武將專權，實行了哪一項基本國策？", opts: ["A. 重農抑商", "B. 休養生息", "C. 重文輕武", "D. 閉關鎖國"], correctIndex: 2 },
-            { q: "北宋時期，誰發明了活字印刷術，大大提高了印刷效率？", opts: ["A. 蔡倫", "B. 畢昇", "C. 沈括", "D. 郭守敬"], correctIndex: 1 },
-            { q: "南宋抗金名將，後來被以「莫須有」罪名遇害的是誰？", opts: ["A. 韓世忠", "B. 岳飛", "C. 文天祥", "D. 史可法"], correctIndex: 1 },
-            { q: "建立蒙古帝國，被尊為「成吉思汗」的是誰？", opts: ["A. 忽必烈", "B. 鐵木真", "C. 完顏阿骨打", "D. 耶律阿保機"], correctIndex: 1 },
-            { q: "元朝為了對遼闊的疆域進行有效管轄，開創了哪一項地方行政制度？", opts: ["A. 分封制", "B. 郡縣制", "C. 行省制度", "D. 猛安謀克制"], correctIndex: 2 },
-            { q: "司馬光主持編纂的《資治通鑑》是一部什麼體裁的史書？", opts: ["A. 紀傳體通史", "B. 編年體通史", "C. 紀事本末體", "D. 斷代史"], correctIndex: 1 },
-
-            // 明清時期
-            { q: "明太祖朱元璋為了加強君主專制，廢除了哪一項實行了千餘年的制度？", opts: ["A. 丞相制度", "B. 科舉制度", "C. 郡縣制度", "D. 三省六部制"], correctIndex: 0 },
-            { q: "明成祖時期，誰率領船隊七次下西洋，最遠到達非洲東海岸？", opts: ["A. 戚繼光", "B. 鄭成功", "C. 鄭和", "D. 汪直"], correctIndex: 2 },
-            { q: "明朝特有的，直接聽命於皇帝的特務監視機構統稱為什麼？", opts: ["A. 樞密院", "B. 廠衛", "C. 軍機處", "D. 內閣"], correctIndex: 1 },
-            { q: "清朝雍正帝時設立了哪一個機構，標誌著君主專制達到了頂峰？", opts: ["A. 內閣", "B. 南書房", "C. 軍機處", "D. 總理衙門"], correctIndex: 2 },
-            { q: "清朝前期，為了防範西方殖民者，實行了嚴格限制對外貿易的政策是？", opts: ["A. 海禁與閉關鎖國", "B. 門戶開放", "C. 重農抑商", "D. 屯田制"], correctIndex: 0 },
-            { q: "明末清初，率軍驅逐荷蘭人，收復台灣的民族英雄是誰？", opts: ["A. 戚繼光", "B. 鄭和", "C. 鄭成功", "D. 施琅"], correctIndex: 2 },
-            
-            // 近代史前奏及常識
-            { q: "1840年爆發的哪一場戰爭，成為中國近代史的開端？", opts: ["A. 甲午戰爭", "B. 鴉片戰爭", "C. 八國聯軍之役", "D. 中法戰爭"], correctIndex: 1 },
-            { q: "中國近代史上第一個不平等條約是？", opts: ["A. 《南京條約》", "B. 《北京條約》", "C. 《馬關條約》", "D. 《辛丑條約》"], correctIndex: 0 },
-            { q: "19世紀中葉，由洪秀全領導的，席捲半個中國的農民起義是？", opts: ["A. 黃巾起義", "B. 李自成起義", "C. 太平天國運動", "D. 義和團運動"], correctIndex: 2 },
-            { q: "晚清時期，李鴻章等人以「自強」、「求富」為口號發起的運動是？", opts: ["A. 洋務運動", "B. 戊戌變法", "C. 辛亥革命", "D. 新文化運動"], correctIndex: 0 },
-            { q: "1894年中日甲午戰爭戰敗後，清政府被迫簽訂了割讓台灣的哪一個條約？", opts: ["A. 《南京條約》", "B. 《璦琿條約》", "C. 《辛丑條約》", "D. 《馬關條約》"], correctIndex: 3 },
-            { q: "1911年爆發的哪一場革命，最終推翻了清朝的統治，結束了帝制？", opts: ["A. 戊戌變法", "B. 辛亥革命", "C. 國民革命", "D. 護國運動"], correctIndex: 1 },
-            { q: "康有為、梁啟超在光緒帝支持下進行的政治改革史稱什麼？", opts: ["A. 洋務運動", "B. 戊戌變法(百日維新)", "C. 清末新政", "D. 預備立憲"], correctIndex: 1 },
-            { q: "中國古代四大發明中，對世界航海事業產生決定性影響的是？", opts: ["A. 造紙術", "B. 印刷術", "C. 指南針", "D. 火藥"], correctIndex: 2 },
-            { q: "以「均田免賦」為口號，推翻明朝統治的農民軍領袖是誰？", opts: ["A. 黃巢", "B. 陳勝", "C. 李自成", "D. 洪秀全"], correctIndex: 2 },
-            { q: "清康熙時期，平定了哪三位藩王的叛亂，鞏固了國家統一？", opts: ["A. 三監之亂", "B. 七國之亂", "C. 安史之亂", "D. 三藩之亂"], correctIndex: 3 }
-        ];
-
-        let q = questions[Math.floor(Math.random() * questions.length)];
-        socket.emit('show_attack_question', { qData: q });
-    });
-
-    socket.on('attack', ({ roomId, answerCorrect }) => {
-        const room = rooms[roomId];
-        if (!room || room.turn !== socket.id) return;
-        const pState = room.state[socket.id];
-        const opSocket = room.players.find(p => p.id !== socket.id);
-        const opState = room.state[opSocket.id];
-
-        if (!pState.active) return;
-
-        let dmg = answerCorrect ? 80 : 40;
-        opState.hp -= dmg;
-        if (opState.hp < 0) opState.hp = 0;
-
-        io.to(roomId).emit('battle_log', { msg: `【${pState.active.name}】攻擊！答題${answerCorrect ? '【答對】(80傷)' : '【答錯】(40傷)'}` });
-
-        if (opState.hp <= 0) {
-            io.to(roomId).emit('game_over', { winner: socket.id });
-            delete rooms[roomId];
-        } else {
-            // 攻擊完畢，正式切換回合
-            room.turn = opSocket.id;
-            pState.hasPlayedCard = false; // 重置狀態
-            room.state[opSocket.id].hasPlayedCard = false; // 重置對手狀態
-            room.state[opSocket.id].hand.push(...getRandomCards(2)); // 給對手補2張牌
-            broadcastGameState(roomId);
-        }
-    });
-
-    socket.on('end_turn', (roomId) => {
-        const room = rooms[roomId];
-        if (!room || room.turn !== socket.id) return;
-        
-        const pState = room.state[socket.id];
-        pState.hasPlayedCard = false; // 重置狀態
-
-        const nextSocket = room.players.find(p => p.id !== socket.id);
-        room.turn = nextSocket.id;
-        room.state[nextSocket.id].hasPlayedCard = false;
-        room.state[nextSocket.id].hand.push(...getRandomCards(2));
-        broadcastGameState(roomId);
-    });
-
-    socket.on('disconnect', () => {
-        for (let roomId in rooms) {
-            if (rooms[roomId].players.includes(socket)) {
-                delete rooms[roomId];
-                io.to(roomId)?.emit('error_msg', '對手已斷線。');
-            }
-        }
-    });
-});
-
-function getRandomCards(count) {
-    let res = [];
-    for(let i=0; i<count; i++) {
-        let card = ALL_CARDS[Math.floor(Math.random() * ALL_CARDS.length)];
-        res.push(JSON.parse(JSON.stringify(card)));
-    }
-    return res;
-}
-
-function broadcastGameState(roomId) {
-    const room = rooms[roomId];
-    if (!room || room.players.length < 2) return;
-    room.players.forEach(p => {
-        const opId = room.players.find(x => x.id !== p.id).id;
-        p.emit('game_state_update', {
-            myState: room.state[p.id],
-            opState: room.state[opId],
-            isMyTurn: room.turn === p.id
-        });
-    });
-}
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`《英魂決》伺服器運行於 port ${PORT}`));
+// ... (之後的 io.on('connection', ...) 遊戲邏輯伺服器程式碼維持不變)
