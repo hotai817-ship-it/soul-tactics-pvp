@@ -174,7 +174,7 @@
 
         const indicator = document.getElementById('turnIndicator');
         if (isMyTurn) {
-            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊英雄進攻（答對60點/答錯20點）" : "⭐ 請點選手牌出牌，或點擊英雄進攻";
+            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊英雄進攻（答對60點/答錯20點）" : "⭐ 請點選手牌出牌，或點擊英雄進進攻";
             indicator.innerText = actionText;
             indicator.style.color = "#4ade80";
         } else {
@@ -182,7 +182,6 @@
             indicator.style.color = "#f87171";
         }
 
-        // 渲染手牌
         const handDiv = document.getElementById('myHand');
         handDiv.innerHTML = "";
         myState.hand.forEach((card, idx) => {
@@ -199,7 +198,6 @@
                 </div>`;
         });
 
-        // 渲染我方主戰人物與支援區
         const myActive = document.getElementById('myActive');
         let supportHtml = myState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px; margin-right:4px;">🛡️ ${c.name}</span>`).join('');
         
@@ -222,7 +220,6 @@
             myActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">請從手牌點擊歷史人物卡部署到戰陣上 ${supportHtml ? '<br>支援區: ' + supportHtml : ''}</div>`;
         }
 
-        // 渲染對手陣地
         const opActive = document.getElementById('opActive');
         let opSupportHtml = opState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px;">🛡️ ${c.name}</span>`).join('');
         if (opState.active) {
@@ -294,7 +291,6 @@
         socket.emit('attack', { roomId: currentRoomId, answerCorrect: isCorrect });
     }
 
-    // 放棄作答：關閉視窗並向後端發送放棄回合事件
     function forfeitTurnAction() {
         document.getElementById('questionModal').classList.add('hidden');
         isModalOpen = false;
