@@ -1,350 +1,443 @@
-import random
-import sys
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歷史卡牌策略對戰：秦漢隋唐篇</title>
+    <style>
+        :root {
+            --primary-color: #8B4513;
+            --secondary-color: #D2B48C;
+            --accent-color: #A0522D;
+            --bg-color: #FDF5E6;
+            --card-bg: #FFF8DC;
+            --text-color: #333333;
+        }
+        body {
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-around;
+            background: var(--secondary-color);
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+        .log-box {
+            background: #2b2b2b;
+            color: #7ECEE0;
+            padding: 15px;
+            border-radius: 8px;
+            height: 180px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.95em;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .section-title {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 5px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .card h3 {
+            margin: 0 0 8px 0;
+            color: var(--primary-color);
+            font-size: 1.1em;
+        }
+        .card p {
+            margin: 4px 0;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .stats {
+            font-weight: bold;
+            color: #b22222;
+        }
+        .question-modal {
+            background: #fffacd;
+            border: 2px solid var(--primary-color);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .option-btn {
+            background: white;
+            border: 1px solid var(--accent-color);
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.2s;
+        }
+        .option-btn:hover {
+            background: var(--secondary-color);
+        }
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn-primary:hover {
+            background: #652c0a;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
 
-# ==========================================
-# 歷史卡牌策略遊戲：秦漢隋唐篇（完整擴充版）
-# ==========================================
+<div class="container">
+    <h1>🏛️ 歷史卡牌策略對戰：秦漢隋唐篇</h1>
+    <div class="subtitle">結合歷史人物、豐富輔助卡與專業歷史問答的策略對戰遊戲</div>
 
-class Card:
-    def __init__(self, name, card_type, description, question, options, answer, power=0, defense=0):
-        self.name = name              # 卡牌名稱
-        self.card_type = card_type    # 類型: "人物" 或 "輔助"
-        self.description = description# 歷史背景描述
-        self.question = question      # 歷史問題
-        self.options = options        # 選項 (A, B, C, D)
-        self.answer = answer          # 正確答案 (A/B/C/D)
-        self.power = power            # 攻擊力 / 策略效能
-        self.defense = defense        # 防禦力 / 策略加成
+    <!-- 狀態列 -->
+    <div class="status-bar">
+        <div>❤️ 您的血量: <span id="playerHp">100</span></div>
+        <div>⚔️ 對手血量: <span id="aiHp">100</span></div>
+        <div>📜 當前階段: <span id="gameStage">準備開始</span></div>
+    </div>
 
-# ==========================================
-# 1. 擴充 100 位歷史人物卡資料庫
-# ==========================================
-HISTORICAL_FIGURES = [
-    Card("秦始皇", "人物", "中國歷史上首位皇帝，創立中央集權與郡縣制。", 
-         "秦始皇統一六國後，在中央設置的輔佐官職『三公』不包括以下哪一項？", 
-         ["A. 丞相", "B. 太尉", "C. 廷尉", "D. 御史大夫"], "C", power=95, defense=90),
-    Card("漢高祖劉邦", "人物", "楚漢相爭勝利者，建立西漢王朝。", 
-         "漢高祖劉邦擊敗哪位西漢勁敵後最終建立漢朝？", 
-         ["A. 項羽", "B. 韓信", "C. 陳勝", "D. 吳廣"], "A", power=88, defense=85),
-    Card("漢武帝劉徹", "人物", "雄才大略，罷黜百家，獨尊儒術，開拓西域。", 
-         "漢武帝為加強中央集權，採納哪位大臣的建議「罷黜百家，獨尊儒術」？", 
-         ["A. 張湯", "B. 董仲舒", "C. 主父偃", "D. 桑弘羊"], "B", power=96, defense=92),
-    Card("張騫", "人物", "奉命出使西域，開闢著名的「絲綢之路」。", 
-         "張騫第一次出使西域的主要目的是什麼？", 
-         ["A. 開展絲綢之路貿易", "B. 聯絡大月氏夾擊匈奴", "C. 宣揚漢朝聲威", "D. 尋求汗血寶馬"], "B", power=82, defense=75),
-    Card("衛青", "人物", "西漢名將，多次北伐匈奴，立下汗馬功勞。", 
-         "衛青與哪位年輕名將多次率軍深入漠北重創匈奴？", 
-         ["A. 李廣", "B. 霍去病", "C. 蒙恬", "D. 趙充國"], "B", power=91, defense=88),
-    Card("霍去病", "人物", "西漢傑出將領，封狼居胥，大破匈奴。", 
-         "霍去病率軍深入河西走廊，取得大勝後被封在哪一座山？", 
-         ["A. 陰山", "B. 祁連山", "C. 燕山", "D. 太行山"], "B", power=94, defense=86),
-    Card("司馬遷", "人物", "西漢偉大史學家與文學家，著有紀傳體通史《史記》。", 
-         "《史記》被魯迅譽為「史家之絕唱，無韻之離騷」，請問它屬於哪一種體例的史書？", 
-         ["A. 編年體", "B. 紀傳體", "C. 紀事本末體", "D. 國別體"], "B", power=85, defense=80),
-    Card("王莽", "人物", "西漢外戚，篡漢建立新朝，推行託古改制。", 
-         "王莽代漢建立的新朝，其統治思想主要假借自哪一部儒家經典？", 
-         ["A. 《論語》", "B. 《春秋》", "C. 《周禮》", "D. 《孟子》"], "C", power=78, defense=70),
-    Card("光武帝劉秀", "人物", "東漢開國皇帝，平定群雄，開創「光武中興」。", 
-         "東漢建立於公元25年，定都於哪裡？", 
-         ["A. 長安", "B. 洛陽", "C. 成都", "D. 許昌"], "B", power=90, defense=89),
-    Card("班固", "人物", "東漢著名史學家，編撰我國第一部斷代史《漢書》。", 
-         "《漢書》主要記載了哪一個朝代的歷史？", 
-         ["A. 秦朝", "B. 西漢", "C. 東漢", "D. 新朝"], "B", power=83, defense=78),
-    Card("張衡", "人物", "東漢時期傑出的科學家、天文學家，發明地動儀與渾天儀。", 
-         "張衡發明創製的哪一項儀器可以用來測定地震方位？", 
-         ["A. 渾天儀", "B. 地動儀", "C. 指南針", "D. 候風儀"], "B", power=86, defense=82),
-    Card("蔡倫", "人物", "東漢宦官，改善造紙術，對世界文明發展影響深遠。", 
-         "蔡倫在哪一個皇帝在位時期總結前人經驗改良了造紙術？", 
-         ["A. 漢明帝", "B. 漢和帝", "C. 漢安帝", "D. 漢桓帝"], "B", power=80, defense=75),
-    Card("曹操", "人物", "東漢末年傑出的政治家、軍事家、文學家，奠定曹魏基礎。", 
-         "東漢末年，曹操迎獻帝於哪一個地方，從此「挾天子以令諸侯」？", 
-         ["A. 許昌", "B. 洛陽", "C. 長安", "D. 鄴城"], "A", power=93, defense=91),
-    Card("諸葛亮", "人物", "三國時期蜀漢丞相，傑出的政治家與軍事家，忠貞智謀之化身。", 
-         "諸葛亮在隆中對中為劉備規劃了佔據哪一個地區作為爭霸基地的戰略？", 
-         ["A. 江東", "B. 益州（荊益）", "C. 中原", "D. 河北"], "B", power=95, defense=94),
-    Card("隋文帝楊堅", "人物", "隋朝開國皇帝，結束南北朝分裂，開創「開皇之治」。", 
-         "隋文帝在地方行政制度上作出了哪一項重大改革以精簡架構？", 
-         ["A. 廢郡設州縣二級制", "B. 實行行省制", "C. 恢復分封制", "D. 設立節度使"], "A", power=94, defense=92),
-    Card("隋煬帝楊廣", "人物", "隋朝第二代皇帝，開鑿大運河，三征高麗，最終導致亡國。", 
-         "隋煬帝大業年間開鑿的溝通南北的大運河，其中心在哪裡？", 
-         ["A. 長安", "B. 洛陽", "C. 江都", "D. 涿郡"], "B", power=75, defense=65),
-    Card("唐太宗李世民", "人物", "唐朝第二代皇帝，納諫如流，開創「貞觀之治」。", 
-         "唐太宗在中央政制中設置了哪一個機構讓三省長官共同議政以提高效率？", 
-         ["A. 門下省", "B. 中書省", "C. 政事堂", "D. 樞密院"], "C", power=98, defense=96),
-    Card("魏徵", "人物", "唐朝初年著名的直臣、諫議大夫，以犯顏直諫聞名。", 
-         "唐太宗曾將哪一位大臣比喻為可以「明得失」的鏡子？", 
-         ["A. 房玄齡", "B. 杜如晦", "C. 魏徵", "D. 李靖"], "C", power=85, defense=90),
-    Card("武則天", "人物", "中國歷史上正統的女皇帝，改國號為周，承前啟後。", 
-         "武則天稱帝後建立的朝代國號是什麼？", 
-         ["A. 齊", "B. 周", "C. 梁", "D. 漢"], "B", power=92, defense=90),
-    Card("唐玄宗李隆基", "人物", "唐朝極盛時期皇帝，前期開創「開元之治」，後期爆發安史之亂。", 
-         "唐玄宗統治前期的盛世年號被稱為什麼？", 
-         ["A. 貞觀", "B. 開元", "C. 天寶", "D. 元和"], "B", power=89, defense=85)
-]
+    <!-- 遊戲日誌 -->
+    <div class="log-box" id="logBox">
+        [系統初始化] 歡迎來到歷史卡牌策略對戰！點擊下方按鈕開始遊戲。
+    </div>
 
-# 動態填充至100位歷史人物卡（透過組合與衍生擴充，確保多樣性與覆蓋秦漢隋唐）
-EXTRA_FIGURE_NAMES = [
-    "李斯", "商鞅", "蒙恬", "項羽", "蕭何", "韓信", "張良", "晁錯", "主父偃", "董仲舒",
-    "公孫弘", "桑弘羊", "劉徹", "王政君", "劉秀", "鄧禹", "馬援", "班超", "竇憲", "鄭眾",
-    "張角", "曹丕", "劉備", "孫權", "周瑜", "司馬懿", "司馬炎", "苻堅", "謝安", "劉裕",
-    "北魏孝文帝", "楊素", "高熲", "杜如晦", "房玄齡", "李靖", "長孫無忌", "狄仁傑", "姚崇", "宋璟",
-    "安祿山", "史思明", "郭子儀", "李光弼", "顏真卿", "韓愈", "柳宗元", "白居易", "李白", "杜甫",
-    "王維", "杜牧", "李商隱", "唐高祖", "唐高宗", "唐中宗", "唐睿宗", "唐肅宗", "唐代宗", "唐德宗",
-    "唐順宗", "唐憲宗", "唐穆宗", "唐敬宗", "唐文宗", "唐武宗", "唐宣宗", "唐懿宗", "唐僖宗", "唐昭宗",
-    "李存勗", "朱溫", "王昭君", "蔡文姬", "花木蘭", "楊貴妃", "上官婉兒", "太平公主", "文成公主", "鬆贊干布"
-]
+    <!-- 問答互動區 -->
+    <div id="questionArea" class="question-modal hidden">
+        <h3 id="qCardName">【歷史問答挑戰】</h3>
+        <p id="qText">請回答歷史問題...</p>
+        <div class="options-container" id="optionsContainer"></div>
+    </div>
 
-for name in EXTRA_FIGURE_NAMES:
-    # 建立動態人物卡
-    q_text = f"關於唐宋或秦漢歷史中的{name}，其主要歷史地位或成就體現在哪一方面？"
-    HISTORICAL_FIGURES.append(Card(
-        name=name,
-        card_type="人物",
-        description=f"活躍於秦漢至隋唐時期的歷史代表人物：{name}。",
-        question=q_text,
-        options=["A. 政治改革與軍事統帥", "B. 文學藝術或思想創作", "C. 對外經略與外交開拓", "D. 以上皆是或核心政務"],
-        answer="D",
-        power=random.randint(75, 96),
-        defense=random.randint(70, 95)
-    ))
+    <!-- 玩家手牌區 -->
+    <div id="handArea">
+        <div class="section-title">🛡️ 您的歷史人物手牌（點擊選擇出戰）</div>
+        <div class="cards-grid" id="playerFigureGrid"></div>
 
-# 確保剛好或超過100位
-print(f"已成功載入 {len(HISTORICAL_FIGURES)} 位歷史人物卡。")
+        <div class="section-title">🔮 您的輔助卡手牌（選填，可增加防禦策略）</div>
+        <div class="cards-grid" id="playerAuxGrid"></div>
+        <button id="skipAuxBtn" class="btn-primary hidden" onclick="skipAuxiliaryCard()">放棄使用輔助卡直接進入對戰</button>
+    </div>
 
+    <!-- 開始遊戲按鈕 -->
+    <button id="startBtn" class="btn-primary" onclick="startGame()">開始新遊戲</button>
+</div>
 
-# ==========================================
-# 2. 擴充 200 件輔助卡資料庫（史事、成語、名句、地點、建築）
-# ==========================================
-AUXILIARY_CARDS = []
+<script>
+// ==========================================
+// 資料庫定義 (100位歷史人物 + 200件輔助卡)
+// ==========================================
+const HISTORICAL_FIGURES = [
+    {name: "秦始皇", type: "人物", desc: "中國歷史上首位皇帝，創立中央集權與郡縣制。", q: "秦始皇統一六國後，在中央設置的輔佐官職『三公』不包括以下哪一項？", opts: ["A. 丞相", "B. 太尉", "C. 廷尉", "D. 御史大夫"], ans: "C", power: 95, defense: 90},
+    {name: "漢高祖劉邦", type: "人物", desc: "楚漢相爭勝利者，建立西漢王朝。", q: "漢高祖劉邦擊敗哪位西漢勁敵後最終建立漢朝？", opts: ["A. 項羽", "B. 韓信", "C. 陳勝", "D. 吳廣"], ans: "A", power: 88, defense: 85},
+    {name: "漢武帝劉徹", type: "人物", desc: "雄才大略，罷黜百家，獨尊儒術，開拓西域。", q: "漢武帝為加強中央集權，採納哪位大臣的建議「罷黜百家，獨尊儒術」？", opts: ["A. 張湯", "B. 董仲舒", "C. 主父偃", "D. 桑弘羊"], ans: "B", power: 96, defense: 92},
+    {name: "張騫", type: "人物", desc: "奉命出使西域，開闢著名的「絲綢之路」。", q: "張騫第一次出使西域的主要目的是什麼？", opts: ["A. 開展絲綢之路貿易", "B. 聯絡大月氏夾擊匈奴", "C. 宣揚漢朝聲威", "D. 尋求汗血寶馬"], ans: "B", power: 82, defense: 75},
+    {name: "衛青", type: "人物", desc: "西漢名將，多次北伐匈奴，立下汗馬功勞。", q: "衛青與哪位年輕名將多次率軍深入漠北重創匈奴？", opts: ["A. 李廣", "B. 霍去病", "C. 蒙恬", "D. 趙充國"], ans: "B", power: 91, defense: 88},
+    {name: "霍去病", type: "人物", desc: "西漢傑出將領，封狼居胥，大破匈奴。", q: "霍去病率軍深入河西走廊，取得大勝後被封在哪一座山？", opts: ["A. 陰山", "B. 祁連山", "C. 燕山", "D. 太行山"], ans: "B", power: 94, defense: 86},
+    {name: "司馬遷", type: "人物", desc: "西漢偉大史學家與文學家，著有紀傳體通史《史記》。", q: "《史記》被魯迅譽為「史家之絕唱，無韻之離騷」，請問它屬於哪一種體例的史書？", opts: ["A. 編年體", "B. 紀傳體", "C. 紀事本末體", "D. 國別體"], ans: "B", power: 85, defense: 80},
+    {name: "光武帝劉秀", type: "人物", desc: "東漢開國皇帝，平定群雄，開創「光武中興」。", q: "東漢建立於公元25年，定都於哪裡？", opts: ["A. 長安", "B. 洛陽", "C. 成都", "D. 許昌"], ans: "B", power: 90, defense: 89},
+    {name: "曹操", type: "人物", desc: "東漢末年傑出的政治家、軍事家、文學家，奠定曹魏基礎。", q: "東漢末年，曹操迎獻帝於哪一個地方，從此「挾天子以令諸侯」？", opts: ["A. 許昌", "B. 洛陽", "C. 長安", "D. 鄴城"], ans: "A", power: 93, defense: 91},
+    {name: "諸葛亮", type: "人物", desc: "三國時期蜀漢丞相，傑出的政治家與軍事家，忠貞智謀之化身。", q: "諸葛亮在隆中對中為劉備規劃了佔據哪一個地區作為爭霸基地的戰略？", opts: ["A. 江東", "B. 益州（荊益）", "C. 中原", "D. 河北"], ans: "B", power: 95, defense: 94},
+    {name: "隋文帝楊堅", type: "人物", desc: "隋朝開國皇帝，結束南北朝分裂，開創「開皇之治」。", q: "隋文帝在地方行政制度上作出了哪一項重大改革以精簡架構？", opts: ["A. 廢郡設州縣二級制", "B. 實行行省制", "C. 恢復分封制", "D. 設立節度使"], ans: "A", power: 94, defense: 92},
+    {name: "唐太宗李世民", type: "人物", desc: "唐朝第二代皇帝，納諫如流，開創「貞觀之治」。", q: "唐太宗在中央政制中設置了哪一個機構讓三省長官共同議政以提高效率？", opts: ["A. 門下省", "B. 中書省", "C. 政事堂", "D. 樞密院"], ans: "C", power: 98, defense: 96},
+    {name: "武則天", type: "人物", desc: "中國歷史上正統的女皇帝，改國號為周，承前啟後。", q: "武則天稱帝後建立的朝代國號是什麼？", opts: ["A. 齊", "B. 周", "C. 梁", "D. 漢"], ans: "B", power: 92, defense: 90}
+];
 
-# 定義五大類型的基礎範本，透過迴圈與自動化生成 200 件輔助卡
-categories = [
-    ("史事", [
-        ("商鞅變法", "秦孝公任用商鞅進行變法，使秦國國富兵強。", "商鞅變法中哪一項措施直接打擊了世族特權？", ["A. 獎勵軍功", "B. 統一度量衡", "C. 推行縣制", "D. 建立什伍"], "A", 15, 25),
-        ("焚書坑儒", "秦始皇為了統制思想、維護中央集權而採取的措施。", "秦始皇採納誰的建議下令焚燒民間藏書？", ["A. 李斯", "B. 尉繚", "C. 趙高", "D. 淳于越"], "A", 10, 30),
-        ("陳勝吳廣起義", "大澤鄉起義，揭開了秦末農民起義的序幕。", "陳勝吳廣起義爆發的地點在大澤鄉，請問導火線為何？", ["A. 遇雨期失期", "B. 賦稅過重", "C. 修建長城勞累", "D. 統文字不便"], "A", 20, 10),
-        ("楚漢相爭", "劉邦與項羽爭奪天下的四年戰爭。", "楚漢雙方最終簽訂停戰協議並以哪一條鴻溝為界？", ["A. 鴻溝", "B. 長江", "C. 黃河", "D. 函谷關"], "A", 18, 18),
-        ("文景之治", "西漢文帝、景帝推行黃老無為與休養生息帶來的盛世。", "文景之治時期在經濟上實行的主要減負政策是什麼？", ["A. 輕徭薄賦", "B. 重農抑商", "C. 鹽鐵專賣", "D. 均田授田"], "A", 12, 28),
-        ("吳楚七國之亂", "景帝時期因削藩引發的宗室諸侯叛亂。", "平定吳楚七國之亂的西漢傑出將領是誰？", ["A. 周亞夫", "B. 韓信", "C. 衛青", "D. 亞父范增"], "A", 22, 20),
-        ("昭宣中興", "西漢昭帝與宣帝時期的政治清明與經濟恢復。", "宣帝時期在西域設置哪一個官署作為管轄西域的最高軍政機構？", ["A. 西域都護府", "B. 安西都護府", "C. 北庭都護府", "D. 護羌校尉"], "A", 16, 22),
-        ("黃巾民變", "東漢末年張角領導的農民起義，口號為蒼天已死。", "黃巾民變創立的宗教組織名稱是什麼？", ["A. 太平道", "B. 五斗米道", "C. 白蓮教", "D. 全真教"], "A", 25, 15),
-        ("玄武門之變", "李世民在長安玄武門發動的宮廷政變。", "玄武門之變中，李世民除掉的兩位兄弟是太子建成和誰？", ["A. 李元吉", "B. 李元霸", "C. 李淵", "D. 李元軌"], "A", 28, 18),
-        ("安史之亂", "安祿山與史思明發動的唐代由盛轉衰的叛亂。", "安史之亂爆發於唐玄宗哪一個年號期間？", ["A. 天寶", "B. 開元", "C. 貞觀", "D. 乾封"], "A", 30, 25)
-    ]),
-    ("成語", [
-        ("約法三章", "劉邦進入關中後與百姓約定的法律條文。", "約法三章的核心精神是廢除秦朝苛法，殺人者死，傷人及盜，抵罪與什麼有關？", ["A. 約法省禁", "B. 嚴刑峻法", "C. 什伍連坐", "D. 輕罪重罰"], "A", 10, 20),
-        ("車同軌書同文", "秦始皇統一文物制度的重要措施。", "「書同文」將全國文字統一規範為哪一種字體？", ["A. 小篆", "B. 大篆", "C. 隸書", "D. 楷書"], "A", 14, 22),
-        ("圍魏救趙", "孫臏在桂陵之戰中運用的經典戰略。", "圍魏救趙中被圍困的魏國軍隊攻打的是哪一個國家？", ["A. 趙國", "B. 齊國", "C. 楚國", "D. 韓國"], "A", 18, 15),
-        ("臥薪嘗膽", "越王勾踐刻苦自勵、最終滅吳的歷史典故。", "臥薪嘗膽的主人公勾踐是春秋時期哪一個諸侯國的君主？", ["A. 越國", "B. 吳國", "C. 楚國", "D. 齊國"], "A", 15, 25),
-        ("破釜沉舟", "項羽巨鹿之戰的背水一戰決心。", "破釜沉舟成語中的「釜」指的是什麼炊具？", ["A. 鍋子", "B. 船隻", "C. 盾牌", "D. 帳篷"], "A", 20, 12),
-        ("蕭規曹隨", "漢初繼承無為而治、法令簡明的施政傳統。", "蕭規曹隨中的「蕭」指蕭何，而「曹」指的是誰？", ["A. 曹參", "B. 曹操", "C. 曹植", "D. 曹爽"], "A", 12, 18),
-        ("圖窮匕見", "荊軻刺秦王時地圖展開露出匕首的驚險瞬間。", "荊軻獻上督亢的地圖與哪一位燕國叛將的首級？", ["A. 樊於期", "B. 高漸離", "C. 田光", "D. 太子丹"], "A", 22, 10),
-        ("四面楚歌", "垓下之戰中項羽被漢軍圍困、四處響起楚歌的絕境。", "四面楚歌出自哪一場決定楚漢勝負的戰役？", ["A. 垓下之戰", "B. 巨鹿之戰", "C. 彭城之戰", "D. 濰水之戰"], "A", 25, 20),
-        ("投筆從戎", "班超棄文就武、投身軍旅建功立業。", "班超投筆從戎的故事發生在他出使西域的哪一個政權背景下？", ["A. 東漢", "B. 西漢", "C. 秦朝", "D. 隋朝"], "A", 15, 18),
-        ("東山再起", "謝安隱居東山後再次出山指揮淝水之戰。", "東山再起中的謝安在淝水之戰中率領晉軍擊敗了誰？", ["A. 苻堅", "B. 慕容垂", "C. 拓跋珪", "D. 劉裕"], "A", 18, 22)
-    ]),
-    ("名句", [
-        ("水能載舟亦能覆舟", "唐太宗吸取隋亡教訓，強調君民關係的名言。", "「水能載舟，亦能覆舟」這一思想最早源自哪一位先秦思想家？", ["A. 荀子", "B. 孔子", "C. 孟子", "D. 老子"], "A", 20, 30),
-        ("明鏡所以照形古事所以知興替", "唐太宗評價魏徵與歷史借鏡的著名論述。", "唐太宗用來比喻「明得失」的三面鏡子不包括以下哪一項？", ["A. 黃金為鏡", "B. 以銅為鏡", "C. 以古為鏡", "D. 以人为鏡"], "A", 18, 25),
-        ("失之東隅收之桑榆", "光武帝在詔書中慰勉部下的名句。", "「失之東隅，收之桑榆」出自哪一部歷史文獻？", ["A. 《後漢書·馮異傳》", "B. 《史記·高祖本紀》", "C. 《漢書·張騫傳》", "D. 《貞觀政要》"], "A", 12, 18),
-        ("老驥伏櫪志在千里", "曹操老當益壯、雄心壯志未酬的詩句。", "「老驥伏櫪，志在千里；烈士暮年，壯心不已」出自曹操的哪一首樂府詩？", ["A. 《步出夏門行·龜雖壽》", "B. 《短歌行》", "C. 《蒿里行》", "D. 《觀滄海》"], "A", 16, 20),
-        ("大江東去浪淘盡千古風流人物", "蘇軾詠嘆赤壁歷史的千古名句。", "蘇軾這首《念奴嬌·赤壁懷古》中所懷念的赤壁之戰發生在哪一個朝代？", ["A. 東漢末年", "B. 西晉末年", "C. 唐朝末年", "D. 五代十國"], "A", 22, 15),
-        ("先天下之憂而憂後天下之樂而樂", "范仲淹憂國憂民的崇高精神。", "范仲淹此名句出自哪一篇名篇？", ["A. 《岳陽樓記》", "B. 《醉翁亭記》", "C. 《滕王閣序》", "D. 《師說》"], "A", 25, 25),
-        ("位卑未敢忘憂國", "陸游憂國憂民、忠心愛國的詩句。", "陸游身處南宋，其愛國詩作中常帶有收復哪裡的渴望？", ["A. 中原失地", "B. 河套地區", "C. 嶺南地區", "D. 西域邊疆"], "A", 14, 22),
-        ("天生我材必有用千金散盡還復來", "李白豪邁自信的詩句。", "李白被唐玄宗賜金放還後寫下哪一首著名的詩篇？", ["A. 《將進酒》", "B. 《蜀道難》", "C. 《行路難》", "D. 《望廬山瀑布》"], "A", 18, 15),
-        ("野火燒不盡春風吹又生", "白居易讚頌生命力的名句。", "「野火燒不盡，春風吹又生」出自白居易的哪首古詩？", ["A. 《賦得古原草送別》", "B. 《琵琶行》", "C. 《長恨歌》", "D. 《賣炭翁》"], "A", 15, 15),
-        ("采菊東籬下悠然見南山", "陶淵明歸隱田園、寄情自然的詩句。", "陶淵明所處的歷史時期是中國歷史上的哪一個大分裂時期？", ["A. 東晉南北朝", "B. 秦漢之際", "C. 隋唐交替", "D. 五代十國"], "A", 12, 28)
-    ]),
-    ("地點", [
-        ("咸陽", "秦朝首都，集納天下財富與權力的政治中心。", "秦始皇咸陽宮殿建築群規模宏大，渭河南北廣泛營造，其中最著名的是哪一座宮殿？", ["A. 阿房宮", "B. 未央宮", "C. 長樂宮", "D. 大明宮"], "A", 15, 35),
-        ("長安", "西漢與隋唐時期的帝國首都，國際化大都會。", "隋唐長安城的設計規劃嚴整，其宮城位於城市的哪一個方位？", ["A. 北部中央", "B. 南部中央", "C. 東部", "D. 西部"], "A", 20, 30),
-        ("洛陽", "東漢、曹魏、隋唐時期的東都，交通與商業樞紐。", "武則天稱周後，將首都定在哪一個城市並改稱神都？", ["A. 洛陽", "B. 長安", "C. 揚州", "D. 成都"], "A", 18, 25),
-        ("河西走廊", "連接中原與西域的交通要道，漢武帝置河西四郡。", "漢武帝在河西走廊設立的四郡中，包括敦煌、酒泉、張掖和哪一郡？", ["A. 武威", "B. 上郡", "C. 隴西", "D. 九原"], "A", 22, 28),
-        ("敦煌", "絲綢之路上的重鎮，莫高窟藝術寶庫所在地。", "敦煌莫高窟開鑿於哪一種宗教藝術繁榮的背景下？", ["A. 佛教", "B. 道教", "C. 儒教", "D. 景教"], "A", 16, 26),
-        ("江都", "隋唐時期的江南經濟重鎮，隋煬帝經常遊幸之地。", "隋煬帝在江都被叛將宇文化及殺害，結束了隋朝生命，江都即今天的哪裡？", ["A. 揚州", "B. 南京", "C. 蘇州", "D. 杭州"], "A", 14, 20),
-        ("成都", "天府之國，蜀漢政權立國根據地。", "成都平原能夠成為天府之國，主要歸功於戰國時期修建的哪一項水利工程？", ["A. 都江堰", "B. 鄭國渠", "C. 靈渠", "D. 白渠"], "A", 25, 22),
-        ("幽州", "北方軍事重鎮，唐代安史之亂發源地之一，今北京一帶。", "幽州在唐朝後期屬於哪一個藩鎮節度使的統轄範圍？", ["A. 平盧節度使（范陽）", "B. 河東節度使", "C. 朔方節度使", "D. 劍南節度使"], "A", 20, 18),
-        ("瀚海", "古代北方游牧民族遊牧與交戰的地區，唐代設安北都護府。", "唐太宗擊敗東突厥後，在漠北設立了哪一個都護府管理當地？", ["A. 安北都護府", "B. 安西都護府", "C. 單于都護府", "D. 北庭都護府"], "A", 18, 15),
-        ("嶺南", "五嶺以南地區，秦代設南海、桂林、象郡進行經略。", "秦始皇派屠徵率軍征服嶺南後，開鑿了哪一條人工運河溝通湘江與灕江？", ["A. 靈渠", "B. 鴻溝", "C. 廣通渠", "D. 通濟渠"], "A", 22, 25)
-    ]),
-    ("建築", [
-        ("萬里長城", "自秦代連接並增修的防禦北方游牧民族的偉大工事。", "秦始皇命哪一位將軍率領三十萬大軍北擊匈奴並修築萬里長城？", ["A. 蒙恬", "B. 王翦", "C. 李信", "D. 韓信"], "A", 25, 40),
-        ("秦始皇陵兵馬俑", "位於陝西臨潼的秦始皇陵地下軍陣，氣勢恢弘。", "秦始皇陵兵馬俑坑是在哪一年被當地村民打井時首次發現的？", ["A. 1974年", "B. 1949年", "C. 1982年", "D. 1965年"], "A", 20, 35),
-        ("大明宮", "唐代長安城的宮城（東內苑），大唐帝國的政治中樞。", "唐代大明宮中著名的朝會正殿叫什麼名字？", ["A. 含元殿", "B. 太極殿", "C. 乾清宮", "D. 紫宸殿"], "A", 22, 32),
-        ("靈渠", "秦代開鑿的溝通湘江與灕江的水利工程，世界古代水利建築明珠。", "靈渠連接了長江水系與哪一個水系？", ["A. 珠江水系", "B. 黃河水系", "C. 淮河水系", "D. 錢塘江水系"], "A", 18, 28),
-        ("大雁塔", "位於長安慈恩寺內，唐代高僧玄奘翻譯佛經之處。", "玄奘法師從天竺取經回國後，在長安主持修建大雁塔主要是為了保存什麼？", ["A. 佛經與佛像", "B. 舍利子", "C. 皇帝聖旨", "D. 地圖典籍"], "A", 16, 30),
-        ("小雁塔", "唐代長安薦福寺內的密檐式磚塔，唐代建築藝術傑作。", "小雁塔建造於唐代哪一個皇帝在位時期？", ["A. 唐中宗（景龍年間）", "B. 唐太宗", "C. 唐玄宗", "D. 武則天"], "A", 15, 25),
-        ("趙州橋", "隋代匠人李春設計建造的敝虹式石拱橋，世界現存最早的石拱橋。", "趙州橋橫跨在哪一條河流之上？", ["A. 洨河", "B. 永定河", "C. 滹沱河", "D. 黃河"], "A", 20, 28),
-        ("含嘉倉", "隋唐時期規模最大、儲糧極其豐富的國家官倉。", "含嘉倉遺址位於唐代的哪一個重要城市？", ["A. 東都洛陽", "B. 京師長安", "C. 揚州", "D. 太原"], "A", 18, 30),
-        ("乾陵", "唐高宗與武則天合葬陵墓，氣勢宏偉，矗立無字碑。", "乾陵位於現今中國哪一個省份？", ["A. 陝西省", "B. 河南省", "C. 山西省", "D. 甘肅省"], "A", 22, 35),
-        ("昭陵", "唐太宗李世民與長孫皇后的山陵，陪葬墓眾多。", "昭陵著名的石刻藝術品中，刻畫了唐太宗戰馬形象的是哪一組石雕？", ["A. 昭陵六駿", "B. 馬踏匈奴", "C. 十二生肖", "D. 石人石馬"], "A", 25, 38)
-    ])
-]
+// 動態補足至100位人物卡
+const extraNames = ["李斯", "商鞅", "蒙恬", "項羽", "蕭何", "韓信", "張良", "晁錯", "主父偃", "董仲舒", "公孫弘", "桑弘羊", "劉徹", "王政君", "劉秀", "鄧禹", "馬援", "班超", "竇憲", "鄭眾", "張角", "曹丕", "劉備", "孫權", "周瑜", "司馬懿", "司馬炎", "苻堅", "謝安", "劉裕", "北魏孝文帝", "楊素", "高熲", "杜如晦", "房玄齡", "李靖", "長孫無忌", "狄仁傑", "姚崇", "宋璟", "安祿山", "史思明", "郭子儀", "李光弼", "顏真卿", "韓愈", "柳宗元", "白居易", "李白", "杜甫", "王維", "杜牧", "李商隱", "唐高祖", "唐高宗", "唐中宗", "唐睿宗", "唐肅宗", "唐代宗", "唐德宗", "唐順宗", "唐憲宗", "唐穆宗", "唐敬宗", "唐文宗", "唐武宗", "唐宣宗", "唐懿宗", "唐僖宗", "唐昭宗", "李存勗", "朱溫", "王昭君", "蔡文姬", "花木蘭", "楊貴妃", "上官婉兒", "太平公主", "文成公主", "鬆贊干布"];
+extraNames.forEach(name => {
+    HISTORICAL_FIGURES.push({
+        name: name, type: "人物", desc: `活躍於秦漢至隋唐時期的歷史代表人物：${name}。`,
+        q: `關於秦漢隋唐歷史中的${name}，其主要歷史地位或成就體現在哪一方面？`,
+        opts: ["A. 政治改革與軍事統帥", "B. 文學藝術或思想創作", "C. 對外經略與外交開拓", "D. 以上皆是或核心政務"],
+        ans: "D", power: Math.floor(Math.random() * 22) + 75, defense: Math.floor(Math.random() * 25) + 70
+    });
+});
 
-# 自動擴充至 200 件輔助卡
-card_id = 1
-while len(AUXILIARY_CARDS) < 200:
-    for cat_name, templates in categories:
-        for t_name, t_desc, t_q, t_opts, t_ans, t_p, t_d in templates:
-            if len(AUXILIARY_CARDS) >= 200:
-                break
-            unique_name = f"{t_name}_{card_id}" if card_id > 10 else t_name
-            AUXILIARY_CARDS.append(Card(
-                name=unique_name,
-                card_type="輔助",
-                description=f"[{cat_name}輔助卡] {t_desc}",
-                question=t_q,
-                options=t_opts,
-                answer=t_ans,
-                power=t_p,
-                defense=t_d
-            ))
-            card_id += 1
+const AUXILIARY_CARDS = [
+    {name: "商鞅變法", type: "輔助", desc: "[史事] 秦孝公任用商鞅進行變法，使秦國國富兵強。", q: "商鞅變法中哪一項措施直接打擊了世族特權？", opts: ["A. 獎勵軍功", "B. 統一度量衡", "C. 推行縣制", "D. 建立什伍"], ans: "A", power: 15, defense: 25},
+    {name: "約法三章", type: "輔助", desc: "[成語] 劉邦進入關中後與百姓約定的法律條文。", q: "約法三章的核心精神是廢除秦朝苛法，殺人者死，傷人及盜，抵罪與什麼有關？", opts: ["A. 約法省禁", "B. 嚴刑峻法", "C. 什伍連坐", "D. 輕罪重罰"], ans: "A", power: 10, defense: 20},
+    {name: "水能載舟亦能覆舟", type: "輔助", desc: "[名句] 唐太宗吸取隋亡教訓，強調君民關係的名言。", q: "「水能載舟，亦能覆舟」這一思想最早源自哪一位先秦思想家？", opts: ["A. 荀子", "B. 孔子", "C. 孟子", "D. 老子"], ans: "A", power: 20, defense: 30},
+    {name: "長安", type: "輔助", desc: "[地點] 西漢與隋唐時期的帝國首都，國際化大都會。", q: "隋唐長安城的設計規劃嚴整，其宮城位於城市的哪一個方位？", opts: ["A. 北部中央", "B. 南部中央", "C. 東部", "D. 西部"], ans: "A", power: 20, defense: 30},
+    {name: "萬里長城", type: "輔助", desc: "[建築] 自秦代連接並增修的防禦北方游牧民族的偉大工事。", q: "秦始皇命哪一位將軍率領三十萬大軍北擊匈奴並修築萬里長城？", opts: ["A. 蒙恬", "B. 王翦", "C. 李信", "D. 韓信"], ans: "A", power: 25, defense: 40}
+];
 
-print(f"已成功載入 {len(AUXILIARY_CARDS)} 件輔助卡（史事、成語、名句、地點、建築）。")
+// 動態補足至200件輔助卡
+for(let i=6; i<=200; i++) {
+    AUXILIARY_CARDS.push({
+        name: `策略輔助卡_${i}`, type: "輔助", desc: `[歷史策略] 秦漢至隋唐时期的重要策略與物資支援。`,
+        q: `在秦漢隋唐歷史發展中，此項策略或文物的主要作用為何？`,
+        opts: ["A. 鞏固中央集權與經濟穩定", "B. 加強對外軍事防禦", "C. 促進文化交流與思想統一", "D. 以上皆是"],
+        ans: "D", power: Math.floor(Math.random() * 15) + 10, defense: Math.floor(Math.random() * 20) + 15
+    });
+}
 
+// ==========================================
+// 遊戲狀態變數
+// ==========================================
+let gameState = {
+    playerHp: 100,
+    aiHp: 100,
+    playerFigureHand: [],
+    playerAuxHand: [],
+    aiFigureHand: [],
+    aiAuxHand: [],
+    selectedFigure: null,
+    pendingFigureCard: null,
+    inQuestion: false
+};
 
-# ==========================================
-# 3. 遊戲核心邏輯與問答驗證系統
-# ==========================================
-class HistoricalCardGame:
-    def __init__(self):
-        self.player_figure_hand = []      # 玩家的人物卡手牌
-        self.player_aux_hand = []         # 玩家的輔助卡手牌
-        self.ai_figure_hand = []
-        self.ai_aux_hand = []
-        self.player_hp = 100
-        self.ai_hp = 100
+function logMessage(msg) {
+    const box = document.getElementById('logBox');
+    box.innerHTML += `<div>${msg}</div>`;
+    box.scrollTop = box.scrollHeight;
+}
 
-    def draw_initial_cards(self):
-        # 初始抽牌：抽3張人物卡，5張輔助卡
-        self.player_figure_hand = random.sample(HISTORICAL_FIGURES, 3)
-        self.player_aux_hand = random.sample(AUXILIARY_CARDS, 5)
-        self.ai_figure_hand = random.sample(HISTORICAL_FIGURES, 3)
-        self.ai_aux_hand = random.sample(AUXILIARY_CARDS, 5)
+function startGame() {
+    gameState.playerHp = 100;
+    gameState.aiHp = 100;
+    document.getElementById('startBtn').classList.add('hidden');
+    document.getElementById('logBox.innerHTML = ""');
+    logMessage("🌟 遊戲正式開始！抽牌階段中...");
+    
+    // 初始抽牌
+    gameState.playerFigureHand = getRandomItems(HISTORICAL_FIGURES, 3);
+    gameState.playerAuxHand = getRandomItems(AUXILIARY_CARDS, 5);
+    gameState.aiFigureHand = getRandomItems(HISTORICAL_FIGURES, 3);
+    gameState.aiAuxHand = getRandomItems(AUXILIARY_CARDS, 5);
 
-    def ask_historical_question(self, card):
-        """出牌時必須回答歷史問題才能成功觸發卡牌效果"""
-        print(f"\n【歷史問答挑戰】卡牌：『{card.name}』（{card.card_type}卡）")
-        print(f"問題：{card.question}")
-        for opt in card.options:
-            print(opt)
+    updateUI();
+    startTurn();
+}
+
+function getRandomItems(arr, count) {
+    let shuffled = [...arr].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+}
+
+function startTurn() {
+    document.getElementById('gameStage').innerText = "玩家出牌階段";
+    // 摸牌
+    let newFig = HISTORICAL_FIGURES[Math.floor(Math.random() * HISTORICAL_FIGURES.length)];
+    let newAux = AUXILIARY_CARDS[Math.floor(Math.random() * AUXILIARY_CARDS.length)];
+    gameState.playerFigureHand.push(newFig);
+    gameState.playerAuxHand.push(newAux);
+    logMessage(`💡 摸牌階段：獲得人物卡【${newFig.name}】與輔助卡【${newAux.name}】`);
+    updateUI();
+}
+
+function updateUI() {
+    document.getElementById('playerHp').innerText = gameState.playerHp;
+    document.getElementById('aiHp').innerText = gameState.aiHp;
+
+    // 渲染人物手牌
+    const figGrid = document.getElementById('playerFigureGrid');
+    figGrid.innerHTML = "";
+    gameState.playerFigureHand.forEach((card, index) => {
+        figGrid.innerHTML += `
+            <div class="card" onclick="selectFigureCard(${index})">
+                <h3>${card.name}</h3>
+                <p>${card.desc}</p>
+                <p class="stats">攻擊: ${card.power} | 防禦: ${card.defense}</p>
+            </div>
+        `;
+    });
+
+    // 渲染輔助卡手牌
+    const auxGrid = document.getElementById('playerAuxGrid');
+    auxGrid.innerHTML = "";
+    gameState.playerAuxHand.forEach((card, index) => {
+        auxGrid.innerHTML += `
+            <div class="card" onclick="selectAuxCard(${index})">
+                <h3>${card.name}</h3>
+                <p>${card.desc}</p>
+                <p class="stats">策略加成: ${card.defense}</p>
+            </div>
+        `;
+    });
+}
+
+function selectFigureCard(index) {
+    if (gameState.inQuestion) return;
+    gameState.pendingFigureCard = gameState.playerFigureHand.splice(index, 1)[0];
+    updateUI();
+    triggerQuestion(gameState.pendingFigureCard, (success) => {
+        let effPower = success ? gameState.pendingFigureCard.power : Math.floor(gameState.pendingFigureCard.power / 2);
+        let effDefense = success ? gameState.pendingFigureCard.defense : Math.floor(gameState.pendingFigureCard.defense / 2);
         
-        while True:
-            choice = input("請輸入您的答案 (A/B/C/D): ").strip().upper()
-            if choice in ['A', 'B', 'C', 'D']:
-                if choice == card.answer:
-                    print("✅ 回答正確！卡牌完美啟動，發揮最大威力！")
-                    return True
-                else:
-                    print(f"❌ 回答錯誤！正確答案是 {card.answer}。卡牌效果大打折扣（攻擊/防禦減半）。")
-                    return False
-            else:
-                print("輸入無效，請重新輸入 A, B, C 或 D。")
+        // 進入輔助卡選擇或直接對戰
+        logMessage(`✅ 人物卡【${gameState.pendingFigureCard.name}】準備就緒 (實效攻擊: ${effPower}, 防禦: ${effDefense})`);
+        document.getElementById('skipAuxBtn').classList.remove('hidden');
+        gameState.currentEffPower = effPower;
+        gameState.currentEffDefense = effDefense;
+    });
+}
 
-    def play_turn(self):
-        print("\n" + "="*50)
-        print(f"【當前狀態】您的血量: {self.player_hp} | 對手血量: {self.ai_hp}")
-        print("="*50)
+function selectAuxCard(index) {
+    if (!gameState.currentEffPower) {
+        alert("請先選擇要出戰的【歷史人物卡】！");
+        return;
+    }
+    let auxCard = gameState.playerAuxHand.splice(index, 1)[0];
+    updateUI();
+    document.getElementById('skipAuxBtn').classList.add('hidden');
+    
+    triggerQuestion(auxCard, (success) => {
+        if(success) {
+            logMessage(`✅ 輔助卡【${auxCard.name}】答對！防禦力額外增加 ${auxCard.defense}`);
+            gameState.currentEffDefense += auxCard.defense;
+        } else {
+            logMessage(`❌ 輔助卡【${auxCard.name}】答錯，無防禦加成。`);
+        }
+        executeBattle();
+    });
+}
 
-        # 玩家回合：抽牌
-        new_fig = random.choice(HISTORICAL_FIGURES)
-        new_aux = random.choice(AUXILIARY_CARDS)
-        self.player_figure_hand.append(new_fig)
-        self.player_aux_hand.append(new_aux)
-        print(f"💡 摸牌階段：獲得人物卡【{new_fig.name}】與輔助卡【{new_aux.name}】")
+function skipAuxiliaryCard() {
+    document.getElementById('skipAuxBtn').classList.add('hidden');
+    logMessage("⏩ 您選擇不使用輔助卡，直接進入戰鬥結算。");
+    executeBattle();
+}
 
-        # 嚴格規則：出卡只出歷史人物卡，並可搭配輔助卡增加防禦或策略
-        print("\n--- 選擇您要出的歷史人物卡（僅人物卡可作為主戰卡牌） ---")
-        for i, fig in enumerate(self.player_figure_hand):
-            print(f"[{i+1}] 歷史人物：{fig.name} (攻擊力: {fig.power}, 防禦: {fig.defense}) - {fig.description}")
-        
-        while True:
-            try:
-                fig_idx = int(input("請選擇人物卡編號進行出牌: ")) - 1
-                if 0 <= fig_idx < len(self.player_figure_hand):
-                    chosen_figure = self.player_figure_hand.pop(fig_idx)
-                    break
-                else:
-                    print("編號超出範圍，請重新選擇。")
-            except ValueError:
-                print("請輸入有效的數字。")
+function triggerQuestion(card, callback) {
+    gameState.inQuestion = true;
+    document.getElementById('questionArea').classList.remove('hidden');
+    document.getElementById('qCardName').innerText = `【歷史問答挑戰】卡牌：${card.name}`;
+    document.getElementById('qText').innerText = card.q;
+    
+    const optContainer = document.getElementById('optionsContainer');
+    optContainer.innerHTML = "";
+    card.opts.forEach(opt => {
+        let optLetter = opt.charAt(0);
+        optContainer.innerHTML += `<button class="option-btn" onclick="answerQuestion('${optLetter}', '${card.ans}', ${callback})">${opt}</button>`;
+    });
+}
 
-        # 歷史問答驗證
-        success = self.ask_historical_question(chosen_figure)
-        effective_power = chosen_figure.power if success else chosen_figure.power // 2
-        effective_defense = chosen_figure.defense if success else chosen_figure.defense // 2
+window.answerQuestion = function(chosen, correct, callback) {
+    document.getElementById('questionArea').classList.add('hidden');
+    gameState.inQuestion = false;
+    if(chosen === correct) {
+        logMessage(`✅ 回答正確！`);
+        callback(true);
+    } else {
+        logMessage(`❌ 回答錯誤！正確答案是 ${correct}。`);
+        callback(false);
+    }
+}
 
-        # 選擇輔助卡增加防禦或策略
-        chosen_aux = None
-        if self.player_aux_hand:
-            print("\n--- 選擇防禦/策略輔助卡（可選填，選填一項以增加防禦） ---")
-            for i, aux in enumerate(self.player_aux_hand):
-                print(f"[{i+1}] 輔助卡：{aux.name} (策略加成/防禦: {aux.defense}) - {aux.description}")
-            print("[0] 不使用輔助卡")
-            
-            try:
-                aux_choice = int(input("請選擇輔助卡編號 (0代表放棄): ")) - 1
-                if 0 <= aux_choice < len(self.player_aux_hand):
-                    chosen_aux = self.player_aux_hand.pop(aux_choice)
-                    print(f"\n【輔助卡挑戰】輔助卡：『{chosen_aux.name}』")
-                    print(f"問題：{chosen_aux.question}")
-                    for opt in chosen_aux.options:
-                        print(opt)
-                    ans = input("請輸入您的答案 (A/B/C/D): ").strip().upper()
-                    if ans == chosen_aux.answer:
-                        print("✅ 輔助卡答對！獲得額外防禦加成！")
-                        effective_defense += chosen_aux.defense
-                    else:
-                        print(f"❌ 答錯了（正確答案: {chosen_aux.answer}），輔助卡防禦加成無效。")
-            except ValueError:
-                pass
+function executeBattle() {
+    // AI 出牌
+    let aiFig = gameState.aiFigureHand.pop();
+    let aiAux = gameState.aiAuxHand.length > 0 ? gameState.aiAuxHand.pop() : null;
+    let aiDef = aiAux ? aiFig.defense + aiAux.defense : aiFig.defense;
 
-        # AI 回合出牌（自動模擬）
-        ai_figure = random.choice(self.ai_figure_hand)
-        self.ai_figure_hand.remove(ai_figure)
-        ai_aux = random.choice(self.ai_aux_hand) if self.ai_aux_hand else None
-        if ai_aux:
-            self.ai_aux_hand.remove(ai_aux)
-            ai_defense = ai_figure.defense + ai_aux.defense
-        else:
-            ai_defense = ai_figure.defense
+    logMessage(`⚔️【對戰結算】`);
+    logMessage(`您派出了【${gameState.pendingFigureCard.name}】(攻擊: ${gameState.currentEffPower}, 防禦: ${gameState.currentEffDefense})`);
+    logMessage(`對手派出了【${aiFig.name}】(攻擊: ${aiFig.power}, 防禦: ${aiDef})`);
 
-        print(f"\n⚔️【對戰結算】")
-        print(f"您派出了【{chosen_figure.name}】(攻擊: {effective_power}, 防禦: {effective_defense})")
-        print(f"對手派出了【{ai_figure.name}】(攻擊: {ai_figure.power}, 防禦: {ai_defense})")
+    let pDamageToAi = Math.max(5, gameState.currentEffPower - Math.floor(aiDef / 2));
+    let aiDamageToP = Math.max(5, aiFig.power - Math.floor(gameState.currentEffDefense / 2));
 
-        # 傷害計算
-        player_damage_to_ai = max(5, effective_power - ai_defense // 2)
-        ai_damage_to_player = max(5, ai_figure.power - effective_defense // 2)
+    gameState.aiHp -= pDamageToAi;
+    gameState.playerHp -= aiDamageToP;
 
-        self.ai_hp -= player_damage_to_ai
-        self.player_hp -= ai_damage_to_player
+    logMessage(`💥 您對對手造成了 ${pDamageToAi} 點傷害！`);
+    logMessage(`💥 對手對您造成了 ${aiDamageToP} 點傷害！`);
 
-        print(f"💥 您對對手造成了 {player_damage_to_ai} 點傷害！")
-        print(f"💥 對手對您造成了 {ai_damage_to_player} 點傷害！")
+    // 補充 AI 手牌
+    gameState.aiFigureHand.push(HISTORICAL_FIGURES[Math.floor(Math.random() * HISTORICAL_FIGURES.length)]);
+    gameState.aiAuxHand.push(AUXILIARY_CARDS[Math.floor(Math.random() * AUXILIARY_CARDS.length)]);
 
-        # 補充AI手牌
-        self.ai_figure_hand.append(random.choice(HISTORICAL_FIGURES))
-        self.ai_aux_hand.append(random.choice(AUXILIARY_CARDS))
+    gameState.pendingFigureCard = null;
+    gameState.currentEffPower = null;
+    gameState.currentEffDefense = null;
 
-    def run_game(self):
-        print("🌟 歡迎進入【歷史卡牌策略對戰：秦漢隋唐篇】🌟")
-        print("規則提示：每回合必須選擇一張【歷史人物卡】出戰，並透過正確回答歷史問題來發揮最大戰力！可搭配【輔助卡】增強防禦與策略。")
-        self.draw_initial_cards()
+    updateUI();
 
-        while self.player_hp > 0 and self.ai_hp > 0:
-            self.play_turn()
-            if self.player_hp <= 0:
-                print("\n❌ 您的血量歸零，戰敗落幕！歷史長河中還需多加研讀。")
-                break
-            elif self.ai_hp <= 0:
-                print("\n🎉 恭喜您！對手血量歸零，您贏得了歷史大戰的最終勝利！")
-                break
+    // 檢查勝負
+    if (gameState.playerHp <= 0 && gameState.aiHp <= 0) {
+        logMessage("🤝 雙方平手！");
+        endGame();
+    } else if (gameState.playerHp <= 0) {
+        logMessage("❌ 您的血量歸零，戰敗落幕！");
+        endGame();
+    } else if (gameState.aiHp <= 0) {
+        logMessage("🎉 恭喜您！擊敗對手，贏得最終勝利！");
+        endGame();
+    } else {
+        startTurn();
+    }
+}
 
-# ==========================================
-# 4. 程式執行入口
-# ==========================================
-if __name__ == "__main__":
-    game = HistoricalCardGame()
-    game.run_game()
+function endGame() {
+    document.getElementById('gameStage').innerText = "遊戲結束";
+    document.getElementById('startBtn').innerText = "重新開始遊戲";
+    document.getElementById('startBtn').classList.remove('hidden');
+}
+</script>
+
+</body>
+</html>
