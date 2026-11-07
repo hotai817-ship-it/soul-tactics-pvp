@@ -225,27 +225,22 @@ const CARD_QUESTIONS_DB = {
     ]
 };
 
-function generate10Questions(cardName, dynasty) {
-    let qs = [];
-    if (CARD_QUESTIONS_DB[cardName]) {
-        CARD_QUESTIONS_DB[cardName].forEach(qItem => qs.push(qItem));
+// 4. 精簡後的題庫隨機抽選函數（僅使用現有題庫）
+function getRandomQuestion(cardName, dynasty) {
+    let qs = CARD_QUESTIONS_DB[cardName];
+    
+    // 如果該卡牌在題庫中找不到題目，提供一題預設的保底題以防當機
+    if (!qs || qs.length === 0) {
+        return {
+            q: `關於【${cardName}】(${dynasty})的歷史考驗：下列敘述何者最符合歷史原貌？`,
+            opts: [`A. 此選項符合該時期的歷史發展`, `B. 與其生平無關`, `C. 後世虛構情節`, `D. 違背客觀規律`],
+            correctIndex: 0
+        };
     }
-    while (qs.length < 10) {
-        let idx = qs.length + 1;
-        let correctAns = `此選項符合${dynasty}時期的歷史發展與核心典章`;
-        let wrongOpts = [
-            `與【${cardName}】的生平與政策毫無關聯`,
-            `此為後世章回小說或民間傳說虛構之情節`,
-            `此選項違背當時的社會政治與經濟發展客觀規律`
-        ];
-        let opts = [correctAns, wrongOpts[0], wrongOpts[1], wrongOpts[2]].sort(() => Math.random() - 0.5);
-        qs.push({
-            q: `關於【${cardName}】(${dynasty})的歷史進階考驗第 ${idx} 題：下列敘述何者最符合歷史原貌？`,
-            opts: opts.map((o, i) => `${['A', 'B', 'C', 'D'][i]}. ${o}`),
-            correctIndex: opts.indexOf(correctAns)
-        });
-    }
-    return qs;
+    
+    // 如果有多於一題則隨機抽選，若只有一題則直接回傳該題
+    const randomIndex = Math.floor(Math.random() * qs.length);
+    return qs[randomIndex];
 }
 
 const ALL_CARDS = [...HERO_CARDS, ...SUPPORT_CARDS];
@@ -294,6 +289,7 @@ io.on('connection', (socket) => {
         updateGameState(roomId);
     });
 
+    // 請求出牌時的歷史考驗題
     socket.on('get_card_question', ({ roomId, cardIndex }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
@@ -305,8 +301,7 @@ io.on('connection', (socket) => {
         const card = pState.hand[cardIndex];
         if (!card) return;
 
-        let questions = generate10Questions(card.name, card.dynasty);
-        let qData = questions[Math.floor(Math.random() * questions.length)];
+        let qData = getRandomQuestion(card.name, card.dynasty);
         qData.cardName = card.name;
         socket.emit('show_card_question', { qData });
     });
@@ -340,6 +335,7 @@ io.on('connection', (socket) => {
         updateGameState(roomId);
     });
 
+    // 請求攻擊題庫
     socket.on('get_attack_question', ({ roomId }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
@@ -349,8 +345,7 @@ io.on('connection', (socket) => {
             return;
         }
 
-        let questions = generate10Questions(pState.active.name, pState.active.dynasty);
-        let qData = questions[Math.floor(Math.random() * questions.length)];
+        let qData = getRandomQuestion(pState.active.name, pState.active.dynasty);
         socket.emit('show_attack_question', { qData });
     });
 
