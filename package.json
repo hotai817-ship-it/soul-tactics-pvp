@@ -1,7 +1,7 @@
 {
-  "name": "soul-tactics-pvp",
-  "version": "1.0.0",
-  "description": "中史科校本對戰系統",
+  "name": "soul-tactics-room-pvp",
+  "version": "2.2.0",
+  "description": "Soul Tactics - Room-based Real-time Multiplayer Card Game",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
