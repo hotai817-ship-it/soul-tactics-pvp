@@ -218,22 +218,20 @@
 
     // 主戰人物攻擊題問
     function triggerAttack() {
-        const questions = [
-            { q: "秦王政自認為「XX三皇，XX五帝」，於是把三「皇」五「帝」名稱合稱為「皇帝」。請填空：", ans: "功過三皇，德兼五帝", opts: ["A. 功過三皇，德兼五帝", "B. 德高三皇，功過五帝", "C. 德兼三皇，功過五帝"], correct: 0 },
-            { q: "漢武帝採納主父偃的建議，頒行哪一項法令削弱諸侯王勢力？", ans: "推恩令", opts: ["A. 削藩令", "B. 推恩令", "C. 漢律令"], correct: 1 },
-            { q: "唐太宗在位期間政治清明，史稱為什麼？", ans: "貞觀之治", opts: ["A. 開元之治", "B. 貞觀之治", "C. 文景之治"], correct: 1 }
-        ];
-        let q = questions[Math.floor(Math.random() * questions.length)];
+        socket.emit('get_attack_question', { roomId: currentRoomId });
+    }
+
+    socket.on('show_attack_question', ({ qData }) => {
         document.getElementById('modalTitle').innerText = "⚔️ 主戰人物戰技激發";
-        document.getElementById('qText').innerText = q.q;
+        document.getElementById('qText').innerText = qData.q;
         const optDiv = document.getElementById('qOptions');
         optDiv.innerHTML = "";
-        q.opts.forEach((opt, idx) => {
-            let isCorrect = (idx === q.correct);
+        qData.opts.forEach((opt, idx) => {
+            let isCorrect = (idx === qData.correctIndex);
             optDiv.innerHTML += `<button class="modal-btn" onclick="submitAttackAnswer(${isCorrect})">${opt}</button>`;
         });
         document.getElementById('questionModal').classList.remove('hidden');
-    }
+    });
 
     function submitAttackAnswer(isCorrect) {
         document.getElementById('questionModal').classList.add('hidden');
