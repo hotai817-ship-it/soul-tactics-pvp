@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>《英魂決：時空交錯》房間式即時對戰空間</title>
+    <title>《英魂決》房間式即時對戰空間</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root { --gold: #D4AF37; --bg: #0f172a; --panel: rgba(26, 43, 76, 0.95); }
@@ -36,16 +36,18 @@
         .modal-content { background: #1e293b; border: 3px solid var(--gold); padding: 25px; border-radius: 12px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .modal-btn { background: #3b82f6; color: white; border: none; padding: 14px; margin: 8px 0; border-radius: 8px; width: 100%; cursor: pointer; text-align: left; font-weight: bold; font-size: clamp(0.95rem, 1.5vw, 1.05rem); touch-action: manipulation; }
         .modal-btn:hover { background: #2563eb; }
+        .modal-close-btn { background: #ef4444; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; touch-action: manipulation; }
+        .modal-close-btn:hover { background: #dc2626; }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>《英魂決：時空交錯》</h1>
+    <h1>《英魂決》</h1>
     
     <div id="lobby" style="margin: auto; text-align: center; background: var(--panel); padding: 35px; border: 2px solid var(--gold); border-radius: 15px;">
         <h3 style="color: var(--gold); margin-top:0; font-size: 1.5rem;">輸入房號開始對戰</h3>
-        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">點選手牌中的人物卡直接部署，發動策略卡或攻擊時才會進行歷史考驗答題！</p>
+        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">點選手牌進行歷史考驗答題，答對即可部署人物或發動策略！</p>
         <input type="text" id="roomInput" class="input-box" placeholder="例如: 8888"><br>
         <button class="btn" onclick="createRoom();">🏠 建立房間</button>
         <button class="btn" onclick="joinRoom();">🔑 加入房間</button>
@@ -64,13 +66,13 @@
                 <div class="zone" id="opActive"></div>
             </div>
             <div>
-                <div style="color:var(--gold); font-size:0.85em; text-align:left;">我方陣地 (點擊主戰人物進行戰技激發答題：答對 60 點 / 答錯 20 點傷害)</div>
+                <div style="color:var(--gold); font-size:0.85em; text-align:left;">我方陣地 (點擊主戰人物可發動戰技答題：答對 60 點 / 答錯 20 點傷害)</div>
                 <div class="zone" id="myActive"></div>
             </div>
         </div>
 
         <div>
-            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (人物卡點擊直接部署，輔助卡點擊觸發策略考驗)</div>
+            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (點擊手牌進行歷史考驗)</div>
             <div class="zone" id="myHand" style="min-height: 160px; background: rgba(0,0,0,0.3); border-radius: 8px;"></div>
         </div>
 
@@ -92,7 +94,7 @@
 <script>
     const socket = io();
     let currentRoomId = null;
-    let pendingSupportCardName = null;
+    let selectedCardIndex = null;
     let isModalOpen = false;
 
     function createRoom() {
@@ -130,7 +132,7 @@
 
         const indicator = document.getElementById('turnIndicator');
         if (isMyTurn) {
-            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊主戰人物進攻" : "⭐ 請點選手牌出牌（人物直接部署，策略觸發考驗），或點擊英雄進攻";
+            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊英雄進攻" : "⭐ 請點選手牌進行歷史考驗出牌，或點擊英雄進攻";
             indicator.innerText = actionText;
             indicator.style.color = "#4ade80";
         } else {
@@ -146,81 +148,73 @@
             let opacity = canPlay ? '1' : '0.5';
             
             handDiv.innerHTML += `
-                <div class="card" style="opacity: ${opacity};" onclick="playCard(${idx}, ${canPlay})">
+                <div class="card" style="opacity: ${opacity};" onclick="requestCardQuestion(${idx}, ${canPlay})">
                     <div style="font-size:0.75em; font-weight:bold; color:${tagColor};">[${card.dynasty}] ${card.type}</div>
                     <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${card.name}</div>
                     <div style="font-size:0.6em; color:#475569; overflow:hidden; max-height:45px;">${card.desc}</div>
-                    <div style="font-size:0.65em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">${canPlay ? (card.type === '人物' ? '點擊直接部署' : '點擊策略考驗') : '等待中'}</div>
+                    <div style="font-size:0.65em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">${canPlay ? '點擊出牌答題' : '等待中'}</div>
                 </div>`;
         });
 
         const myActive = document.getElementById('myActive');
-        let supportHtml = myState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px; margin-right:4px;">🛡️ ${c.name}</span>`).join('');
-        
         if (myState.active) {
             let canAttack = isMyTurn;
             let activeOpacity = canAttack ? '1' : '0.6';
             myActive.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:100%;">
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <div class="card" style="border:3px solid #22c55e; opacity: ${activeOpacity};" onclick="triggerAttack(${isMyTurn})">
-                            <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${myState.active.dynasty}] 主戰人物</div>
-                            <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${myState.active.name}</div>
-                            <div style="font-size:0.6em; color:#475569;">${myState.active.skill}</div>
-                            <div style="font-size:0.65em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">${canAttack ? '⚔️ 戰技攻擊(答對60/錯20)' : '等待回合'}</div>
-                        </div>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                    <div class="card" style="border:3px solid #22c55e; opacity: ${activeOpacity};" onclick="requestAttack(${isMyTurn})">
+                        <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${myState.active.dynasty}] 主戰人物</div>
+                        <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${myState.active.name}</div>
+                        <div style="font-size:0.6em; color:#475569;">${myState.active.skill}</div>
+                        <div style="font-size:0.65em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">${canAttack ? '⚔️ 點擊攻擊答題' : '等待回合'}</div>
                     </div>
-                    ${supportHtml ? `<div style="font-size:0.85rem; color:#38bdf8;">支援區: ${supportHtml}</div>` : ''}
                 </div>`;
         } else {
-            myActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">尚未部署主戰人物（請從手牌點擊人物卡直接部署） ${supportHtml ? '<br>支援區: ' + supportHtml : ''}</div>`;
+            myActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">尚未部署主戰人物（請從手牌部署）</div>`;
         }
 
         const opActive = document.getElementById('opActive');
-        let opSupportHtml = opState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px;">🛡️ ${c.name}</span>`).join('');
         if (opState.active) {
             opActive.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
-                    <div class="card" style="border:3px solid #ef4444;">
-                        <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${opState.active.dynasty}] 對手主戰</div>
-                        <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${opState.active.name}</div>
-                        <div style="font-size:0.6em; color:#475569;">${opState.active.skill}</div>
-                        <div style="font-size:0.65em; background:#fee2e2; color:#991b1b; font-weight:bold; text-align:center;">部署中</div>
-                    </div>
-                    ${opSupportHtml ? `<div style="font-size:0.85rem; color:#38bdf8;">支援區: ${opSupportHtml}</div>` : ''}
+                <div class="card" style="border:3px solid #ef4444;">
+                    <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${opState.active.dynasty}] 對手主戰</div>
+                    <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${opState.active.name}</div>
+                    <div style="font-size:0.6em; color:#475569;">${opState.active.skill}</div>
+                    <div style="font-size:0.65em; background:#fee2e2; color:#991b1b; font-weight:bold; text-align:center;">部署中</div>
                 </div>`;
         } else {
             opActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">對手尚未部署歷史人物</div>`;
         }
     });
 
-    function playCard(cardIndex, canPlay) {
+    function requestCardQuestion(cardIndex, canPlay) {
         if (!canPlay || isModalOpen) return;
-        socket.emit('play_card', { roomId: currentRoomId, cardIndex });
+        selectedCardIndex = cardIndex;
+        isModalOpen = true;
+        socket.emit('get_card_question', { roomId: currentRoomId, cardIndex });
     }
 
-    socket.on('show_support_question', ({ qData, cardName }) => {
+    socket.on('show_card_question', ({ qData }) => {
         isModalOpen = true;
-        pendingSupportCardName = cardName;
-        document.getElementById('modalTitle').innerText = `📜 策略考驗 - 【${cardName}】`;
+        document.getElementById('modalTitle').innerText = `📜 歷史考驗 - 【${qData.cardName}】`;
         document.getElementById('qText').innerText = qData.q;
         const optDiv = document.getElementById('qOptions');
         optDiv.innerHTML = "";
         qData.opts.forEach((opt, idx) => {
             let isCorrect = (idx === qData.correctIndex);
-            optDiv.innerHTML += `<button class="modal-btn" onclick="submitSupportAnswer(${isCorrect})">${opt}</button>`;
+            optDiv.innerHTML += `<button class="modal-btn" onclick="submitCardAnswer(${isCorrect})">${opt}</button>`;
         });
         document.getElementById('questionModal').classList.remove('hidden');
     });
 
-    function submitSupportAnswer(isCorrect) {
+    function submitCardAnswer(isCorrect) {
         document.getElementById('questionModal').classList.add('hidden');
         isModalOpen = false;
-        socket.emit('resolve_support_card', { roomId: currentRoomId, cardName: pendingSupportCardName, answerCorrect: isCorrect });
-        pendingSupportCardName = null;
+        socket.emit('play_card_with_answer', { roomId: currentRoomId, cardIndex: selectedCardIndex, answerCorrect: isCorrect });
+        selectedCardIndex = null;
     }
 
-    function triggerAttack(isMyTurn) {
+    function requestAttack(isMyTurn) {
         if (!isMyTurn || isModalOpen) return;
         isModalOpen = true;
         socket.emit('get_attack_question', { roomId: currentRoomId });
