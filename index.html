@@ -1,95 +1,403 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="zh-HK">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2575.2">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英魂決 TCG - 歷史對戰系統</title>
+    <!-- 引入 Socket.io -->
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        /* 核心重置與字體設定 */
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { 
+            font-family: "PMingLiU", "MingLiU", "Noto Serif TC", serif; 
+            background: radial-gradient(circle at center, #2c3e50 0%, #0a0a0a 100%);
+            color: #ecf0f1; 
+            text-align: center; 
+            overflow: hidden; 
+            height: 100vh; 
+        }
+        .hidden { display: none !important; }
+
+        /* 遊戲大廳 - 皇室典雅風格 */
+        #lobby { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; 
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><path d="M50 0 L100 50 L50 100 L0 50 Z" fill="%23D4AF37"/></svg>');
+        }
+        h1 { font-size: 60px; color: #D4AF37; text-shadow: 2px 2px 10px rgba(212, 175, 55, 0.5); margin-bottom: 10px; letter-spacing: 5px; }
+        h2 { font-size: 24px; color: #bdc3c7; font-weight: normal; margin-bottom: 40px; letter-spacing: 2px; }
+        .input-group { background: rgba(0,0,0,0.6); padding: 30px; border-radius: 15px; border: 2px solid #D4AF37; box-shadow: 0 0 20px rgba(212, 175, 55, 0.2); }
+        input { padding: 12px; font-size: 20px; text-align: center; border: 2px solid #7f8c8d; background: #1a1a1a; color: #D4AF37; border-radius: 5px; margin-bottom: 20px; width: 250px; font-family: inherit; }
+        input:focus { outline: none; border-color: #D4AF37; box-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
+        .btn-gold { padding: 12px 25px; font-size: 20px; font-weight: bold; cursor: pointer; background: linear-gradient(135deg, #B8860B, #D4AF37); border: none; color: #000; border-radius: 5px; margin: 5px; transition: 0.3s; font-family: inherit; }
+        .btn-gold:hover { transform: scale(1.05); box-shadow: 0 0 15px #D4AF37; }
+        .btn-red { background: linear-gradient(135deg, #8B0000, #B22222); color: white; }
+        .btn-red:hover { box-shadow: 0 0 15px #ff4d4d; }
+
+        /* 戰鬥介面 */
+        #gameBoard { display: flex; flex-direction: column; justify-content: space-between; height: 100vh; padding: 20px; }
+        
+        /* 玩家區域與血條 */
+        .player-info { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 10px 30px; background: rgba(0,0,0,0.5); border: 1px solid #7f8c8d; border-radius: 10px; margin-bottom: 10px; }
+        .hp-container { width: 60%; background: #2c3e50; border: 2px solid #222; border-radius: 20px; overflow: hidden; position: relative; height: 25px; }
+        .hp-bar { height: 100%; background: linear-gradient(90deg, #ff0000, #ff4d4d); width: 100%; transition: width 0.5s ease-out; }
+        .hp-text { position: absolute; width: 100%; text-align: center; top: 2px; font-weight: bold; font-size: 16px; text-shadow: 1px 1px 2px #000; }
+        .player-name { font-size: 22px; color: #D4AF37; font-weight: bold; letter-spacing: 2px; }
+
+        /* 戰場交鋒區 */
+        .battlefield { flex-grow: 1; display: flex; justify-content: center; align-items: center; gap: 80px; position: relative; }
+        .field-slot { width: 130px; height: 180px; border: 2px dashed rgba(212, 175, 55, 0.4); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); font-size: 18px; }
+
+        /* 卡牌設計 - 嚴謹且華麗 */
+        .hand { display: flex; justify-content: center; gap: 15px; height: 190px; align-items: flex-end; }
+        .card { 
+            width: 120px; height: 170px; background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%);
+            border: 3px solid #8c7322; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; 
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+            transform-origin: bottom center;
+        }
+        .card:hover { transform: translateY(-20px) scale(1.1); border-color: #D4AF37; box-shadow: 0 10px 20px rgba(212,175,55,0.4), inset 0 0 15px rgba(212,175,55,0.2); z-index: 10; }
+        .card-name { background: rgba(0,0,0,0.8); color: #D4AF37; font-size: 20px; font-weight: bold; padding: 5px 0; border-bottom: 2px solid #8c7322; letter-spacing: 2px; }
+        .card-trait { font-size: 12px; color: #bdc3c7; margin-top: 10px; font-style: italic; padding: 0 5px; }
+        .card-power { position: absolute; bottom: 0; width: 100%; background: #8B0000; color: white; font-size: 22px; font-weight: bold; padding: 5px 0; border-top: 2px solid #ff4d4d; }
+
+        .card.played { animation: playAnim 0.5s forwards; cursor: default; }
+        .card.hidden-card { background: #111; border-color: #333; }
+        
+        /* 歷史問答視窗 */
+        #quizOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(5px); }
+        .quiz-box { background: #2c3e50; border: 4px solid #D4AF37; padding: 40px; border-radius: 15px; width: 600px; box-shadow: 0 0 40px rgba(212,175,55,0.3); text-align: left; }
+        .quiz-box h3 { color: #e74c3c; font-size: 20px; border-bottom: 1px solid #7f8c8d; padding-bottom: 10px; margin-bottom: 20px; }
+        #quizQuestion { font-size: 26px; line-height: 1.5; margin-bottom: 30px; }
+        .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .quiz-btn { background: #34495e; border: 2px solid #7f8c8d; padding: 15px; color: white; font-size: 20px; cursor: pointer; border-radius: 8px; transition: 0.2s; font-family: inherit; }
+        .quiz-btn:hover { background: #D4AF37; color: black; border-color: #D4AF37; }
+
+        /* 特效動畫 */
+        @keyframes playAnim { 0% { transform: scale(1.2) translateY(50px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-15px) rotate(-2deg); } 50% { transform: translateX(15px) rotate(2deg); } 75% { transform: translateX(-15px) rotate(-2deg); } 100% { transform: translateX(0); } }
+        .shake-effect { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ff0000 !important; box-shadow: 0 0 30px red; }
+        .correct-effect { box-shadow: 0 0 50px #2ecc71; border-color: #2ecc71 !important; transition: 0.3s; }
+        
+        /* 系統提示文字 */
+        #sysMsg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #f1c40f; padding: 10px 30px; border-radius: 30px; font-size: 18px; z-index: 1000; border: 1px solid #f1c40f; transition: opacity 0.5s; opacity: 0; pointer-events: none; }
+    </style>
 </head>
 <body>
-<p class="p1">// server.js - 《英魂決》WebSocket 即時對戰伺服器</p>
-<p class="p1">const http = require('http');</p>
-<p class="p1">const express = require('express');</p>
-<p class="p1">const { Server } = require('socket.io');</p>
-<p class="p2"><br></p>
-<p class="p1">const app = express();</p>
-<p class="p1">const server = http.createServer(app);</p>
-<p class="p1">const io = new Server(server, {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>cors: { origin: "*" }</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">// 儲存對戰房間狀態</p>
-<p class="p1">const rooms = {};</p>
-<p class="p2"><br></p>
-<p class="p1">io.on('connection', (socket) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>console.log(`玩家連線: ${socket.id}`);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 建立房間</p>
-<p class="p1"><span class="Apple-converted-space">    </span>socket.on('createRoom', (roomCode) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (rooms[roomCode]) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>socket.emit('errorMsg', '房間代碼已存在！');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>return;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>rooms[roomCode] = {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>players: [{ id: socket.id, hp: 60, card: null }],</p>
-<p class="p1"><span class="Apple-converted-space">            </span>turn: socket.id</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p1"><span class="Apple-converted-space">        </span>socket.join(roomCode);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>socket.emit('roomCreated', roomCode);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>console.log(`房間建立: ${roomCode}`);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 加入房間</p>
-<p class="p1"><span class="Apple-converted-space">    </span>socket.on('joinRoom', (roomCode) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const room = rooms[roomCode];</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (!room) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>socket.emit('errorMsg', '找不到此房間！');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>return;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (room.players.length &gt;= 2) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>socket.emit('errorMsg', '房間已滿！');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>return;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>room.players.push({ id: socket.id, hp: 60, card: null });</p>
-<p class="p1"><span class="Apple-converted-space">        </span>socket.join(roomCode);</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>// 通知雙方對戰開始</p>
-<p class="p1"><span class="Apple-converted-space">        </span>io.to(roomCode).emit('gameStart', { players: room.players });</p>
-<p class="p1"><span class="Apple-converted-space">        </span>console.log(`玩家加入房間: ${roomCode}`);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 玩家出牌同步</p>
-<p class="p1"><span class="Apple-converted-space">    </span>socket.on('playCardData', ({ roomCode, card }) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const room = rooms[roomCode];</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (!room) return;</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>// 廣播給對手</p>
-<p class="p1"><span class="Apple-converted-space">        </span>socket.to(roomCode).emit('opponentPlayed', { card, playerId: socket.id });</p>
-<p class="p1"><span class="Apple-converted-space">    </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// 攻擊與答題同步</p>
-<p class="p1"><span class="Apple-converted-space">    </span>socket.on('attackAction', ({ roomCode, damage, isCorrect }) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const room = rooms[roomCode];</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (!room) return;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>// 廣播攻擊結果給房間內所有人</p>
-<p class="p1"><span class="Apple-converted-space">        </span>io.to(roomCode).emit('battleUpdate', { attacker: socket.id, damage, isCorrect });</p>
-<p class="p1"><span class="Apple-converted-space">    </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>socket.on('disconnect', () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>console.log(`玩家離線: ${socket.id}`);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>// 可以在此清理房間資料</p>
-<p class="p1"><span class="Apple-converted-space">    </span>});</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">const PORT = process.env.PORT || 3000;</p>
-<p class="p1">server.listen(PORT, () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>console.log(`《英魂決》伺服器已在 port ${PORT} 啟動`);</p>
-<p class="p1">});</p>
+
+    <!-- 系統提示 -->
+    <div id="sysMsg">系統提示</div>
+
+    <!-- 遊戲大廳 -->
+    <div id="lobby">
+        <h1>英魂決</h1>
+        <h2>中史科歷史卡牌學習系統</h2>
+        <div class="input-group">
+            <input type="text" id="roomCode" placeholder="請輸入對戰房號 (如: 888)" autocomplete="off">
+            <br>
+            <button class="btn-gold" onclick="createRoom()">創建房間</button>
+            <button class="btn-gold btn-red" onclick="joinRoom()">加入戰局</button>
+        </div>
+        <p id="statusMsg" style="color: #D4AF37; margin-top: 20px; font-size: 18px;"></p>
+    </div>
+
+    <!-- 遊戲對戰區 -->
+    <div id="gameBoard" class="hidden">
+        <!-- 對手區域 -->
+        <div class="player-info" id="opponentArea">
+            <div class="player-name">敵軍將領</div>
+            <div class="hp-container">
+                <div id="opponentHpBar" class="hp-bar"></div>
+                <div id="opponentHpText" class="hp-text">60 / 60</div>
+            </div>
+        </div>
+        
+        <!-- 對手手牌預覽 (僅顯示背面) -->
+        <div class="hand" id="opponentHand" style="height: 60px; transform: scale(0.6) translateY(-50px);">
+            <div class="card hidden-card"></div><div class="card hidden-card"></div><div class="card hidden-card"></div>
+        </div>
+
+        <!-- 戰場交鋒區 -->
+        <div class="battlefield">
+            <div id="opponentField" class="field-slot">敵方出牌</div>
+            <div id="myField" class="field-slot">我方出牌</div>
+        </div>
+
+        <!-- 我的區域 -->
+        <div class="player-info" id="myArea" style="border-color: #D4AF37;">
+            <div class="player-name">我軍將領</div>
+            <div class="hp-container">
+                <div id="myHpBar" class="hp-bar" style="background: linear-gradient(90deg, #2ecc71, #27ae60);"></div>
+                <div id="myHpText" class="hp-text">60 / 60</div>
+            </div>
+        </div>
+        <div class="hand" id="myHand"></div>
+    </div>
+
+    <!-- 歷史問答視窗 -->
+    <div id="quizOverlay" class="hidden">
+        <div class="quiz-box" id="quizBox">
+            <h3>📜 歷史考驗 (答對發動攻擊，答錯無效)</h3>
+            <div id="quizQuestion">題目載入中...</div>
+            <div class="quiz-options" id="quizOptions"></div>
+        </div>
+    </div>
+
+    <script>
+        /* --- 零依賴網頁音效合成器 (Web Audio API) --- */
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+            if (type === 'click') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
+                gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'playCard') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(200, now + 0.2);
+                gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+            } else if (type === 'attack') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+                gain.gain.setValueAtTime(0.8, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'correct') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(554, now + 0.1); osc.frequency.setValueAtTime(659, now + 0.2);
+                gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+                gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
+            }
+        }
+
+        /* --- 遊戲核心邏輯 --- */
+        const socket = io();
+        const MAX_HP = 60;
+        let myRoom = '';
+        let myHp = MAX_HP;
+        let opponentHp = MAX_HP;
+        let pendingDamage = 0;
+
+        // 題庫 (完美融合中史課程)
+        const questionBank = [
+            { q: "中國歷史上第一位自稱「皇帝」的君主是誰？", options: ["秦始皇", "漢武帝", "唐太宗", "明太祖"], ans: "秦始皇" },
+            { q: "史稱「玄武門之變」的宮廷政變是由哪位皇子發動？", options: ["李建成", "李世民", "李元吉", "李隆基"], ans: "李世民" },
+            { q: "明朝初年，廢除丞相制度，集大權於一身的開國皇帝是？", options: ["明惠帝", "明成祖", "明太祖", "明神宗"], ans: "明太祖" },
+            { q: "漢代開闢「絲綢之路」，派遣張騫出使西域的是哪位皇帝？", options: ["漢高祖", "漢文帝", "漢景帝", "漢武帝"], ans: "漢武帝" }
+        ];
+
+        // 牌庫 (融合英魂設定)
+        const myDeck = [
+            { name: "秦始皇", trait: "千古一帝", power: 15 },
+            { name: "漢武帝", trait: "雄才大略", power: 12 },
+            { name: "唐太宗", trait: "天可汗", power: 14 },
+            { name: "明太祖", trait: "驅逐胡虜", power: 16 },
+            { name: "武則天", trait: "日月當空", power: 13 }
+        ];
+
+        function showSysMsg(msg) {
+            const el = document.getElementById('sysMsg');
+            el.innerText = msg;
+            el.style.opacity = 1;
+            setTimeout(() => el.style.opacity = 0, 3000);
+        }
+
+        // 大廳操作
+        function createRoom() {
+            playSound('click');
+            const code = document.getElementById('roomCode').value;
+            if (!code) return showSysMsg("⚠️ 請先輸入房間代碼！");
+            socket.emit('createRoom', code);
+        }
+
+        function joinRoom() {
+            playSound('click');
+            const code = document.getElementById('roomCode').value;
+            if (!code) return showSysMsg("⚠️ 請先輸入房間代碼！");
+            socket.emit('joinRoom', code);
+        }
+
+        // Socket 事件
+        socket.on('roomCreated', (code) => {
+            myRoom = code;
+            document.getElementById('statusMsg').innerText = `⛩️ 房間 [${code}] 已建立，等待將領入陣...`;
+        });
+
+        socket.on('errorMsg', (msg) => { showSysMsg(`❌ ${msg}`); });
+
+        socket.on('gameStart', () => {
+            playSound('correct');
+            document.getElementById('lobby').classList.add('hidden');
+            document.getElementById('gameBoard').classList.remove('hidden');
+            showSysMsg("⚔️ 戰局開始！");
+            updateHpUI();
+            
+            // 隨機抽取 4 張牌作為起始手牌
+            myDeck.sort(() => 0.5 - Math.random());
+            renderHand(myDeck.slice(0, 4));
+        });
+
+        // 渲染手牌
+        function renderHand(cards) {
+            const handDiv = document.getElementById('myHand');
+            handDiv.innerHTML = '';
+            cards.forEach((card, index) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                cardEl.innerHTML = `
+                    <div class="card-name">${card.name}</div>
+                    <div class="card-trait">「${card.trait}」</div>
+                    <div class="card-power">⚔️ ${card.power}</div>
+                `;
+                cardEl.onclick = () => {
+                    playSound('playCard');
+                    playCard(card, index, cards);
+                };
+                handDiv.appendChild(cardEl);
+            });
+        }
+
+        // 出牌邏輯
+        function playCard(card, index, currentHand) {
+            // 將牌放到出牌區
+            const field = document.getElementById('myField');
+            field.innerHTML = `<div class="card played"><div class="card-name">${card.name}</div><div class="card-power">⚔️ ${card.power}</div></div>`;
+            field.style.border = 'none';
+
+            // 廣播
+            socket.emit('playCardData', { roomCode: myRoom, card });
+
+            // 觸發抽問
+            pendingDamage = card.power;
+            showQuiz();
+
+            // 從手牌移除並重新渲染
+            currentHand.splice(index, 1);
+            renderHand(currentHand);
+        }
+
+        // 接收對手出牌
+        socket.on('opponentPlayed', (data) => {
+            playSound('playCard');
+            const card = data.card;
+            const field = document.getElementById('opponentField');
+            field.innerHTML = `<div class="card played" style="border-color: #3498db;"><div class="card-name" style="color:#3498db;">${card.name}</div><div class="card-power" style="background:#2980b9; border-top-color:#3498db;">⚔️ ${card.power}</div></div>`;
+            field.style.border = 'none';
+            showSysMsg(`敵方派出了【${card.name}】！`);
+        });
+
+        // 顯示歷史考驗
+        function showQuiz() {
+            const q = questionBank[Math.floor(Math.random() * questionBank.length)];
+            document.getElementById('quizQuestion').innerText = q.q;
+            
+            const optionsDiv = document.getElementById('quizOptions');
+            optionsDiv.innerHTML = '';
+            
+            // 選項打亂
+            const shuffledOptions = [...q.options].sort(() => 0.5 - Math.random());
+            
+            shuffledOptions.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt, q.ans);
+                optionsDiv.appendChild(btn);
+            });
+            
+            document.getElementById('quizOverlay').classList.remove('hidden');
+        }
+
+        function checkAnswer(selected, correct) {
+            const overlay = document.getElementById('quizOverlay');
+            const qBox = document.getElementById('quizBox');
+            
+            const isCorrect = (selected === correct);
+            if (isCorrect) {
+                playSound('correct');
+                qBox.classList.add('correct-effect');
+                showSysMsg("🎯 答對了！發動完美攻擊！");
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    qBox.classList.remove('correct-effect');
+                    socket.emit('attackAction', { roomCode: myRoom, damage: pendingDamage, isCorrect: true });
+                }, 1000);
+            } else {
+                playSound('wrong');
+                qBox.classList.add('shake-effect');
+                showSysMsg(`❌ 答錯了！正確解答為：${correct}`);
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    qBox.classList.remove('shake-effect');
+                    socket.emit('attackAction', { roomCode: myRoom, damage: 0, isCorrect: false });
+                }, 1500);
+            }
+        }
+
+        // 更新血量條 UI
+        function updateHpUI() {
+            const myPct = Math.max(0, (myHp / MAX_HP) * 100);
+            const oppPct = Math.max(0, (opponentHp / MAX_HP) * 100);
+            
+            document.getElementById('myHpBar').style.width = myPct + '%';
+            document.getElementById('myHpText').innerText = `${myHp} / ${MAX_HP}`;
+            
+            document.getElementById('opponentHpBar').style.width = oppPct + '%';
+            document.getElementById('opponentHpText').innerText = `${opponentHp} / ${MAX_HP}`;
+        }
+
+        // 戰鬥結算
+        socket.on('battleUpdate', (data) => {
+            if (data.attacker === socket.id) {
+                // 我打對手
+                if(data.isCorrect) {
+                    playSound('attack');
+                    opponentHp -= data.damage;
+                    const oppArea = document.getElementById('opponentArea');
+                    oppArea.classList.add('shake-effect');
+                    setTimeout(() => oppArea.classList.remove('shake-effect'), 400);
+                }
+            } else {
+                // 對手打我
+                if(data.isCorrect){
+                    playSound('attack');
+                    myHp -= data.damage;
+                    const myArea = document.getElementById('myArea');
+                    myArea.classList.add('shake-effect');
+                    setTimeout(() => myArea.classList.remove('shake-effect'), 400);
+                    showSysMsg(`⚠️ 敵方答對問題，對您造成 ${data.damage} 點傷害！`);
+                } else {
+                    showSysMsg(`🛡️ 敵方學藝不精答錯了，攻擊失效！`);
+                }
+            }
+
+            updateHpUI();
+
+            // 勝負判定
+            setTimeout(() => {
+                if (myHp <= 0) {
+                    alert("敗北！歷史的巨輪將你輾過...");
+                    location.reload();
+                } else if (opponentHp <= 0) {
+                    alert("勝利！您成功改寫了歷史！");
+                    location.reload();
+                }
+            }, 600);
+        });
+    </script>
 </body>
 </html>
