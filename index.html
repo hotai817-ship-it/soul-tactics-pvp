@@ -39,7 +39,7 @@
     
     <div id="lobby" style="margin: auto; text-align: center; background: var(--panel); padding: 35px; border: 2px solid var(--gold); border-radius: 15px;">
         <h3 style="color: var(--gold); margin-top:0; font-size: 1.5rem;">輸入房號開始對戰</h3>
-        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">雙方先選歷史人物上陣，使用輔助卡，答題後發動攻擊完結回合！</p>
+        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">點擊手牌抽問歷史考驗，答對即可部署人物或發動輔助卡，攻擊對手完結回合！</p>
         <input type="text" id="roomInput" class="input-box" placeholder="例如: 8888"><br>
         <button class="btn" onclick="playSound(); createRoom();">🏠 建立房間</button>
         <button class="btn" onclick="playSound(); joinRoom();">🔑 加入房間</button>
@@ -58,13 +58,13 @@
                 <div class="zone" id="opActive"></div>
             </div>
             <div>
-                <div style="color:var(--gold); font-size:0.85em; text-align:left;">我方陣地 (點擊主戰人物進行歷史考驗答題並攻擊)</div>
+                <div style="color:var(--gold); font-size:0.85em; text-align:left;">我方陣地 (點擊主戰人物進行攻擊)</div>
                 <div class="zone" id="myActive"></div>
             </div>
         </div>
 
         <div>
-            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (點擊卡牌：人物上陣 / 輔助卡支援)</div>
+            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (點擊卡牌進行歷史考驗答題部署)</div>
             <div class="zone" id="myHand" style="min-height: 160px; background: rgba(0,0,0,0.3); border-radius: 8px;"></div>
         </div>
 
@@ -77,7 +77,7 @@
 
 <div id="questionModal" class="modal hidden">
     <div class="modal-content">
-        <h3 style="color:var(--gold); margin-top:0;">📜 歷史考驗與戰技激發</h3>
+        <h3 id="modalTitle" style="color:var(--gold); margin-top:0;">📜 歷史考驗與戰技激發</h3>
         <p id="qText" style="font-size: clamp(1rem, 1.5vw, 1.15rem); margin: 20px 0; line-height: 1.5;"></p>
         <div id="qOptions"></div>
     </div>
@@ -86,6 +86,7 @@
 <script>
     const socket = io();
     let currentRoomId = null;
+    let pendingCardIndex = null;
 
     function playSound() {
         try {
@@ -122,7 +123,7 @@
         currentRoomId = roomId;
         document.getElementById('lobby').classList.add('hidden');
         document.getElementById('gameArea').classList.remove('hidden');
-        appendLog(`🎉 成功進入房間 [${roomId}]，請先部署歷史人物或使用輔助卡！`);
+        appendLog(`🎉 成功進入房間 [${roomId}]，請點選手牌進行歷史考驗答題以部署卡牌！`);
     });
 
     socket.on('game_state_update', ({ myState, opState, isMyTurn }) => {
@@ -131,7 +132,7 @@
 
         const indicator = document.getElementById('turnIndicator');
         if (isMyTurn) {
-            indicator.innerText = "⭐ 您的回合 (可佈署卡牌或點擊英雄答題攻擊)";
+            indicator.innerText = "⭐ 您的回合 (點選手牌答題部署，或點擊英雄攻擊)";
             indicator.style.color = "#4ade80";
         } else {
             indicator.innerText = "⏳ 對手回合中...";
@@ -144,17 +145,17 @@
         myState.hand.forEach((card, idx) => {
             let tagColor = card.type === '人物' ? '#78350f' : '#1e3a8a';
             handDiv.innerHTML += `
-                <div class="card" onclick="playCard(${idx})">
+                <div class="card" onclick="requestCardQuestion(${idx})">
                     <div style="font-size:0.75em; font-weight:bold; color:${tagColor};">[${card.dynasty}] ${card.type}</div>
                     <div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;">${card.name}</div>
                     <div style="font-size:0.65em; color:#475569; overflow:hidden; max-height:45px;">${card.skill}: ${card.desc}</div>
-                    <div style="font-size:0.7em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">點擊部署</div>
+                    <div style="font-size:0.7em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">點擊出牌</div>
                 </div>`;
         });
 
         // 渲染我方主戰人物與支援區
         const myActive = document.getElementById('myActive');
-        let supportHtml = myState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:#white; padding:4px 8px; border-radius:4px; margin-right:4px;">🛡️ ${c.name}</span>`).join('');
+        let supportHtml = myState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px; margin-right:4px;">🛡️ ${c.name}</span>`).join('');
         
         if (myState.active) {
             myActive.innerHTML = `
@@ -164,13 +165,13 @@
                             <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${myState.active.dynasty}] 主戰人物</div>
                             <div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;">${myState.active.name}</div>
                             <div style="font-size:0.65em; color:#475569;">${myState.active.skill}</div>
-                            <div style="font-size:0.7em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">⚔️ 點擊答題攻擊</div>
+                            <div style="font-size:0.7em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">⚔️ 點擊發動攻擊</div>
                         </div>
                     </div>
                     ${supportHtml ? `<div style="font-size:0.85rem; color:#38bdf8;">支援區: ${supportHtml}</div>` : ''}
                 </div>`;
         } else {
-            myActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">請從手牌點擊歷史人物卡部署到戰陣上 ${supportHtml ? '<br>支援區: ' + supportHtml : ''}</div>`;
+            myActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">請點選手牌部署歷史人物 ${supportHtml ? '<br>支援區: ' + supportHtml : ''}</div>`;
         }
 
         // 渲染對手陣地
@@ -192,29 +193,49 @@
         }
     });
 
-    function playCard(cardIndex) {
-        socket.emit('play_card', { roomId: currentRoomId, cardIndex });
+    // 點擊手牌觸發該張卡的隨機 1 條歷史考驗題
+    function requestCardQuestion(cardIndex) {
+        pendingCardIndex = cardIndex;
+        socket.emit('get_card_question', { roomId: currentRoomId, cardIndex });
     }
 
-    // 點擊主戰人物觸發歷史考驗題問
+    socket.on('show_card_question', ({ qData }) => {
+        document.getElementById('modalTitle').innerText = `📜 ${qData.cardName} - 歷史考驗`;
+        document.getElementById('qText').innerText = qData.q;
+        const optDiv = document.getElementById('qOptions');
+        optDiv.innerHTML = "";
+        qData.opts.forEach((opt, idx) => {
+            let isCorrect = (idx === qData.correctIndex);
+            optDiv.innerHTML += `<button class="modal-btn" onclick="submitCardAnswer(${isCorrect})">${opt}</button>`;
+        });
+        document.getElementById('questionModal').classList.remove('hidden');
+    });
+
+    function submitCardAnswer(isCorrect) {
+        document.getElementById('questionModal').classList.add('hidden');
+        socket.emit('play_card_with_answer', { roomId: currentRoomId, cardIndex: pendingCardIndex, answerCorrect: isCorrect });
+    }
+
+    // 主戰人物攻擊題問
     function triggerAttack() {
         const questions = [
-            { q: "秦王政自認為「XX三皇，XX五帝」，於是把三「皇」五「帝」名稱合稱為「皇帝」。請填空：", ans: "功過三皇，德兼五帝", opts: ["A. 功過三皇，德兼五帝", "B. 德高三皇，功過五帝", "C. 德兼三皇，功過五帝"] },
-            { q: "漢武帝採納主父偃的建議，頒行哪一項法令削弱諸侯王勢力？", ans: "推恩令", opts: ["A. 削藩令", "B. 推恩令", "C. 汉律令"] },
-            { q: "唐太宗在位期間政治清明，史稱為什麼？", ans: "貞觀之治", opts: ["A. 開元之治", "B. 貞觀之治", "C. 文景之治"] }
+            { q: "秦王政自認為「XX三皇，XX五帝」，於是把三「皇」五「帝」名稱合稱為「皇帝」。請填空：", ans: "功過三皇，德兼五帝", opts: ["A. 功過三皇，德兼五帝", "B. 德高三皇，功過五帝", "C. 德兼三皇，功過五帝"], correct: 0 },
+            { q: "漢武帝採納主父偃的建議，頒行哪一項法令削弱諸侯王勢力？", ans: "推恩令", opts: ["A. 削藩令", "B. 推恩令", "C. 漢律令"], correct: 1 },
+            { q: "唐太宗在位期間政治清明，史稱為什麼？", ans: "貞觀之治", opts: ["A. 開元之治", "B. 貞觀之治", "C. 文景之治"], correct: 1 }
         ];
         let q = questions[Math.floor(Math.random() * questions.length)];
+        document.getElementById('modalTitle').innerText = "⚔️ 主戰人物戰技激發";
         document.getElementById('qText').innerText = q.q;
         const optDiv = document.getElementById('qOptions');
         optDiv.innerHTML = "";
-        q.opts.forEach(opt => {
-            let isCorrect = opt.includes(q.ans) || opt.charAt(0) === 'A';
-            optDiv.innerHTML += `<button class="modal-btn" onclick="submitAnswer(${isCorrect})">${opt}</button>`;
+        q.opts.forEach((opt, idx) => {
+            let isCorrect = (idx === q.correct);
+            optDiv.innerHTML += `<button class="modal-btn" onclick="submitAttackAnswer(${isCorrect})">${opt}</button>`;
         });
         document.getElementById('questionModal').classList.remove('hidden');
     }
 
-    function submitAnswer(isCorrect) {
+    function submitAttackAnswer(isCorrect) {
         document.getElementById('questionModal').classList.add('hidden');
         socket.emit('attack', { roomId: currentRoomId, answerCorrect: isCorrect });
     }
