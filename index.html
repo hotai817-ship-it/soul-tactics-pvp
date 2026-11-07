@@ -11,7 +11,6 @@
         body { 
             font-family: sans-serif; background: var(--bg); color: #f8fafc; margin: 0; 
             min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
-            /* 防止手機端長按選取文字或彈出選單 */
             -webkit-user-select: none; user-select: none;
         }
         .container { width: 100%; max-width: 1200px; height: 100vh; max-height: 950px; display: flex; flex-direction: column; padding: 10px; }
@@ -25,7 +24,6 @@
             background: #FFFDF0; color: #1e293b; border: 3px solid var(--gold); border-radius: 10px; 
             width: clamp(110px, 16vw, 135px); height: clamp(150px, 22vw, 185px); padding: 8px; 
             display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; flex-shrink: 0; box-shadow: 0 6px 12px rgba(0,0,0,0.5);
-            /* 優化手機點擊反應，消除點擊藍色陰影與延遲 */
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
             transition: transform 0.15s;
@@ -185,7 +183,7 @@
             indicator.style.color = "#f87171";
         }
 
-        // 渲染手牌：使用 onpointerdown 取代 onclick，完美解決手機點擊無反應與雙擊延遲
+        // 渲染手牌：使用 onclick 配合 CSS 的 touch-action: manipulation，確保手機點擊流暢且不重複觸發
         const handDiv = document.getElementById('myHand');
         handDiv.innerHTML = "";
         myState.hand.forEach((card, idx) => {
@@ -194,7 +192,7 @@
             let opacity = canPlay ? '1' : '0.5';
             
             handDiv.innerHTML += `
-                <div class="card" style="opacity: ${opacity};" onpointerdown="playCard(${idx}, ${canPlay})">
+                <div class="card" style="opacity: ${opacity};" onclick="playCard(${idx}, ${canPlay})">
                     <div style="font-size:0.75em; font-weight:bold; color:${tagColor};">[${card.dynasty}] ${card.type}</div>
                     <div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;">${card.name}</div>
                     <div style="font-size:0.65em; color:#475569; overflow:hidden; max-height:45px;">${card.skill}: ${card.desc}</div>
@@ -212,7 +210,7 @@
             myActive.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:100%;">
                     <div style="display:flex; gap:10px; align-items:center;">
-                        <div class="card" style="border:3px solid #22c55e; opacity: ${activeOpacity};" onpointerdown="triggerAttack(${isMyTurn})">
+                        <div class="card" style="border:3px solid #22c55e; opacity: ${activeOpacity};" onclick="triggerAttack(${isMyTurn})">
                             <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${myState.active.dynasty}] 主戰人物</div>
                             <div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;">${myState.active.name}</div>
                             <div style="font-size:0.65em; color:#475569;">${myState.active.skill}</div>
@@ -260,7 +258,7 @@
         optDiv.innerHTML = "";
         qData.opts.forEach((opt, idx) => {
             let isCorrect = (idx === qData.correctIndex);
-            optDiv.innerHTML += `<button class="modal-btn" onpointerdown="submitSupportAnswer(${isCorrect})">${opt}</button>`;
+            optDiv.innerHTML += `<button class="modal-btn" onclick="submitSupportAnswer(${isCorrect})">${opt}</button>`;
         });
         document.getElementById('questionModal').classList.remove('hidden');
     });
@@ -287,7 +285,7 @@
         optDiv.innerHTML = "";
         qData.opts.forEach((opt, idx) => {
             let isCorrect = (idx === qData.correctIndex);
-            optDiv.innerHTML += `<button class="modal-btn" onpointerdown="submitAttackAnswer(${isCorrect})">${opt}</button>`;
+            optDiv.innerHTML += `<button class="modal-btn" onclick="submitAttackAnswer(${isCorrect})">${opt}</button>`;
         });
         document.getElementById('questionModal').classList.remove('hidden');
     });
