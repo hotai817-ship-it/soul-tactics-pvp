@@ -289,7 +289,6 @@ io.on('connection', (socket) => {
         updateGameState(roomId);
     });
 
-    // 點擊手牌發起考驗（人物卡或輔助卡皆須答題）
     socket.on('get_card_question', ({ roomId, cardIndex }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
@@ -307,13 +306,12 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // 依據卡片類型（人物或輔助）抓取對應題庫
         let qData = getRandomQuestion(card.name, card.dynasty, card.type);
         qData.cardName = card.name;
         socket.emit('show_card_question', { qData });
     });
 
-    // 提交卡牌答題結果：人物卡答對部署上場；輔助卡答對發動效果並直接棄掉
+    // 提交卡牌答題結果並出牌
     socket.on('play_card_with_answer', ({ roomId, cardIndex, answerCorrect }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
@@ -324,7 +322,7 @@ io.on('connection', (socket) => {
         if (!card) return;
 
         pState.hasPlayedCard = true;
-        pState.hand.splice(cardIndex, 1); // 無論對錯，手牌皆消耗（發動後即棄掉）
+        pState.hand.splice(cardIndex, 1); // 手牌消耗
 
         const opId = room.players.find(id => id !== socket.id);
         const opState = room.state[opId];
@@ -333,9 +331,10 @@ io.on('connection', (socket) => {
             if (card.type === '人物') {
                 io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 答對！成功部署主戰人物【${card.name}】！` });
                 pState.active = card;
+                updateGameState(roomId); // 人物卡部署後留在場上，不結束回合
             } else {
-                // 輔助卡答對：發動策略效果，隨後直接棄掉不進場
-                io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 策略考驗答對！成功發動【${card.name}】策略！` });
+                // 輔助卡答對：發動效果後直接棄掉，並自動結束己方回合
+                io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 策略考驗答對！成功發動【${card.name}】！` });
                 
                 if (card.name === '萬里長城' || card.name === '統一度量衝' || card.name === '輪台罪己詔') {
                     pState.hp = Math.min(300, pState.hp + 30);
@@ -347,15 +346,28 @@ io.on('connection', (socket) => {
                     pState.hp = Math.min(300, pState.hp + 20);
                     io.to(roomId).emit('battle_log', { msg: `✨ 【${card.name}】輔助策略生效，恢復 20 點生命值！` });
                 }
+
+                // 檢查是否因輔助卡傷害導致對手血量歸零
+                if (opState && opState.hp <= 0) {
+                    opState.hp = 0;
+                    io.to(roomId).emit('game_over', { winner: socket.id });
+                    delete rooms[roomId];
+                    return;
+                }
+
+                // 輔助卡發動後即完成回合，自動切換給對手並補給 2 張卡
+                switchTurnAndDraw(room, roomId);
             }
         } else {
             if (card.type === '人物') {
                 io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 答錯！【${card.name}】化為灰燼...` });
+                updateGameState(roomId);
             } else {
-                io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 策略考驗答錯！【${card.name}】計謀失敗，白白浪費被棄掉。` });
+                io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 策略考驗答錯！【${card.name}】計謀失敗被棄掉。` });
+                // 輔助卡答錯也當作行動結束，自動切換回合
+                switchTurnAndDraw(room, roomId);
             }
         }
-        updateGameState(roomId);
     });
 
     socket.on('get_attack_question', ({ roomId }) => {
@@ -371,6 +383,7 @@ io.on('connection', (socket) => {
         socket.emit('show_attack_question', { qData });
     });
 
+    // 進行攻擊：攻擊完後主戰人物棄掉，且自動結束己方回合
     socket.on('attack', ({ roomId, answerCorrect }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
@@ -400,32 +413,8 @@ io.on('connection', (socket) => {
             return;
         }
 
-        updateGameState(roomId);
-    });
-
-    // 結束回合：每回合每人獲得 2 張卡（含牌庫自動循環洗牌防護）
-    socket.on('end_turn', (roomId) => {
-        const room = rooms[roomId];
-        if (!room || room.turn !== socket.id) return;
-
-        room.turn = room.players.find(id => id !== socket.id);
-        if (room.state[room.turn]) {
-            room.state[room.turn].hasPlayedCard = false;
-            let nextPlayerState = room.state[room.turn];
-            
-            // 每回合每人獲得 2 張卡
-            for (let i = 0; i < 2; i++) {
-                if (nextPlayerState.deck.length === 0) {
-                    nextPlayerState.deck = [...ALL_CARDS].sort(() => Math.random() - 0.5);
-                }
-                if (nextPlayerState.deck.length > 0) {
-                    nextPlayerState.hand.push(nextPlayerState.deck.shift());
-                }
-            }
-        }
-
-        io.to(roomId).emit('battle_log', { msg: `🔄 回合結束，輪到下一位少俠（已補給 2 張卡牌）。` });
-        updateGameState(roomId);
+        // 攻擊完成後，自動切換回合並補給 2 張卡給下一位玩家
+        switchTurnAndDraw(room, roomId);
     });
 
     socket.on('disconnect', () => {
@@ -440,6 +429,26 @@ io.on('connection', (socket) => {
         }
     });
 });
+
+// 輔助函數：切換回合並替下一位玩家抽 2 張牌
+function switchTurnAndDraw(room, roomId) {
+    room.turn = room.players.find(id => id !== room.turn);
+    if (room.state[room.turn]) {
+        room.state[room.turn].hasPlayedCard = false;
+        let nextPlayerState = room.state[room.turn];
+        
+        for (let i = 0; i < 2; i++) {
+            if (nextPlayerState.deck.length === 0) {
+                nextPlayerState.deck = [...ALL_CARDS].sort(() => Math.random() - 0.5);
+            }
+            if (nextPlayerState.deck.length > 0) {
+                nextPlayerState.hand.push(nextPlayerState.deck.shift());
+            }
+        }
+    }
+    io.to(roomId).emit('battle_log', { msg: `🔄 攻擊/策略發動完畢，回合結束，輪到下一位少俠（已補給 2 張卡牌）。` });
+    updateGameState(roomId);
+}
 
 function updateGameState(roomId) {
     const room = rooms[roomId];
