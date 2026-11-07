@@ -331,7 +331,7 @@ io.on('connection', (socket) => {
             if (card.type === '人物') {
                 io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 答對！成功部署主戰人物【${card.name}】！` });
                 pState.active = card;
-                updateGameState(roomId); // 人物卡部署後留在場上，不結束回合
+                updateGameState(roomId); // 人物卡答對部署後留在場上，等待後續攻擊
             } else {
                 // 輔助卡答對：發動效果後直接棄掉，並自動結束己方回合
                 io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 策略考驗答對！成功發動【${card.name}】！` });
@@ -355,18 +355,16 @@ io.on('connection', (socket) => {
                     return;
                 }
 
-                // 輔助卡發動後即完成回合，自動切換給對手並補給 2 張卡
                 switchTurnAndDraw(room, roomId);
             }
         } else {
+            // 無論人物卡或輔助卡，答錯皆化為灰燼/被棄掉，並直接結束己方回合
             if (card.type === '人物') {
-                io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 答錯！【${card.name}】化為灰燼...` });
-                updateGameState(roomId);
+                io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 答錯！【${card.name}】化為灰燼，回合結束。` });
             } else {
-                io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 策略考驗答錯！【${card.name}】計謀失敗被棄掉。` });
-                // 輔助卡答錯也當作行動結束，自動切換回合
-                switchTurnAndDraw(room, roomId);
+                io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 策略考驗答錯！【${card.name}】計謀失敗被棄掉，回合結束。` });
             }
+            switchTurnAndDraw(room, roomId);
         }
     });
 
@@ -446,7 +444,7 @@ function switchTurnAndDraw(room, roomId) {
             }
         }
     }
-    io.to(roomId).emit('battle_log', { msg: `🔄 攻擊/策略發動完畢，回合結束，輪到下一位少俠（已補給 2 張卡牌）。` });
+    io.to(roomId).emit('battle_log', { msg: `🔄 行動完畢，回合結束，輪到下一位少俠（已補給 2 張卡牌）。` });
     updateGameState(roomId);
 }
 
