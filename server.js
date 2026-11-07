@@ -35,9 +35,9 @@ const HERO_CARDS = [
     { id: "h_19", dynasty: "唐", name: "郭子儀", type: "人物", skill: "再造唐朝", desc: "平定安史，功蓋天下"}
 ];
 
-// 2. 輔助卡片陣列（策略卡 - 已標註明確的恢復與傷害數值）
+// 2. 輔助卡片陣列（策略卡）
 const SUPPORT_CARDS = [
-    { id: "s_0", dynasty: "秦", name: "焚書坑儒", type: "輔助", skill: "箝制思想", desc: "對手扣除 20 點生命" },
+    { id: "s_0", dynasty: "秦", name: "焚書坑儒", type: "輔助", skill: "箝制思想", desc: "對手扣除 25 點生命" },
     { id: "s_1", dynasty: "秦", name: "統一度量衝", type: "輔助", skill: "車同軌", desc: "高級防禦：恢復 30 點生命" },
     { id: "s_2", dynasty: "秦", name: "統一文字", type: "輔助", skill: "小篆隸書", desc: "一般策略：恢復 20 點生命" },
     { id: "s_3", dynasty: "秦", name: "萬里長城", type: "輔助", skill: "固若金湯", desc: "高級防禦：恢復 30 點生命" },
@@ -53,7 +53,7 @@ const SUPPORT_CARDS = [
     { id: "s_13", dynasty: "西漢", name: "士人政府", type: "輔助", skill: "獨尊儒術", desc: "其他策略：恢復 25 點生命" },
     { id: "s_14", dynasty: "西漢", name: "五經博士", type: "輔助", skill: "罷黜百家", desc: "一般策略：恢復 20 點生命" },
     { id: "s_15", dynasty: "西漢", name: "輪台罪己詔", type: "輔助", skill: "反思休養", desc: "大幅恢復：恢復 40 點生命" },
-    { id: "s_16", dynasty: "東漢", name: "黨錮之禍", type: "輔助", skill: "清議士人", desc: "一般策略：恢復 15 點生命" },
+    { id: "s_16", dynasty: "東漢", name: "黨錮之禍", type: "輔助", skill: "清議士人", desc: "策略生效：恢復 15 點生命" },
     { id: "s_17", dynasty: "東漢", name: "黃巾之亂", type: "輔助", skill: "太平道興", desc: "對手扣除 25 點生命" },
     { id: "s_18", dynasty: "三國", name: "赤壁之戰", type: "輔助", skill: "三分天下", desc: "對手扣除 25 點生命" },
     { id: "s_19", dynasty: "三國", name: "屯田制", type: "輔助", skill: "休養生息", desc: "高級防禦：恢復 30 點生命" },
@@ -260,7 +260,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 輔助卡答題結算（嚴格對應數值：30點、25點、20點、15點、40點、35點）
     socket.on('resolve_support_card', ({ roomId, cardName, answerCorrect }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
@@ -271,6 +270,10 @@ io.on('connection', (socket) => {
         if (answerCorrect) {
             io.to(roomId).emit('battle_log', { msg: `[歷史考驗] 穿越時空者 ${socket.id.substring(4,8)} 策略考驗答對！【${cardName}】策略生效！` });
             
+            // 修正點 1：將生效的策略卡推入支援區 (supportArea) 讓前台可以渲染顯示
+            if (!pState.supportArea) pState.supportArea = [];
+            pState.supportArea.push({ name: cardName });
+
             if (cardName === '萬里長城' || cardName === '統一度量衝' || cardName === '徒木立信' || cardName === '和親制度' || cardName === '屯田制' || cardName === '均田制' || cardName === '三省六部制' || cardName === '科舉制度') {
                 pState.hp = Math.min(300, pState.hp + 30);
                 io.to(roomId).emit('play_sound', { type: 'heal' });
@@ -292,7 +295,6 @@ io.on('connection', (socket) => {
                 io.to(roomId).emit('play_sound', { type: 'heal' });
                 io.to(roomId).emit('battle_log', { msg: `✨ 策略生效！恢復 15 點生命值。` });
             } else {
-                // 其他一般策略恢復 25 或 20 點
                 let healVal = (cardName === '統一文字' || cardName === '統一貨幣' || cardName === '開鑿運河' || cardName === '修築道路' || cardName === '五經博士' || cardName === '三長制' || cardName === '租調制') ? 20 : 25;
                 pState.hp = Math.min(300, pState.hp + healVal);
                 io.to(roomId).emit('play_sound', { type: 'heal' });
@@ -300,7 +302,7 @@ io.on('connection', (socket) => {
             }
         } else {
             io.to(roomId).emit('battle_log', { msg: `[歷史考驗] 穿越時空者 ${socket.id.substring(4,8)} 策略考驗答錯！【${cardName}】計謀失敗被棄掉。` });
-            io.to(roomId).emit('play_sound', { type: 'fail' });
+            io.to(roomId).emit('play_sound', { type: 'attack_fail' });
         }
 
         if (opState && opState.hp <= 0) {
@@ -325,7 +327,6 @@ io.on('connection', (socket) => {
         socket.emit('show_attack_question', { qData });
     });
 
-    // 攻擊結算（答對 60 點，答錯 20 點）
     socket.on('attack', ({ roomId, answerCorrect }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
@@ -358,7 +359,6 @@ io.on('connection', (socket) => {
         switchTurnAndDraw(room, roomId);
     });
 
-    // 放棄作答：視為回合結束
     socket.on('forfeit_turn', ({ roomId }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
