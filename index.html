@@ -35,15 +35,15 @@
 <div class="container">
     <h1>《英魂決》房間式即時對戰空間</h1>
     
+    <!-- 房間大廳介面 -->
     <div id="lobby" style="margin: auto; text-align: center; background: var(--panel); padding: 30px; border: 2px solid var(--gold); border-radius: 15px;">
-        <h3 style="color: var(--gold); margin-top:0;">選擇對戰模式</h3>
-        <button class="btn" onclick="findGame()">🚀 快速隨機配對</button><br><br>
-        <hr style="border-color: #334155; margin: 15px 0;">
-        <button class="btn" onclick="createRoom()">🏠 建立私人房間</button><br>
-        <input type="text" id="roomInput" class="input-box" placeholder="輸入 4 位房號">
+        <h3 style="color: var(--gold); margin-top:0;">輸入房號開始對戰</h3>
+        <input type="text" id="roomInput" class="input-box" placeholder="例如: 8888"><br>
+        <button class="btn" onclick="createRoom()">🏠 建立房間</button>
         <button class="btn" onclick="joinRoom()">🔑 加入房間</button>
     </div>
 
+    <!-- 遊戲對戰主介面 -->
     <div id="gameArea" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1; gap: 8px; overflow: hidden;">
         <div class="hud">
             <div>對手 HP: <span id="opHp" style="color:#ef4444;">300</span></div>
@@ -86,29 +86,30 @@
     const socket = io();
     let currentRoomId = null;
 
-    function findGame() {
-        document.getElementById('lobby').innerHTML = "<h3 style='color:var(--gold);'>⏳ 正在隨機配對對手...</h3>";
-        socket.emit('find_game');
+    function createRoom() {
+        const roomId = document.getElementById('roomInput').value.trim();
+        if (!roomId) { alert("請輸入房間號碼！"); return; }
+        socket.emit('create_room', roomId);
     }
 
-    function createRoom() { socket.emit('create_room'); }
     function joinRoom() {
         const roomId = document.getElementById('roomInput').value.trim();
-        if (!roomId) { alert("請輸入房號！"); return; }
+        if (!roomId) { alert("請輸入房間號碼！"); return; }
         socket.emit('join_room', roomId);
     }
 
     socket.on('room_created', (roomId) => {
-        document.getElementById('lobby').innerHTML = `<h3 style='color:var(--gold);'>🏠 房間建立成功！</h3><p>您的專屬房號是：<b style="font-size:1.5em; color:#38bdf8;">${roomId}</b></p><p>等待對手加入...</p>`;
+        currentRoomId = roomId;
+        document.getElementById('lobby').innerHTML = `<h3 style='color:var(--gold);'>🏠 房間 [${roomId}] 建立成功！</h3><p>等待對手加入中...</p>`;
     });
 
-    socket.on('error_msg', (msg) => { alert(msg); location.reload(); });
+    socket.on('error_msg', (msg) => { alert(msg); });
 
     socket.on('game_start', ({ roomId }) => {
         currentRoomId = roomId;
         document.getElementById('lobby').classList.add('hidden');
         document.getElementById('gameArea').classList.remove('hidden');
-        appendLog(`🎉 成功進入房間 [${roomId}]，對局開始！`);
+        appendLog(`🎉 成功進入房間 [${roomId}]，對局正式開始！`);
     });
 
     socket.on('game_state_update', ({ myState, opState, isMyTurn }) => {
