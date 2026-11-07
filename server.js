@@ -9,9 +9,39 @@ const io = new Server(server, {
     cors: { origin: "*" }
 });
 // 讓伺服器自動讀取並顯示同資料夾的 index.html
+// server.js - 《英魂決》WebSocket 即時對戰伺服器
+const http = require('http');
+const express = require('express');
+const { Server } = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: { origin: "*" }
+});
+
+// 💡 1. 載入同資料夾的靜態網頁檔案
 app.use(express.static(__dirname));
 
-app.use(express.static(__dirname));
+// 💡 2. 確保用戶造訪根目錄 (/) 時，精準回傳 index.html 畫面
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
+
+// 儲存對戰房間狀態
+const rooms = {};
+
+io.on('connection', (socket) => {
+    console.log(`玩家連線: ${socket.id}`);
+    
+    // (下方其餘的 socket 監聽與事件保持不變...)
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`《英魂決》伺服器已在 port ${PORT} 啟動`);
+});
+
 
 const rooms = {};
 
