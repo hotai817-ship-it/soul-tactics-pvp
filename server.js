@@ -35,7 +35,7 @@ const HERO_CARDS = [
     { id: "h_19", dynasty: "唐", name: "郭子儀", type: "人物", skill: "再造唐朝", desc: "平定安史，功蓋天下"}
 ];
 
-// 2. 輔助卡片陣列（策略卡）
+// 2. 輔助卡片陣列
 const SUPPORT_CARDS = [
     { id: "s_0", dynasty: "秦", name: "焚書坑儒", type: "輔助", skill: "箝制思想", desc: "對手扣除 25 點生命" },
     { id: "s_1", dynasty: "秦", name: "統一度量衝", type: "輔助", skill: "車同軌", desc: "高級防禦：恢復 30 點生命" },
@@ -270,7 +270,6 @@ io.on('connection', (socket) => {
         if (answerCorrect) {
             io.to(roomId).emit('battle_log', { msg: `[歷史考驗] 穿越時空者 ${socket.id.substring(4,8)} 策略考驗答對！【${cardName}】策略生效！` });
             
-            // 修正點 1：將生效的策略卡推入支援區 (supportArea) 讓前台可以渲染顯示
             if (!pState.supportArea) pState.supportArea = [];
             pState.supportArea.push({ name: cardName });
 
