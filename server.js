@@ -69,7 +69,7 @@ const SUPPORT_CARDS = [
     { id: "s_29", dynasty: "唐", name: "兩稅法", type: "輔助", skill: "量出為入", desc: "效果：財政健全，恢復 25 點生命" }
 ];
 
-// 3. 人物卡題庫（初中程度）
+// 3. 題庫
 const CARD_QUESTIONS_DB = {
     "秦始皇": [
         { q: "秦王政滅六國統一天下後，認為自己「德兼三皇，功過五帝」，因此創立了什麼稱號？", opts: ["A. 天子", "B. 皇帝", "C. 霸王", "D. 單于"], correctIndex: 1 },
@@ -134,104 +134,42 @@ const CARD_QUESTIONS_DB = {
     ]
 };
 
-// 4. 輔助卡專屬題庫（初中程度）
 const SUPPORT_QUESTIONS_DB = {
-    "焚書坑儒": [
-        { q: "秦始皇為了統一思想，採納哪位大臣的建議實行「焚書坑儒」？", opts: ["A. 李斯", "B. 呂不韋", "C. 趙高", "D. 商鞅"], correctIndex: 0 }
-    ],
-    "統一度量衝": [
-        { q: "秦朝統一度量衡，其中「量」是用來衡量什麼的標準？", opts: ["A. 長度", "B. 容量", "C. 重量", "D. 貨幣"], correctIndex: 1 }
-    ],
-    "統一文字": [
-        { q: "秦朝統一全國文字後，規定的官方標準字體是什麼？", opts: ["A. 楷書", "B. 小篆", "C. 隸書", "D. 行書"], correctIndex: 1 }
-    ],
-    "萬里長城": [
-        { q: "秦朝修築萬里長城，主要是為了抵禦哪一個北方游牧民族？", opts: ["A. 匈奴", "B. 突厥", "C. 契丹", "D. 蒙古"], correctIndex: 0 }
-    ],
-    "指鹿為馬": [
-        { q: "成語「指鹿為馬」發生在秦朝末年，是由哪位宦官主導的政治陰謀？", opts: ["A. 趙高", "B. 李斯", "C. 魏忠賢", "D. 劉瑾"], correctIndex: 0 }
-    ],
-    "推行郡縣制度": [
-        { q: "秦朝在地方上全面推行郡縣制，郡守與縣令是由誰直接任免的？", opts: ["A. 皇帝", "B. 地方世族", "C. 丞相", "D. 太尉"], correctIndex: 0 }
-    ],
-    "統一貨幣": [
-        { q: "秦始皇統一全國貨幣，通行的標準銅錢是以下哪一種？", opts: ["A. 布幣", "B. 刀幣", "C. 圓形方孔錢", "D. 蟻鼻錢"], correctIndex: 2 }
-    ],
-    "重農輕商": [
-        { q: "中國古代封建王朝長期奉行「重農抑商」政策，其根本出發點是什麼？", opts: ["A. 確保國家稅收與兵源穩定", "B. 打擊所有商人", "C. 發展海上貿易", "D. 限制手工業發展"], correctIndex: 0 }
-    ],
-    "開鑿運河": [
-        { q: "秦朝為平定嶺南而開鑿的「靈渠」，溝通了哪兩大水系？", opts: ["A. 長江與黃河", "B. 長江與珠江", "C. 黃河與淮河", "D. 海河與錢塘江"], correctIndex: 1 }
-    ],
-    "修築道路": [
-        { q: "秦朝為加強中央與地方聯繫，修築了以咸陽為中心的專用軍事道路，稱為？", opts: ["A. 絲綢之路", "B. 馳道", "C. 茶馬古道", "D. 官道"], correctIndex: 1 }
-    ],
-    "徒木立信": [
-        { q: "戰國時期推行變法並實行「徒木立信」以取信於民的改革家是？", opts: ["A. 商鞅", "B. 管仲", "C. 吳起", "D. 王安石"], correctIndex: 0 }
-    ],
-    "推恩令": [
-        { q: "西漢漢武帝為削弱諸侯王勢力，採納了誰的建議頒布「推恩令」？", opts: ["A. 主父偃", "B. 董仲舒", "C. 張湯", "D. 衛青"], correctIndex: 0 }
-    ],
-    "和親制度": [
-        { q: "西漢初期面對強大的匈奴，為了爭取休養生息，常採用什麼外交手段？", opts: ["A. 和親政策", "B. 步兵北伐", "C. 閉關鎖國", "D. 結盟羅馬"], correctIndex: 0 }
-    ],
-    "士人政府": [
-        { q: "漢武帝「罷黜百家，獨尊儒術」後，政府官員主要由哪類群體組成，形成士人政府？", opts: ["A. 儒生官僚", "B. 武將軍閥", "C. 皇親國戚", "D. 西域胡商"], correctIndex: 0 }
-    ],
-    "五經博士": [
-        { q: "漢武帝在長安設立太學，並設置了專門傳授儒家經學的教授，稱為？", opts: ["A. 五經博士", "B. 翰林學士", "C. 國子監", "D. 太常寺卿"], correctIndex: 0 }
-    ],
-    "輪台罪己詔": [
-        { q: "漢武帝晚年下詔自我反省，停止對外征伐，此詔書名為？", opts: ["A. 輪台罪己詔", "B. 討伐匈奴詔", "C. 求賢詔", "D. 遷都詔"], correctIndex: 0 }
-    ],
-    "黨錮之禍": [
-        { q: "東漢末年，士大夫與太學生批評朝政，遭到哪一集團殘酷迫害，史稱「黨錮之禍」？", opts: ["A. 宦官", "B. 外戚", "C. 匈奴", "D. 佛教僧侶"], correctIndex: 0 }
-    ],
-    "黃巾之亂": [
-        { q: "東漢末年爆發的「黃巾之亂」，是由哪一個宗教組織發動的？", opts: ["A. 太平道", "B. 五斗米道", "C. 佛教", "D. 白蓮教"], correctIndex: 0 }
-    ],
-    "赤壁之戰": [
-        { q: "東漢末年赤壁之戰中，孫劉聯軍擊敗曹操所使用的關鍵戰術是？", opts: ["A. 火攻", "B. 水淹七軍", "C. 挖地道", "D. 疲勞戰"], correctIndex: 0 }
-    ],
-    "屯田制": [
-        { q: "三國時期曹操為了解決軍糧問題並安置流民，推行了哪一項制度？", opts: ["A. 屯田制", "B. 均田制", "C. 租庸調制", "D. 井田制"], correctIndex: 0 }
-    ],
-    "均田制": [
-        { q: "北魏孝文帝推行改革，頒布了按人口分配土地給農民耕種的什麼制度？", opts: ["A. 均田制", "B. 佔田制", "C. 租佃制", "D. 勞役制"], correctIndex: 0 }
-    ],
-    "三長制": [
-        { q: "北魏為配合均田制與整頓基層戶籍，設立了鄰長、里長、黨長組成的？", opts: ["A. 三長制", "B. 保甲制", "C. 鄉約制", "D. 里甲制"], correctIndex: 0 }
-    ],
-    "租調制": [
-        { q: "北魏至隋唐初年實行的賦稅制度中，徵收穀物稱為租，徵收絹帛等紡織品稱為？", opts: ["A. 調", "B. 庸", "C. 賦", "D. 役"], correctIndex: 0 }
-    ],
-    "三省六部制": [
-        { q: "隋唐時期確立的中央行政體制中，負責起草政令的是哪一省？", opts: ["A. 中書省", "B. 門下省", "C. 尚書省", "D. 祕書省"], correctIndex: 0 }
-    ],
-    "大運河": [
-        { q: "隋代開鑿貫通南北的大運河，以哪一個城市（今洛陽）作為運河的中心？", opts: ["A. 東都洛陽", "B. 長安", "C. 北京", "D. 南京"], correctIndex: 0 }
-    ],
-    "科舉制度": [
-        { q: "隋代創立、唐代完善的哪一項制度，打破了門閥世族對官職的壟斷？", opts: ["A. 科舉制度", "B. 九品中正制", "C. 察舉制", "D. 世襲制"], correctIndex: 0 }
-    ],
-    "府兵制": [
-        { q: "唐朝前期實行的兵役制度，平時生產農耕、戰時應徵入伍，稱為？", opts: ["A. 府兵制", "B. 募兵制", "C. 衛所制", "D. 八旗制"], correctIndex: 0 }
-    ],
-    "租庸調制": [
-        { q: "唐代賦稅制度中的「庸」代表什麼含義？", opts: ["A. 交納絹布以代替服勞役", "B. 繳納田租", "C. 繳納商業稅", "D. 官員的薪俸"], correctIndex: 0 }
-    ],
-    "安史之亂": [
-        { q: "唐朝由盛轉衰的轉折點是由安祿山與史思明發動的什麼叛亂？", opts: ["A. 安史之亂", "B. 黃巢之亂", "C. 侯景之亂", "D. 八王之亂"], correctIndex: 0 }
-    ],
-    "兩稅法": [
-        { q: "唐德宗時期，宰相楊炎建議改行哪一稅制，規定每戶按資產和土地繳納夏稅和秋稅？", opts: ["A. 兩稅法", "B. 租庸調制", "C. 初稅畝", "D. 一條鞭法"], correctIndex: 0 }
-    ]
+    "焚書坑儒": [{ q: "秦始皇為了統一思想，採納哪位大臣的建議實行「焚書坑儒」？", opts: ["A. 李斯", "B. 呂不韋", "C. 趙高", "D. 商鞅"], correctIndex: 0 }],
+    "統一度量衝": [{ q: "秦朝統一度量衡，其中「量」是用來衡量什麼的標準？", opts: ["A. 長度", "B. 容量", "C. 重量", "D. 貨幣"], correctIndex: 1 }],
+    "統一文字": [{ q: "秦朝統一全國文字後，規定的官方標準字體是什麼？", opts: ["A. 楷書", "B. 小篆", "C. 隸書", "D. 行書"], correctIndex: 1 }],
+    "萬里長城": [{ q: "秦朝修築萬里長城，主要是為了抵禦哪一個北方游牧民族？", opts: ["A. 匈奴", "B. 突厥", "C. 契丹", "D. 蒙古"], correctIndex: 0 }],
+    "指鹿為馬": [{ q: "成語「指鹿為馬」發生在秦朝末年，是由哪位宦官主導的政治陰謀？", opts: ["A. 趙高", "B. 李斯", "C. 魏忠賢", "D. 劉瑾"], correctIndex: 0 }],
+    "推行郡縣制度": [{ q: "秦朝在地方上全面推行郡縣制，郡守與縣令是由誰直接任免的？", opts: ["A. 皇帝", "B. 地方世族", "C. 丞相", "D. 太尉"], correctIndex: 0 }],
+    "統一貨幣": [{ q: "秦始皇統一全國貨幣，通行的標準銅錢是以下哪一種？", opts: ["A. 布幣", "B. 刀幣", "C. 圓形方孔錢", "D. 蟻鼻錢"], correctIndex: 2 }],
+    "重農輕商": [{ q: "中國古代封建王朝長期奉行「重農抑商」政策，其根本出發點是什麼？", opts: ["A. 確保國家稅收與兵源穩定", "B. 打擊所有商人", "C. 發展海上貿易", "D. 限制手工業發展"], correctIndex: 0 }],
+    "開鑿運河": [{ q: "秦朝為平定嶺南而開鑿的「靈渠」，溝通了哪兩大水系？", opts: ["A. 長江與黃河", "B. 長江與珠江", "C. 黃河與淮河", "D. 海河與錢塘江"], correctIndex: 1 }],
+    "修築道路": [{ q: "秦朝為加強中央與地方聯繫，修築了以咸陽為中心的專用軍事道路，稱為？", opts: ["A. 絲綢之路", "B. 馳道", "C. 茶馬古道", "D. 官道"], correctIndex: 1 }],
+    "徒木立信": [{ q: "戰國時期推行變法並實行「徒木立信」以取信於民的改革家是？", opts: ["A. 商鞅", "B. 管仲", "C. 吳起", "D. 王安石"], correctIndex: 0 }],
+    "推恩令": [{ q: "西漢漢武帝為削弱諸侯王勢力，採納了誰的建議頒布「推恩令」？", opts: ["A. 主父偃", "B. 董仲舒", "C. 張湯", "D. 衛青"], correctIndex: 0 }],
+    "和親制度": [{ q: "西漢初期面對強大的匈奴，為了爭取休養生息，常採用什麼外交手段？", opts: ["A. 和親政策", "B. 步兵北伐", "C. 閉關鎖國", "D. 結盟羅馬"], correctIndex: 0 }],
+    "士人政府": [{ q: "漢武帝「罷黜百家，獨尊儒術」後，政府官員主要由哪類群體組成，形成士人政府？", opts: ["A. 儒生官僚", "B. 武將軍閥", "C. 皇親國戚", "D. 西域胡商"], correctIndex: 0 }],
+    "五經博士": [{ q: "漢武帝在長安設立太學，並設置了專門傳授儒家經學的教授，稱為？", opts: ["A. 五經博士", "B. 翰林學士", "C. 國子監", "D. 太常寺卿"], correctIndex: 0 }],
+    "輪台罪己詔": [{ q: "漢武帝晚年下詔自我反省，停止對外征伐，此詔書名為？", opts: ["A. 輪台罪己詔", "B. 討伐匈奴詔", "C. 求賢詔", "D. 遷都詔"], correctIndex: 0 }],
+    "黨錮之禍": [{ q: "東漢末年，士大夫與太學生批評朝政，遭到哪一集團殘酷迫害，史稱「黨錮之禍」？", opts: ["A. 宦官", "B. 外戚", "C. 匈奴", "D. 佛教僧侶"], correctIndex: 0 }],
+    "黃巾之亂": [{ q: "東漢末年爆發的「黃巾之亂」，是由哪一個宗教組織發動的？", opts: ["A. 太平道", "B. 五斗米道", "C. 佛教", "D. 白蓮教"], correctIndex: 0 }],
+    "赤壁之戰": [{ q: "東漢末年赤壁之戰中，孫劉聯軍擊敗曹操所使用的關鍵戰術是？", opts: ["A. 火攻", "B. 水淹七軍", "C. 挖地道", "D. 疲勞戰"], correctIndex: 0 }],
+    "屯田制": [{ q: "三國時期曹操為了解決軍糧問題並安置流民，推行了哪一項制度？", opts: ["A. 屯田制", "B. 均田制", "C. 租庸調制", "D. 井田制"], correctIndex: 0 }],
+    "均田制": [{ q: "北魏孝文帝推行改革，頒布了按人口分配土地給農民耕種的什麼制度？", opts: ["A. 均田制", "B. 佔田制", "C. 租佃制", "D. 勞役制"], correctIndex: 0 }],
+    "三長制": [{ q: "北魏為配合均田制與整頓基層戶籍，設立了鄰長、里長、黨長組成的？", opts: ["A. 三長制", "B. 保甲制", "C. 鄉約制", "D. 里甲制"], correctIndex: 0 }],
+    "租調制": [{ q: "北魏至隋唐初年實行的賦稅制度中，徵收穀物稱為租，徵收絹帛等紡織品稱為？", opts: ["A. 調", "B. 庸", "C. 賦", "D. 役"], correctIndex: 0 }],
+    "三省六部制": [{ q: "隋唐時期確立的中央行政體制中，負責起草政令的是哪一省？", opts: ["A. 中書省", "B. 門下省", "C. 尚書省", "D. 祕書省"], correctIndex: 0 }],
+    "大運河": [{ q: "隋代開鑿貫通南北的大運河，以哪一個城市（今洛陽）作為運河的中心？", opts: ["A. 東都洛陽", "B. 長安", "C. 北京", "D. 南京"], correctIndex: 0 }],
+    "科舉制度": [{ q: "隋代創立、唐代完善的哪一項制度，打破了門閥世族對官職的壟斷？", opts: ["A. 科舉制度", "B. 九品中正制", "C. 察舉制", "D. 世襲制"], correctIndex: 0 }],
+    "府兵制": [{ q: "唐朝前期實行的兵役制度，平時生產農耕、戰時應徵入伍，稱為？", opts: ["A. 府兵制", "B. 募兵制", "C. 衛所制", "D. 八旗制"], correctIndex: 0 }],
+    "租庸調制": [{ q: "唐代賦稅制度中的「庸」代表什麼含義？", opts: ["A. 交納絹布以代替服勞役", "B. 繳納田租", "C. 繳納商業稅", "D. 官員的薪俸"], correctIndex: 0 }],
+    "安史之亂": [{ q: "唐朝由盛轉衰的轉折點是由安祿山與史思明發動的什麼叛亂？", opts: ["A. 安史之亂", "B. 黃巢之亂", "C. 侯景之亂", "D. 八王之亂"], correctIndex: 0 }],
+    "兩稅法": [{ q: "唐德宗時期，宰相楊炎建議改行哪一稅制，規定每戶按資產和土地繳納夏稅和秋稅？", opts: ["A. 兩稅法", "B. 租庸調制", "C. 初稅畝", "D. 一條鞭法"], correctIndex: 0 }]
 };
 
 function getRandomQuestion(cardName, dynasty, cardType) {
     let db = (cardType === '輔助') ? SUPPORT_QUESTIONS_DB : CARD_QUESTIONS_DB;
     let qs = db[cardName];
-    
     if (!qs || qs.length === 0) {
         return {
             q: `關於【${cardName}】(${dynasty})的歷史考驗：下列敘述何者最符合歷史原貌？`,
@@ -239,8 +177,7 @@ function getRandomQuestion(cardName, dynasty, cardType) {
             correctIndex: 0
         };
     }
-    const randomIndex = Math.floor(Math.random() * qs.length);
-    return qs[randomIndex];
+    return qs[Math.floor(Math.random() * qs.length)];
 }
 
 const ALL_CARDS = [...HERO_CARDS, ...SUPPORT_CARDS];
@@ -289,7 +226,8 @@ io.on('connection', (socket) => {
         updateGameState(roomId);
     });
 
-    socket.on('get_card_question', ({ roomId, cardIndex }) => {
+    // 1. 點擊手牌出牌：不問問題，直接部署或觸發效果！
+    socket.on('play_card', ({ roomId, cardIndex }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
         const pState = room.state[socket.id];
@@ -300,74 +238,65 @@ io.on('connection', (socket) => {
         const card = pState.hand[cardIndex];
         if (!card) return;
 
-        // 若為人物卡，檢查場上是否已有未攻擊人物
         if (card.type === '人物' && pState.active) {
             socket.emit('error_msg', '場上已有主戰人物，請先發動攻擊！');
             return;
         }
 
-        let qData = getRandomQuestion(card.name, card.dynasty, card.type);
-        qData.cardName = card.name;
-        socket.emit('show_card_question', { qData });
-    });
-
-    // 提交卡牌答題結果並出牌
-    socket.on('play_card_with_answer', ({ roomId, cardIndex, answerCorrect }) => {
-        const room = rooms[roomId];
-        if (!room || room.turn !== socket.id) return;
-        const pState = room.state[socket.id];
-        if (pState.hasPlayedCard) return;
-
-        const card = pState.hand[cardIndex];
-        if (!card) return;
-
         pState.hasPlayedCard = true;
-        pState.hand.splice(cardIndex, 1); // 手牌消耗
+        pState.hand.splice(cardIndex, 1);
 
         const opId = room.players.find(id => id !== socket.id);
         const opState = room.state[opId];
 
-        if (answerCorrect) {
-            if (card.type === '人物') {
-                io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 答對！成功部署主戰人物【${card.name}】！` });
-                pState.active = card;
-                updateGameState(roomId); // 人物卡答對部署後留在場上，等待後續攻擊
-            } else {
-                // 輔助卡答對：發動效果後直接棄掉，並自動結束己方回合
-                io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 策略考驗答對！成功發動【${card.name}】！` });
-                
-                if (card.name === '萬里長城' || card.name === '統一度量衝' || card.name === '輪台罪己詔') {
-                    pState.hp = Math.min(300, pState.hp + 30);
-                    io.to(roomId).emit('battle_log', { msg: `🛡️ 【${card.name}】防禦策略生效！為我方恢復 30 點生命值！` });
-                } else if (card.name === '赤壁之戰' || card.name === '安史之亂' || card.name === '黃巾之亂' || card.name === '指鹿為馬') {
-                    if (opState) opState.hp = Math.max(0, opState.hp - 25);
-                    io.to(roomId).emit('battle_log', { msg: `🔥 【${card.name}】奇襲策略生效！對對手造成 25 點打擊傷害！` });
-                } else {
-                    pState.hp = Math.min(300, pState.hp + 20);
-                    io.to(roomId).emit('battle_log', { msg: `✨ 【${card.name}】輔助策略生效，恢復 20 點生命值！` });
-                }
-
-                // 檢查是否因輔助卡傷害導致對手血量歸零
-                if (opState && opState.hp <= 0) {
-                    opState.hp = 0;
-                    io.to(roomId).emit('game_over', { winner: socket.id });
-                    delete rooms[roomId];
-                    return;
-                }
-
-                switchTurnAndDraw(room, roomId);
-            }
+        if (card.type === '人物') {
+            pState.active = card;
+            io.to(roomId).emit('battle_log', { msg: `[時空部署] 穿越時空者 ${socket.id.substring(4,8)} 成功召喚【${card.name}】登場！` });
+            io.to(roomId).emit('play_sound', { type: 'deploy' });
+            updateGameState(roomId);
         } else {
-            // 無論人物卡或輔助卡，答錯皆化為灰燼/被棄掉，並直接結束己方回合
-            if (card.type === '人物') {
-                io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 答錯！【${card.name}】化為灰燼，回合結束。` });
-            } else {
-                io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 策略考驗答錯！【${card.name}】計謀失敗被棄掉，回合結束。` });
-            }
-            switchTurnAndDraw(room, roomId);
+            // 輔助卡直接發動效果前，先請求歷史考驗（如您要求：恢復/攻擊才問問題）
+            // 這裡我們發送事件讓前端彈出輔助卡考驗題目
+            let qData = getRandomQuestion(card.name, card.dynasty, '輔助');
+            qData.cardName = card.name;
+            socket.emit('show_support_question', { qData, cardName: card.name });
         }
     });
 
+    // 2. 輔助卡答題結算
+    socket.on('resolve_support_card', ({ roomId, cardName, answerCorrect }) => {
+        const room = rooms[roomId];
+        if (!room || room.turn !== socket.id) return;
+        const pState = room.state[socket.id];
+        const opId = room.players.find(id => id !== socket.id);
+        const opState = room.state[opId];
+
+        if (answerCorrect) {
+            io.to(roomId).emit('battle_log', { msg: `[歷史考驗] 穿越時空者 ${socket.id.substring(4,8)} 策略考驗答對！【${cardName}】策略生效！` });
+            io.to(roomId).emit('play_sound', { type: 'heal' });
+            if (cardName === '萬里長城' || cardName === '統一度量衝' || cardName === '輪台罪己詔') {
+                pState.hp = Math.min(300, pState.hp + 30);
+            } else if (cardName === '赤壁之戰' || cardName === '安史之亂' || cardName === '黃巾之亂' || cardName === '指鹿為馬') {
+                if (opState) opState.hp = Math.max(0, opState.hp - 25);
+            } else {
+                pState.hp = Math.min(300, pState.hp + 20);
+            }
+        } else {
+            io.to(roomId).emit('battle_log', { msg: `[歷史考驗] 穿越時空者 ${socket.id.substring(4,8)} 策略考驗答錯！【${cardName}】計謀失敗被棄掉。` });
+            io.to(roomId).emit('play_sound', { type: 'fail' });
+        }
+
+        if (opState && opState.hp <= 0) {
+            opState.hp = 0;
+            io.to(roomId).emit('game_over', { winner: socket.id });
+            delete rooms[roomId];
+            return;
+        }
+
+        switchTurnAndDraw(room, roomId);
+    });
+
+    // 3. 攻擊時詢問歷史問題
     socket.on('get_attack_question', ({ roomId }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
@@ -376,12 +305,11 @@ io.on('connection', (socket) => {
             socket.emit('error_msg', '您尚未部署主戰人物！');
             return;
         }
-
         let qData = getRandomQuestion(pState.active.name, pState.active.dynasty, '人物');
         socket.emit('show_attack_question', { qData });
     });
 
-    // 進行攻擊：攻擊完後主戰人物棄掉，且自動結束己方回合
+    // 4. 執行攻擊結算
     socket.on('attack', ({ roomId, answerCorrect }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
@@ -389,7 +317,6 @@ io.on('connection', (socket) => {
         const opId = room.players.find(id => id !== socket.id);
         if (!opId || !room.state[opId]) return;
         const opState = room.state[opId];
-
         if (!pState.active) return;
 
         let damage = answerCorrect ? 60 : 20;
@@ -397,11 +324,12 @@ io.on('connection', (socket) => {
 
         if (answerCorrect) {
             io.to(roomId).emit('battle_log', { msg: `⚔️ 【${pState.active.name}】戰技激發成功！造成 ${damage} 點爆發傷害，隨後功成身退被棄掉！` });
+            io.to(roomId).emit('play_sound', { type: 'attack_success' });
         } else {
-            io.to(roomId).emit('battle_log', { msg: `⚠️ 【${pState.active.name}】戰技答題錯誤！造成 ${damage} 點傷害，隨後被棄掉。` });
+            io.to(roomId).emit('battle_log', { msg: `⚠️ 【${pState.active.name}】戰技答題錯誤！造成微弱 ${damage} 點傷害，隨後被棄掉。` });
+            io.to(roomId).emit('play_sound', { type: 'attack_fail' });
         }
 
-        // 規則：每張人物卡發動攻擊後便棄掉
         pState.active = null;
 
         if (opState.hp <= 0) {
@@ -411,7 +339,6 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // 攻擊完成後，自動切換回合並補給 2 張卡給下一位玩家
         switchTurnAndDraw(room, roomId);
     });
 
@@ -428,7 +355,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// 輔助函數：切換回合並替下一位玩家抽 2 張牌
 function switchTurnAndDraw(room, roomId) {
     room.turn = room.players.find(id => id !== room.turn);
     if (room.state[room.turn]) {
@@ -444,7 +370,7 @@ function switchTurnAndDraw(room, roomId) {
             }
         }
     }
-    io.to(roomId).emit('battle_log', { msg: `🔄 行動完畢，回合結束，輪到下一位少俠（已補給 2 張卡牌）。` });
+    io.to(roomId).emit('battle_log', { msg: `🔄 行動完畢，回合結束，輪到下一位穿越時空者（已補給 2 張卡牌）。` });
     updateGameState(roomId);
 }
 
@@ -463,5 +389,5 @@ function updateGameState(roomId) {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`《英魂決》伺服器已在 port ${PORT} 啟動！`);
+    console.log(`《英魂決：時空交錯》伺服器已在 port ${PORT} 啟動！`);
 });
