@@ -85,7 +85,7 @@ io.on('connection', (socket) => {
                 isCorrect: data.isCorrect
             });
         } else {
-            socket.emit('errorMsg', '⚠️ 尚有對手未加入，請等待所有人齊集後方可發動攻擊！');
+            socket.emit('errorMsg', '⚠️ 尚有對手未加入, 請等待所有人齊集後方可發動攻擊！');
         }
     });
 
