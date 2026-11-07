@@ -193,7 +193,7 @@
         handDiv.innerHTML = "";
         myState.hand.forEach((card, idx) => {
             let tagColor = card.type === '人物' ? '#78350f' : '#1e3a8a';
-            let canPlay = isMyTurn && !myState.hasPlayedCard;
+            let canPlay = isMyTurn && !myState.hasPlayedCard && !isModalOpen;
             let opacity = canPlay ? '1' : '0.5';
             
             handDiv.innerHTML += `
@@ -209,12 +209,12 @@
         let supportHtml = myState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px; margin-right:4px;">🛡️ ${c.name}</span>`).join('');
         
         if (myState.active) {
-            let canAttack = isMyTurn;
+            let canAttack = isMyTurn && !isModalOpen;
             let activeOpacity = canAttack ? '1' : '0.6';
             myActive.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:100%;">
                     <div style="display:flex; gap:10px; align-items:center;">
-                        <div class="card" style="border:3px solid #22c55e; opacity: ${activeOpacity};" onclick="triggerAttack(${isMyTurn})">
+                        <div class="card" style="border:3px solid #22c55e; opacity: ${activeOpacity};" onclick="triggerAttack(${canAttack})">
                             <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${myState.active.dynasty}] 主戰人物</div>
                             <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${myState.active.name}</div>
                             <div style="font-size:0.6em; color:#475569;">${myState.active.skill}</div>
@@ -272,8 +272,8 @@
         pendingSupportCardName = null;
     }
 
-    function triggerAttack(isMyTurn) {
-        if (!isMyTurn || isModalOpen) return;
+    function triggerAttack(canAttack) {
+        if (!canAttack || isModalOpen) return;
         playSound('click');
         isModalOpen = true;
         socket.emit('get_attack_question', { roomId: currentRoomId });
@@ -301,11 +301,9 @@
     function forfeitTurnAction() {
         document.getElementById('questionModal').classList.add('hidden');
         isModalOpen = false;
-        
         if (currentRoomId) {
             socket.emit('forfeit_turn', { roomId: currentRoomId });
         }
-        
         pendingSupportCardName = null;
     }
 
