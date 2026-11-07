@@ -1,7 +1,7 @@
 {
   "name": "soul-tactics-pvp",
   "version": "1.0.0",
-  "description": "英魂決雙人對戰遊戲",
+  "description": "中史科校本對戰系統",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
