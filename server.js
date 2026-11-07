@@ -4,7 +4,10 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    pingTimeout: 60000,
+    pingInterval: 25000
+});
 
 app.use(express.static(__dirname));
 
@@ -197,7 +200,7 @@ const CARD_QUESTIONS_DB = {
         { q: "北魏時期，為配合均田制並清查隱瞞的戶口，設立了哪一項基層組織制度（鄰長、里長、黨長）？", opts: ["A. 保甲制", "B. 里甲制", "C. 三長制", "D. 猛安謀克制"], correctIndex: 2 }
     ],
     "租調制": [
-        { q: "北魏實施的賦稅制度「租調制」中、「租」與「調」分別代表繳納什麼？", opts: ["A. 田租與戶稅 (絹帛等)", "B. 兵役與勞役", "C. 商業稅與關稅", "D. 人頭稅與鹽鐵稅"], correctIndex: 0 }
+        { q: "北魏實施的賦稅制度「租調制」中，「租」與「調」分別代表繳納什麼？", opts: ["A. 田租與戶稅 (絹帛等)", "B. 兵役與勞役", "C. 商業稅與關稅", "D. 人頭稅與鹽鐵稅"], correctIndex: 0 }
     ],
     "三省六部制": [
         { q: "隋唐時期確立了「三省六部制」，其中負責執行具體政務的是哪一省？", opts: ["A. 中書省", "B. 門下省", "C. 尚書省", "D. 秘書省"], correctIndex: 2 }
@@ -275,6 +278,8 @@ io.on('connection', (socket) => {
             socket.emit('error_msg', '房間已滿！');
             return;
         }
+        if (room.players.includes(socket.id)) return;
+
         room.players.push(socket.id);
         room.state[socket.id] = { hp: 300, hand: [], deck: [], active: null, supportArea: [], hasPlayedCard: false };
         socket.join(roomId);
@@ -354,12 +359,13 @@ io.on('connection', (socket) => {
         if (!room || room.turn !== socket.id) return;
         const pState = room.state[socket.id];
         const opId = room.players.find(id => id !== socket.id);
+        if (!opId || !room.state[opId]) return;
         const opState = room.state[opId];
 
         if (!pState.active) return;
 
         let damage = answerCorrect ? 60 : 20;
-        opState.hp -= damage;
+        opState.hp = Math.max(0, opState.hp - damage);
 
         if (answerCorrect) {
             io.to(roomId).emit('battle_log', { msg: `⚔️ 【${pState.active.name}】戰技激發成功！答題正確，對對手造成 ${damage} 點爆發傷害！` });
@@ -382,11 +388,12 @@ io.on('connection', (socket) => {
         if (!room || room.turn !== socket.id) return;
 
         room.turn = room.players.find(id => id !== socket.id);
-        room.state[room.turn].hasPlayedCard = false;
-
-        let nextPlayerState = room.state[room.turn];
-        if (nextPlayerState.deck.length > 0) {
-            nextPlayerState.hand.push(nextPlayerState.deck.shift());
+        if (room.state[room.turn]) {
+            room.state[room.turn].hasPlayedCard = false;
+            let nextPlayerState = room.state[room.turn];
+            if (nextPlayerState.deck.length > 0) {
+                nextPlayerState.hand.push(nextPlayerState.deck.shift());
+            }
         }
 
         io.to(roomId).emit('battle_log', { msg: `🔄 回合結束，輪到下一位少俠。` });
@@ -396,9 +403,10 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         for (let roomId in rooms) {
             let room = rooms[roomId];
-            if (room.players.includes(socket.id)) {
+            if (room && room.players.includes(socket.id)) {
                 io.to(roomId).emit('battle_log', { msg: `⚠️ 對手已斷線，遊戲結束。` });
-                io.to(roomId).emit('game_over', { winner: room.players.find(id => id !== socket.id) || socket.id });
+                const winnerId = room.players.find(id => id !== socket.id) || socket.id;
+                io.to(roomId).emit('game_over', { winner: winnerId });
                 delete rooms[roomId];
             }
         }
