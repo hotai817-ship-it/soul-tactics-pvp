@@ -139,7 +139,7 @@
             indicator.style.color = "#f87171";
         }
 
-        // 渲染手牌
+        // 渲染手牌（呼叫 requestCardQuestion 觸發隨機選答題）
         const handDiv = document.getElementById('myHand');
         handDiv.innerHTML = "";
         myState.hand.forEach((card, idx) => {
