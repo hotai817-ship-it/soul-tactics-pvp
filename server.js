@@ -245,9 +245,6 @@ io.on('connection', (socket) => {
         pState.hasPlayedCard = true;
         pState.hand.splice(cardIndex, 1);
 
-        const opId = room.players.find(id => id !== socket.id);
-        const opState = room.state[opId];
-
         if (card.type === '人物') {
             pState.active = card;
             io.to(roomId).emit('battle_log', { msg: `[時空部署] 穿越時空者 ${socket.id.substring(4,8)} 成功召喚【${card.name}】登場！` });
@@ -269,21 +266,19 @@ io.on('connection', (socket) => {
 
         if (answerCorrect) {
             io.to(roomId).emit('battle_log', { msg: `[歷史考驗] 穿越時空者 ${socket.id.substring(4,8)} 策略考驗答對！【${cardName}】策略生效！` });
+            io.to(roomId).emit('play_sound', { type: 'heal' });
             
             if (!pState.supportArea) pState.supportArea = [];
             pState.supportArea.push({ name: cardName });
 
             if (cardName === '萬里長城' || cardName === '統一度量衝' || cardName === '徒木立信' || cardName === '和親制度' || cardName === '屯田制' || cardName === '均田制' || cardName === '三省六部制' || cardName === '科舉制度') {
                 pState.hp = Math.min(300, pState.hp + 30);
-                io.to(roomId).emit('play_sound', { type: 'heal' });
                 io.to(roomId).emit('battle_log', { msg: `🛡️ 防禦策略生效！恢復 30 點生命值。` });
             } else if (cardName === '輪台罪己詔') {
                 pState.hp = Math.min(300, pState.hp + 40);
-                io.to(roomId).emit('play_sound', { type: 'heal' });
                 io.to(roomId).emit('battle_log', { msg: `✨ 大幅恢復策略生效！恢復 40 點生命值。` });
             } else if (cardName === '大運河') {
                 pState.hp = Math.min(300, pState.hp + 35);
-                io.to(roomId).emit('play_sound', { type: 'heal' });
                 io.to(roomId).emit('battle_log', { msg: `✨ 大幅恢復策略生效！恢復 35 點生命值。` });
             } else if (cardName === '焚書坑儒' || cardName === '黃巾之亂' || cardName === '赤壁之戰' || cardName === '安史之亂' || cardName === '指鹿為馬') {
                 if (opState) opState.hp = Math.max(0, opState.hp - 25);
@@ -291,12 +286,10 @@ io.on('connection', (socket) => {
                 io.to(roomId).emit('battle_log', { msg: `🔥 攻擊策略生效！對手扣除 25 點生命值。` });
             } else if (cardName === '黨錮之禍') {
                 pState.hp = Math.min(300, pState.hp + 15);
-                io.to(roomId).emit('play_sound', { type: 'heal' });
                 io.to(roomId).emit('battle_log', { msg: `✨ 策略生效！恢復 15 點生命值。` });
             } else {
                 let healVal = (cardName === '統一文字' || cardName === '統一貨幣' || cardName === '開鑿運河' || cardName === '修築道路' || cardName === '五經博士' || cardName === '三長制' || cardName === '租調制') ? 20 : 25;
                 pState.hp = Math.min(300, pState.hp + healVal);
-                io.to(roomId).emit('play_sound', { type: 'heal' });
                 io.to(roomId).emit('battle_log', { msg: `✨ 策略生效！恢復 ${healVal} 點生命值。` });
             }
         } else {
