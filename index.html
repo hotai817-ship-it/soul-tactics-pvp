@@ -11,27 +11,34 @@
         body { 
             font-family: sans-serif; background: var(--bg); color: #f8fafc; margin: 0; 
             min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
+            /* 防止手機端長按選取文字或彈出選單 */
+            -webkit-user-select: none; user-select: none;
         }
         .container { width: 100%; max-width: 1200px; height: 100vh; max-height: 950px; display: flex; flex-direction: column; padding: 10px; }
         h1 { color: var(--gold); font-size: clamp(1.4rem, 2.5vw, 2rem); margin: 5px 0; text-align: center; }
-        .btn { background: linear-gradient(#d4af37, #aa771c); color: #111; border: 2px solid #ffe066; padding: 12px 24px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: clamp(0.95rem, 1.5vw, 1.1rem); margin: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+        .btn { background: linear-gradient(#d4af37, #aa771c); color: #111; border: 2px solid #ffe066; padding: 12px 24px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: clamp(0.95rem, 1.5vw, 1.1rem); margin: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); touch-action: manipulation; }
         .input-box { background: #1e293b; border: 2px solid var(--gold); color: white; padding: 12px; border-radius: 6px; font-size: 1.1rem; width: 200px; text-align: center; margin: 8px; outline: none; }
         .hud { background: var(--panel); border: 2px solid var(--gold); padding: 10px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: clamp(0.95rem, 1.5vw, 1.15rem); font-weight: bold; }
         .arena { display: grid; grid-template-rows: 1fr 1fr; gap: 10px; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 10px; flex-grow: 1; overflow: hidden; border: 1px solid #334155; }
-        .zone { display: flex; gap: 12px; justify-content: center; align-items: center; width: 100%; overflow-x: auto; padding: 5px; min-height: 180px; }
+        .zone { display: flex; gap: 12px; justify-content: center; align-items: center; width: 100%; overflow-x: auto; padding: 5px; min-height: 180px; -webkit-overflow-scrolling: touch; }
         .card { 
             background: #FFFDF0; color: #1e293b; border: 3px solid var(--gold); border-radius: 10px; 
             width: clamp(110px, 16vw, 135px); height: clamp(150px, 22vw, 185px); padding: 8px; 
             display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; flex-shrink: 0; box-shadow: 0 6px 12px rgba(0,0,0,0.5);
-            user-select: none; transition: transform 0.15s;
+            /* 優化手機點擊反應，消除點擊藍色陰影與延遲 */
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            transition: transform 0.15s;
         }
-        .card:hover { transform: translateY(-5px); }
+        @media (hover: hover) {
+            .card:hover { transform: translateY(-5px); }
+        }
         .log { background: #000; color: #38bdf8; font-family: monospace; padding: 10px; height: 75px; overflow-y: auto; text-align: left; border-radius: 6px; font-size: clamp(0.8rem, 1.2vw, 0.95rem); border: 1px solid #334155; }
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 15px; }
         .modal-content { background: #1e293b; border: 3px solid var(--gold); padding: 25px; border-radius: 12px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-        .modal-btn { background: #3b82f6; color: white; border: none; padding: 14px; margin: 8px 0; border-radius: 8px; width: 100%; cursor: pointer; text-align: left; font-weight: bold; font-size: clamp(0.95rem, 1.5vw, 1.05rem); }
+        .modal-btn { background: #3b82f6; color: white; border: none; padding: 14px; margin: 8px 0; border-radius: 8px; width: 100%; cursor: pointer; text-align: left; font-weight: bold; font-size: clamp(0.95rem, 1.5vw, 1.05rem); touch-action: manipulation; }
         .modal-btn:hover { background: #2563eb; }
-        .modal-close-btn { background: #ef4444; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; }
+        .modal-close-btn { background: #ef4444; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; touch-action: manipulation; }
         .modal-close-btn:hover { background: #dc2626; }
         .hidden { display: none !important; }
     </style>
@@ -91,7 +98,7 @@
     const socket = io();
     let currentRoomId = null;
     let pendingSupportCardName = null;
-    let isModalOpen = false; // 防連點保護鎖
+    let isModalOpen = false;
 
     // 內建 Web Audio API 音效產生器
     function playSound(type) {
@@ -117,24 +124,20 @@
                 osc.start(); osc.stop(audioCtx.currentTime + 0.2);
             } else if (type === 'heal') {
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
                 gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
                 osc.start(); osc.stop(audioCtx.currentTime + 0.3);
             } else {
-                // 通用點擊音效
                 osc.frequency.setValueAtTime(600, audioCtx.currentTime);
                 gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
                 osc.start(); osc.stop(audioCtx.currentTime + 0.05);
             }
-        } catch (e) {
-            // 忽略瀏覽器音效自動播放限制
-        }
+        } catch (e) {}
     }
 
-    // 聆聽來自後端的音效事件
     socket.on('play_sound', (data) => {
         playSound(data.type);
     });
@@ -182,7 +185,7 @@
             indicator.style.color = "#f87171";
         }
 
-        // 渲染手牌（點擊直接出牌，不需先答題）
+        // 渲染手牌：使用 onpointerdown 取代 onclick，完美解決手機點擊無反應與雙擊延遲
         const handDiv = document.getElementById('myHand');
         handDiv.innerHTML = "";
         myState.hand.forEach((card, idx) => {
@@ -191,7 +194,7 @@
             let opacity = canPlay ? '1' : '0.5';
             
             handDiv.innerHTML += `
-                <div class="card" style="opacity: ${opacity};" onclick="playCard(${idx}, ${canPlay})">
+                <div class="card" style="opacity: ${opacity};" onpointerdown="playCard(${idx}, ${canPlay})">
                     <div style="font-size:0.75em; font-weight:bold; color:${tagColor};">[${card.dynasty}] ${card.type}</div>
                     <div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;">${card.name}</div>
                     <div style="font-size:0.65em; color:#475569; overflow:hidden; max-height:45px;">${card.skill}: ${card.desc}</div>
@@ -209,7 +212,7 @@
             myActive.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:100%;">
                     <div style="display:flex; gap:10px; align-items:center;">
-                        <div class="card" style="border:3px solid #22c55e; opacity: ${activeOpacity};" onclick="triggerAttack(${isMyTurn})">
+                        <div class="card" style="border:3px solid #22c55e; opacity: ${activeOpacity};" onpointerdown="triggerAttack(${isMyTurn})">
                             <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${myState.active.dynasty}] 主戰人物</div>
                             <div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;">${myState.active.name}</div>
                             <div style="font-size:0.65em; color:#475569;">${myState.active.skill}</div>
@@ -241,14 +244,13 @@
         }
     });
 
-    // 1. 點擊手牌直接出牌（不問問題）
+    // 出牌函數
     function playCard(cardIndex, canPlay) {
         if (!canPlay || isModalOpen) return;
         playSound('click');
         socket.emit('play_card', { roomId: currentRoomId, cardIndex });
     }
 
-    // 接收來自後端需要進行輔助卡歷史考驗的事件
     socket.on('show_support_question', ({ qData, cardName }) => {
         isModalOpen = true;
         pendingSupportCardName = cardName;
@@ -258,7 +260,7 @@
         optDiv.innerHTML = "";
         qData.opts.forEach((opt, idx) => {
             let isCorrect = (idx === qData.correctIndex);
-            optDiv.innerHTML += `<button class="modal-btn" onclick="submitSupportAnswer(${isCorrect})">${opt}</button>`;
+            optDiv.innerHTML += `<button class="modal-btn" onpointerdown="submitSupportAnswer(${isCorrect})">${opt}</button>`;
         });
         document.getElementById('questionModal').classList.remove('hidden');
     });
@@ -270,7 +272,6 @@
         pendingSupportCardName = null;
     }
 
-    // 2. 點擊主戰人物觸發攻擊題庫
     function triggerAttack(isMyTurn) {
         if (!isMyTurn || isModalOpen) return;
         playSound('click');
@@ -286,7 +287,7 @@
         optDiv.innerHTML = "";
         qData.opts.forEach((opt, idx) => {
             let isCorrect = (idx === qData.correctIndex);
-            optDiv.innerHTML += `<button class="modal-btn" onclick="submitAttackAnswer(${isCorrect})">${opt}</button>`;
+            optDiv.innerHTML += `<button class="modal-btn" onpointerdown="submitAttackAnswer(${isCorrect})">${opt}</button>`;
         });
         document.getElementById('questionModal').classList.remove('hidden');
     });
@@ -297,7 +298,6 @@
         socket.emit('attack', { roomId: currentRoomId, answerCorrect: isCorrect });
     }
 
-    // 關閉／放棄作答按鈕邏輯
     function closeModal() {
         document.getElementById('questionModal').classList.add('hidden');
         isModalOpen = false;
