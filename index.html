@@ -45,7 +45,7 @@
     
     <div id="lobby" style="margin: auto; text-align: center; background: var(--panel); padding: 35px; border: 2px solid var(--gold); border-radius: 15px;">
         <h3 style="color: var(--gold); margin-top:0; font-size: 1.5rem;">輸入房號開始對戰</h3>
-        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">點選手牌中的人物卡直接部署，發動策略卡或攻擊時才會進行歷史考驗答題！</p>
+        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">點選手牌直接部署人物或發動策略，僅在主戰人物發動攻擊時進行歷史戰技考驗！</p>
         <input type="text" id="roomInput" class="input-box" placeholder="例如: 8888"><br>
         <button class="btn" onclick="createRoom();">🏠 建立房間</button>
         <button class="btn" onclick="joinRoom();">🔑 加入房間</button>
@@ -70,7 +70,7 @@
         </div>
 
         <div>
-            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (人物卡點擊直接部署，輔助卡點擊觸發策略考驗)</div>
+            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (點擊手牌直接放置或發動)</div>
             <div class="zone" id="myHand" style="min-height: 160px; background: rgba(0,0,0,0.3); border-radius: 8px;"></div>
         </div>
 
@@ -80,10 +80,10 @@
     </div>
 </div>
 
-<!-- 歷史考驗問答互動視窗 -->
+<!-- 歷史考驗問答互動視窗 (僅用於攻擊戰技) -->
 <div id="questionModal" class="modal hidden">
     <div class="modal-content">
-        <h3 id="modalTitle" style="color:var(--gold); margin-top:0;">📜 歷史考驗與戰技激發</h3>
+        <h3 id="modalTitle" style="color:var(--gold); margin-top:0;">⚔️ 戰技激發</h3>
         <p id="qText" style="font-size: clamp(1rem, 1.5vw, 1.15rem); margin: 20px 0; line-height: 1.5;"></p>
         <div id="qOptions"></div>
     </div>
@@ -92,7 +92,6 @@
 <script>
     const socket = io();
     let currentRoomId = null;
-    let pendingSupportCardName = null;
     let isModalOpen = false;
 
     function createRoom() {
@@ -130,7 +129,7 @@
 
         const indicator = document.getElementById('turnIndicator');
         if (isMyTurn) {
-            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊主戰人物進攻" : "⭐ 請點選手牌出牌（人物直接部署，策略觸發考驗），或點擊英雄進攻";
+            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊主戰人物進攻" : "⭐ 請點選手牌直接部署或發動策略，或點擊英雄進攻";
             indicator.innerText = actionText;
             indicator.style.color = "#4ade80";
         } else {
@@ -150,7 +149,7 @@
                     <div style="font-size:0.75em; font-weight:bold; color:${tagColor};">[${card.dynasty}] ${card.type}</div>
                     <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${card.name}</div>
                     <div style="font-size:0.6em; color:#475569; overflow:hidden; max-height:45px;">${card.desc}</div>
-                    <div style="font-size:0.65em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">${canPlay ? (card.type === '人物' ? '點擊直接部署' : '點擊策略考驗') : '等待中'}</div>
+                    <div style="font-size:0.65em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">${canPlay ? '點擊直接出牌' : '等待中'}</div>
                 </div>`;
         });
 
@@ -197,27 +196,6 @@
     function playCard(cardIndex, canPlay) {
         if (!canPlay || isModalOpen) return;
         socket.emit('play_card', { roomId: currentRoomId, cardIndex });
-    }
-
-    socket.on('show_support_question', ({ qData, cardName }) => {
-        isModalOpen = true;
-        pendingSupportCardName = cardName;
-        document.getElementById('modalTitle').innerText = `📜 策略考驗 - 【${cardName}】`;
-        document.getElementById('qText').innerText = qData.q;
-        const optDiv = document.getElementById('qOptions');
-        optDiv.innerHTML = "";
-        qData.opts.forEach((opt, idx) => {
-            let isCorrect = (idx === qData.correctIndex);
-            optDiv.innerHTML += `<button class="modal-btn" onclick="submitSupportAnswer(${isCorrect})">${opt}</button>`;
-        });
-        document.getElementById('questionModal').classList.remove('hidden');
-    });
-
-    function submitSupportAnswer(isCorrect) {
-        document.getElementById('questionModal').classList.add('hidden');
-        isModalOpen = false;
-        socket.emit('resolve_support_card', { roomId: currentRoomId, cardName: pendingSupportCardName, answerCorrect: isCorrect });
-        pendingSupportCardName = null;
     }
 
     function triggerAttack(isMyTurn) {
