@@ -8,6 +8,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: { origin: "*" }
 });
+// 讓伺服器自動讀取並顯示同資料夾的 index.html
+app.use(express.static(__dirname));
 
 app.use(express.static(__dirname));
 
