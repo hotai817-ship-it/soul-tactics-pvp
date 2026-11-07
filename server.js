@@ -7,7 +7,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(path.join(__dirname, 'public')));
+// 直接將根目錄設為靜態資源資料夾，讓 server 能直接讀取同層的 index.html
+app.use(express.static(__dirname));
 
 const ALL_CARDS = [
   { id: "card_0", dynasty: "秦", name: "秦始皇", hp: 200.0, category: "人物", trait: "祖龍之威", skill: "六合一統", skill_detail: "攻擊30" },
@@ -21,7 +22,6 @@ let waitingPlayer = null;
 let rooms = {};
 
 io.on('connection', (socket) => {
-    // 快速隨機配對
     socket.on('find_game', () => {
         if (waitingPlayer && waitingPlayer !== socket) {
             const roomId = `room_${Math.floor(1000 + Math.random() * 9000)}`;
@@ -33,20 +33,13 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 建立自訂房間
     socket.on('create_room', () => {
         const roomId = Math.floor(1000 + Math.random() * 9000).toString();
         socket.join(roomId);
-        rooms[roomId] = {
-            players: [socket],
-            state: {},
-            turn: null,
-            isPrivate: true
-        };
+        rooms[roomId] = { players: [socket], state: {}, turn: null, isPrivate: true };
         socket.emit('room_created', roomId);
     });
 
-    // 加入自訂房間
     socket.on('join_room', (roomId) => {
         const room = rooms[roomId];
         if (!room) {
@@ -57,9 +50,7 @@ io.on('connection', (socket) => {
             socket.emit('error_msg', '此房間已滿！');
             return;
         }
-
-        const hostSocket = room.players[0];
-        joinRoomProcess(hostSocket, socket, roomId);
+        joinRoomProcess(room.players[0], socket, roomId);
     });
 
     socket.on('play_card', ({ roomId, cardIndex }) => {
@@ -158,4 +149,5 @@ function broadcastGameState(roomId) {
     });
 }
 
-server.listen(3000, () => console.log('即時對戰房間伺服器運行於 http://localhost:3000'));
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`伺服器運行於 port ${PORT}`));
