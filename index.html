@@ -47,7 +47,7 @@
     
     <div id="lobby" style="margin: auto; text-align: center; background: var(--panel); padding: 35px; border: 2px solid var(--gold); border-radius: 15px;">
         <h3 style="color: var(--gold); margin-top:0; font-size: 1.5rem;">輸入房號開始對戰</h3>
-        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">人物卡直接部署，發動策略卡或主戰人物攻擊時將觸發歷史考驗答題！</p>
+        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">點選手牌直接部署或發動策略（卡片已標註攻擊／恢復數值）！</p>
         <input type="text" id="roomInput" class="input-box" placeholder="例如: 8888"><br>
         <button class="btn" onclick="playSound('click'); createRoom();">🏠 建立房間</button>
         <button class="btn" onclick="playSound('click'); joinRoom();">🔑 加入房間</button>
@@ -72,7 +72,7 @@
         </div>
 
         <div>
-            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (人物卡直接部署，輔助卡觸發策略考驗)</div>
+            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (策略卡具體數值已標註於下方)</div>
             <div class="zone" id="myHand" style="min-height: 160px; background: rgba(0,0,0,0.3); border-radius: 8px;"></div>
         </div>
 
@@ -172,7 +172,7 @@
         currentRoomId = roomId;
         document.getElementById('lobby').classList.add('hidden');
         document.getElementById('gameArea').classList.remove('hidden');
-        appendLog(`🎉 成功進入房間 [${roomId}]，遊戲開始！`);
+        appendLog(`🎉 成功進入房間 [${roomId}]，請點選手牌直接部署人物或發動策略！`);
     });
 
     socket.on('game_state_update', ({ myState, opState, isMyTurn }) => {
@@ -181,7 +181,7 @@
 
         const indicator = document.getElementById('turnIndicator');
         if (isMyTurn) {
-            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊主戰人物進進攻" : "⭐ 請點選手牌出牌（人物直接部署，策略觸發考驗），或點擊英雄進攻";
+            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊英雄進攻（答對60點/答錯20點）" : "⭐ 請點選手牌出牌，或點擊英雄進攻";
             indicator.innerText = actionText;
             indicator.style.color = "#4ade80";
         } else {
@@ -201,7 +201,7 @@
                     <div style="font-size:0.75em; font-weight:bold; color:${tagColor};">[${card.dynasty}] ${card.type}</div>
                     <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${card.name}</div>
                     <div style="font-size:0.6em; color:#475569; overflow:hidden; max-height:45px;">${card.desc}</div>
-                    <div style="font-size:0.65em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">${canPlay ? (card.type === '人物' ? '點擊直接部署' : '點擊策略考驗') : '等待中'}</div>
+                    <div style="font-size:0.65em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">${canPlay ? '點擊出牌' : '等待中'}</div>
                 </div>`;
         });
 
@@ -218,13 +218,13 @@
                             <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${myState.active.dynasty}] 主戰人物</div>
                             <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${myState.active.name}</div>
                             <div style="font-size:0.6em; color:#475569;">${myState.active.skill}</div>
-                            <div style="font-size:0.65em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">${canAttack ? '⚔️ 戰技攻擊(答對60/錯20)' : '等待回合'}</div>
+                            <div style="font-size:0.65em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">${canAttack ? '⚔️ 攻擊(對答60/錯20)' : '等待回合'}</div>
                         </div>
                     </div>
                     ${supportHtml ? `<div style="font-size:0.85rem; color:#38bdf8;">支援區: ${supportHtml}</div>` : ''}
                 </div>`;
         } else {
-            myActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">尚未部署主戰人物（請從手牌點擊人物卡直接部署） ${supportHtml ? '<br>支援區: ' + supportHtml : ''}</div>`;
+            myActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">請從手牌點擊歷史人物卡部署到戰陣上 ${supportHtml ? '<br>支援區: ' + supportHtml : ''}</div>`;
         }
 
         const opActive = document.getElementById('opActive');
@@ -312,9 +312,9 @@
     socket.on('battle_log', (data) => { appendLog(data.msg); });
     socket.on('game_over', ({ winner }) => {
         if (winner === socket.id) {
-            alert("🎉 恭喜您在對戰中獲得勝利！");
+            alert("🎉 恭喜您在《英魂決：時空交錯》中獲得勝利！");
         } else {
-            alert("❌ 勝敗乃兵家常事，請捲土重來！");
+            alert("❌ 勝敗乃兵家常事，穿越時空者請重新來過！");
         }
         location.reload();
     });
