@@ -1,7 +1,7 @@
 {
   "name": "soul-tactics-room-pvp",
-  "version": "2.2.0",
-  "description": "Soul Tactics - Room-based Real-time Multiplayer Card Game",
+  "version": "2.3.0",
+  "description": "Soul Tactics - Real-time Multiplayer Card Game (Qin, Han, Sui, Tang)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
