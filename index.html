@@ -88,7 +88,7 @@
         <h3 id="modalTitle" style="color:var(--gold); margin-top:0;">📜 歷史考驗與戰技激發</h3>
         <p id="qText" style="font-size: clamp(1rem, 1.5vw, 1.15rem); margin: 20px 0; line-height: 1.5;"></p>
         <div id="qOptions"></div>
-        <button class="modal-close-btn" onclick="closeModal()">❌ 放棄作答</button>
+        <button class="modal-close-btn" onclick="forfeitTurnAction()">❌ 放棄作答</button>
     </div>
 </div>
 
@@ -183,7 +183,7 @@
             indicator.style.color = "#f87171";
         }
 
-        // 渲染手牌：使用 onclick 配合 CSS 的 touch-action: manipulation，確保手機點擊流暢且不重複觸發
+        // 渲染手牌
         const handDiv = document.getElementById('myHand');
         handDiv.innerHTML = "";
         myState.hand.forEach((card, idx) => {
@@ -296,9 +296,15 @@
         socket.emit('attack', { roomId: currentRoomId, answerCorrect: isCorrect });
     }
 
-    function closeModal() {
+    // 專門處理點擊「❌ 放棄作答」的動作
+    function forfeitTurnAction() {
         document.getElementById('questionModal').classList.add('hidden');
         isModalOpen = false;
+        
+        if (currentRoomId) {
+            socket.emit('forfeit_turn', { roomId: currentRoomId });
+        }
+        
         pendingSupportCardName = null;
     }
 
