@@ -3,80 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>《英魂決》線上即時對戰空間</title>
+    <title>《英魂決》房間式即時對戰空間</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root { --gold: #D4AF37; --bg: #0f172a; --panel: rgba(26, 43, 76, 0.95); }
         * { box-sizing: border-box; }
         body { 
-            font-family: sans-serif; 
-            background: var(--bg); 
-            color: #f8fafc; 
-            margin: 0; 
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); 
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            overflow-x: hidden;
+            font-family: sans-serif; background: var(--bg); color: #f8fafc; margin: 0; 
+            min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
         }
-        .container { 
-            width: 100%; 
-            max-width: 1200px; 
-            height: 100vh;
-            max-height: 950px;
-            display: flex;
-            flex-direction: column;
-            padding: 10px;
-        }
+        .container { width: 100%; max-width: 1200px; height: 100vh; max-height: 950px; display: flex; flex-direction: column; padding: 10px; }
         h1 { color: var(--gold); font-size: clamp(1.4rem, 2.5vw, 2rem); margin: 5px 0; text-align: center; }
-        .btn { background: linear-gradient(#d4af37, #aa771c); color: #111; border: 2px solid #ffe066; padding: 10px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: clamp(0.9rem, 1.5vw, 1.1rem); }
+        .btn { background: linear-gradient(#d4af37, #aa771c); color: #111; border: 2px solid #ffe066; padding: 10px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: clamp(0.9rem, 1.5vw, 1.1rem); margin: 5px; }
+        .input-box { background: #1e293b; border: 1px solid var(--gold); color: white; padding: 10px; border-radius: 6px; font-size: 1rem; width: 180px; text-align: center; margin: 5px; }
         .hud { background: var(--panel); border: 1px solid var(--gold); padding: 8px 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: clamp(0.9rem, 1.5vw, 1.1rem); font-weight: bold; }
-        .arena { 
-            display: grid; 
-            grid-template-rows: 1fr 1fr; 
-            gap: 10px; 
-            background: rgba(0,0,0,0.4); 
-            padding: 10px; 
-            border-radius: 10px; 
-            flex-grow: 1;
-            overflow: hidden;
-        }
+        .arena { display: grid; grid-template-rows: 1fr 1fr; gap: 10px; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px; flex-grow: 1; overflow: hidden; }
         .zone { display: flex; gap: 10px; justify-content: center; align-items: center; width: 100%; overflow-x: auto; padding: 5px; }
         .card { 
-            background: #FFFDF0; 
-            color: #1e293b; 
-            border: 2px solid var(--gold); 
-            border-radius: 8px; 
-            width: clamp(100px, 15vw, 130px); 
-            height: clamp(140px, 22vw, 180px); 
-            padding: 6px; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: space-between; 
-            cursor: pointer; 
-            flex-shrink: 0;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            background: #FFFDF0; color: #1e293b; border: 2px solid var(--gold); border-radius: 8px; 
+            width: clamp(100px, 15vw, 130px); height: clamp(140px, 22vw, 180px); padding: 6px; 
+            display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
         .log { background: #000; color: #38bdf8; font-family: monospace; padding: 8px; height: 70px; overflow-y: auto; text-align: left; border-radius: 6px; font-size: clamp(0.8rem, 1.2vw, 0.95rem); }
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 15px; }
-        .modal-content { background: #1e293b; border: 3px solid var(--gold); padding: 20px; border-radius: 12px; max-width: 450px; width: 100%; }
+        .modal-content { background: #1e293b; border: 3px solid var(--gold); padding: 20px; border-radius: 12px; max-width: 450px; width: 100%; text-align: center; }
         .modal-btn { background: #3b82f6; color: white; border: none; padding: 10px; margin: 6px 0; border-radius: 6px; width: 100%; cursor: pointer; text-align: left; font-weight: bold; font-size: clamp(0.9rem, 1.5vw, 1rem); }
         .hidden { display: none !important; }
-        
-        @media (max-width: 768px) {
-            .container { height: 100vh; max-height: none; padding: 5px; }
-            .arena { gap: 5px; padding: 5px; }
-        }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>《英魂決》線上即時對戰空間</h1>
+    <h1>《英魂決》房間式即時對戰空間</h1>
     
-    <div id="lobby" style="margin: auto; text-align: center;">
-        <button class="btn" onclick="playSound(); findGame();">進入對戰大廳（配對）</button>
+    <div id="lobby" style="margin: auto; text-align: center; background: var(--panel); padding: 30px; border: 2px solid var(--gold); border-radius: 15px;">
+        <h3 style="color: var(--gold); margin-top:0;">選擇對戰模式</h3>
+        <button class="btn" onclick="findGame()">🚀 快速隨機配對</button><br><br>
+        <hr style="border-color: #334155; margin: 15px 0;">
+        <button class="btn" onclick="createRoom()">🏠 建立私人房間</button><br>
+        <input type="text" id="roomInput" class="input-box" placeholder="輸入 4 位房號">
+        <button class="btn" onclick="joinRoom()">🔑 加入房間</button>
     </div>
 
     <div id="gameArea" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1; gap: 8px; overflow: hidden;">
@@ -103,7 +68,7 @@
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-            <button class="btn" onclick="playSound(); endTurn();" style="padding: 10px 16px;">結束回合</button>
+            <button class="btn" onclick="endTurn()" style="padding: 10px 16px;">結束回合</button>
             <div class="log" id="logBox" style="flex-grow: 1;">[系統] 準備就緒。</div>
         </div>
     </div>
@@ -121,28 +86,29 @@
     const socket = io();
     let currentRoomId = null;
 
-    function playSound(type = 'click') {
-        try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            if (type === 'click') {
-                osc.frequency.setValueAtTime(600, ctx.currentTime);
-                gain.gain.setValueAtTime(0.1, ctx.currentTime);
-                osc.start(); osc.stop(ctx.currentTime + 0.08);
-            }
-        } catch(e) {}
+    function findGame() {
+        document.getElementById('lobby').innerHTML = "<h3 style='color:var(--gold);'>⏳ 正在隨機配對對手...</h3>";
+        socket.emit('find_game');
     }
 
-    function findGame() { socket.emit('find_game'); }
+    function createRoom() { socket.emit('create_room'); }
+    function joinRoom() {
+        const roomId = document.getElementById('roomInput').value.trim();
+        if (!roomId) { alert("請輸入房號！"); return; }
+        socket.emit('join_room', roomId);
+    }
+
+    socket.on('room_created', (roomId) => {
+        document.getElementById('lobby').innerHTML = `<h3 style='color:var(--gold);'>🏠 房間建立成功！</h3><p>您的專屬房號是：<b style="font-size:1.5em; color:#38bdf8;">${roomId}</b></p><p>等待對手加入...</p>`;
+    });
+
+    socket.on('error_msg', (msg) => { alert(msg); location.reload(); });
 
     socket.on('game_start', ({ roomId }) => {
         currentRoomId = roomId;
         document.getElementById('lobby').classList.add('hidden');
         document.getElementById('gameArea').classList.remove('hidden');
-        appendLog("對局開始！");
+        appendLog(`🎉 成功進入房間 [${roomId}]，對局開始！`);
     });
 
     socket.on('game_state_update', ({ myState, opState, isMyTurn }) => {
@@ -157,7 +123,7 @@
         handDiv.innerHTML = "";
         myState.hand.forEach((card, idx) => {
             handDiv.innerHTML += `
-                <div class="card" onclick="playSound(); playCard(${idx})">
+                <div class="card" onclick="playCard(${idx})">
                     <div style="font-size:0.7em; font-weight:bold;">[${card.dynasty}]</div>
                     <div style="font-size:0.9em; font-weight:bold; color:#78350f;">${card.name}</div>
                     <div style="font-size:0.6em; color:#475569; overflow:hidden; max-height:35px;">${card.skill}</div>
@@ -167,7 +133,7 @@
 
         const myActive = document.getElementById('myActive');
         myActive.innerHTML = myState.active ? `
-            <div class="card" style="border:3px solid #22c55e;" onclick="playSound(); triggerAttack();">
+            <div class="card" style="border:3px solid #22c55e;" onclick="triggerAttack()">
                 <div style="font-size:0.7em; font-weight:bold;">主戰英雄</div>
                 <div style="font-size:0.9em; font-weight:bold; color:#78350f;">${myState.active.name}</div>
                 <div style="font-size:0.6em; color:#475569;">${myState.active.skill}</div>
@@ -197,7 +163,7 @@
         optDiv.innerHTML = "";
         q.opts.forEach(opt => {
             let isCorrect = opt.includes(q.ans) || opt.charAt(0) === 'A';
-            optDiv.innerHTML += `<button class="modal-btn" onclick="playSound(); submitAnswer(${isCorrect})">${opt}</button>`;
+            optDiv.innerHTML += `<button class="modal-btn" onclick="submitAnswer(${isCorrect})">${opt}</button>`;
         });
         document.getElementById('questionModal').classList.remove('hidden');
     }
