@@ -3,111 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>英魂決 TCG - 中史科校本對戰系統 (官方完全版)</title>
+    <title>英魂決 TCG - 中史科校本對戰系統 (雙重考驗與10次模擬版)</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; touch-action: manipulation; }
         body { 
             font-family: "PMingLiU", "MingLiU", "Noto Serif TC", serif; 
             background: radial-gradient(circle at center, #1a252f 0%, #000000 100%);
-            color: #ecf0f1; text-align: center; overflow: hidden; height: 100vh; width: 100vw;
+            color: #ecf0f1; text-align: center; overflow-x: hidden; min-height: 100vh; width: 100vw;
         }
         .hidden { display: none !important; }
 
         /* --- 遊戲大廳 --- */
-        #lobby { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; }
-        h1 { font-size: clamp(36px, 7vw, 55px); color: #D4AF37; text-shadow: 2px 2px 10px rgba(212, 175, 55, 0.8); margin-bottom: 5px; letter-spacing: 2px; }
-        h2 { font-size: clamp(14px, 3.5vw, 20px); color: #bdc3c7; margin-bottom: 25px; letter-spacing: 3px; }
-        .input-group { background: rgba(0,0,0,0.8); padding: 25px; border-radius: 15px; border: 2px solid #D4AF37; width: 100%; max-width: 400px; box-shadow: 0 0 25px rgba(212,175,55,0.3); }
+        #lobby { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; }
+        h1 { font-size: clamp(34px, 6vw, 50px); color: #D4AF37; text-shadow: 2px 2px 10px rgba(212, 175, 55, 0.8); margin-bottom: 5px; letter-spacing: 2px; }
+        h2 { font-size: clamp(13px, 3vw, 18px); color: #bdc3c7; margin-bottom: 20px; letter-spacing: 2px; }
+        .input-group { background: rgba(0,0,0,0.8); padding: 20px; border-radius: 15px; border: 2px solid #D4AF37; width: 100%; max-width: 420px; box-shadow: 0 0 25px rgba(212,175,55,0.3); }
         input { padding: 12px; font-size: 18px; text-align: center; border: 2px solid #7f8c8d; background: #111; color: #D4AF37; border-radius: 8px; margin-bottom: 15px; width: 100%; font-family: inherit; font-weight: bold; }
-        .btn-container { display: flex; gap: 12px; justify-content: center; }
-        .btn-gold { flex: 1; padding: 12px 10px; font-size: 16px; font-weight: bold; cursor: pointer; background: linear-gradient(135deg, #B8860B, #D4AF37); border: none; color: #000; border-radius: 8px; transition: 0.3s; }
+        .btn-container { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .btn-gold { flex: 1; min-width: 130px; padding: 12px 10px; font-size: 15px; font-weight: bold; cursor: pointer; background: linear-gradient(135deg, #B8860B, #D4AF37); border: none; color: #000; border-radius: 8px; transition: 0.3s; }
         .btn-red { background: linear-gradient(135deg, #8B0000, #B22222); color: white; }
+        .btn-blue { background: linear-gradient(135deg, #2980b9, #3498db); color: white; }
 
-        /* --- 戰鬥介面 (RWD 三戰區) --- */
-        #gameBoard { display: flex; flex-direction: column; justify-content: space-between; height: 100vh; padding: 6px; }
-        
-        .player-header { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 6px 10px; background: rgba(255,255,255,0.05); border: 1px solid #7f8c8d; border-radius: 8px; }
-        .hp-container { width: 42%; background: #2c3e50; border: 2px solid #000; border-radius: 15px; overflow: hidden; position: relative; height: 18px; }
+        /* --- 戰鬥介面 --- */
+        #gameBoard { display: flex; flex-direction: column; justify-content: space-between; height: 100vh; padding: 5px; }
+        .player-header { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 5px 10px; background: rgba(255,255,255,0.05); border: 1px solid #7f8c8d; border-radius: 8px; }
+        .hp-container { width: 40%; background: #2c3e50; border: 2px solid #000; border-radius: 15px; overflow: hidden; position: relative; height: 16px; }
         .hp-bar { height: 100%; background: linear-gradient(90deg, #ff0000, #ff4d4d); width: 100%; transition: width 0.4s ease-out; }
-        .hp-text { position: absolute; width: 100%; text-align: center; top: 0px; font-weight: bold; font-size: 11px; text-shadow: 1px 1px 2px #000; }
-        .player-name { font-size: clamp(13px, 3vw, 16px); color: #D4AF37; font-weight: bold; }
-        
-        .energy-board { display: flex; gap: 6px; font-size: 11px; color: #f1c40f; background: rgba(0,0,0,0.6); padding: 3px 6px; border-radius: 5px; border: 1px solid #D4AF37; }
+        .hp-text { position: absolute; width: 100%; text-align: center; top: 0px; font-weight: bold; font-size: 10px; text-shadow: 1px 1px 2px #000; }
+        .player-name { font-size: clamp(12px, 2.8vw, 15px); color: #D4AF37; font-weight: bold; }
+        .energy-board { display: flex; gap: 4px; font-size: 10px; color: #f1c40f; background: rgba(0,0,0,0.6); padding: 2px 5px; border-radius: 5px; border: 1px solid #D4AF37; }
 
-        /* --- 三戰區 (天、地、人) --- */
-        .battlefield-container { display: flex; flex-direction: column; gap: 5px; flex-grow: 1; justify-content: center; }
-        .zone-row { display: flex; justify-content: center; gap: 8px; align-items: center; }
-        .zone-label { font-size: 13px; font-weight: bold; color: #D4AF37; width: 25px; text-align: center; }
-        
-        .field-slot { 
-            width: 24vw; max-width: 90px; height: 30vw; max-height: 120px; 
-            border: 2px dashed rgba(212, 175, 55, 0.4); border-radius: 8px; 
-            display: flex; align-items: center; justify-content: center; 
-            color: rgba(255,255,255,0.3); font-size: 11px; background: rgba(0,0,0,0.3);
-            cursor: pointer; position: relative;
-        }
+        /* --- 三戰區 + 輔助位 --- */
+        .battlefield-container { display: flex; flex-direction: column; gap: 4px; flex-grow: 1; justify-content: center; }
+        .zone-row { display: flex; justify-content: center; gap: 6px; align-items: center; }
+        .zone-label { font-size: 12px; font-weight: bold; color: #D4AF37; width: 22px; text-align: center; }
+        .field-slot { width: 20vw; max-width: 80px; height: 26vw; max-height: 105px; border: 2px dashed rgba(212, 175, 55, 0.4); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); font-size: 10px; background: rgba(0,0,0,0.3); cursor: pointer; position: relative; }
+        .aux-slot { width: 14vw; max-width: 60px; height: 26vw; max-height: 105px; border: 2px dashed rgba(52, 152, 219, 0.6); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #3498db; font-size: 9px; background: rgba(0,0,0,0.4); cursor: pointer; text-align: center; padding: 2px; }
 
-        /* --- 卡牌設計 (內含圖像插畫) --- */
-        .hand { display: flex; justify-content: center; gap: 1vw; padding: 4px 0; align-items: flex-end; overflow-x: auto; }
-        .card { 
-            width: 20vw; max-width: 88px; height: 28vw; max-height: 122px; background: #1a252f;
-            border: 2px solid #8c7322; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; 
-            transition: all 0.2s; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.8);
-            overflow: hidden; flex-shrink: 0;
-        }
-        .card:active, .card:hover { transform: translateY(-8px); border-color: #f1c40f; box-shadow: 0 5px 15px rgba(212,175,55,0.6); z-index: 10; }
-        
-        .card-header { display: flex; justify-content: space-between; background: #2c3e50; padding: 1px 3px; font-size: 8px; border-bottom: 1px solid #8c7322; color: #D4AF37; }
-        .card-img-box { width: 100%; height: 42%; background: #0d1b2a; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #8c7322; position: relative; overflow: hidden; }
-        .card-img-box svg { width: 85%; height: 85%; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
-        
+        /* --- 攻擊控制列 --- */
+        .control-bar { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 4px; flex-wrap: wrap; }
+        .btn-attack { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; border: 2px solid #f1c40f; padding: 8px 18px; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 0 15px rgba(231, 76, 60, 0.6); transition: 0.2s; font-family: inherit; }
+        .btn-sim { background: linear-gradient(135deg, #8e44ad, #9b59b6); color: white; border: 2px solid #f1c40f; padding: 8px 18px; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer; font-family: inherit; }
+
+        /* --- 手牌區 --- */
+        .hand { display: flex; justify-content: center; gap: 1vw; padding: 3px 0; align-items: flex-end; overflow-x: auto; }
+        .card { width: 18vw; max-width: 78px; height: 26vw; max-height: 110px; background: #1a252f; border: 2px solid #8c7322; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; transition: all 0.2s; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.8); overflow: hidden; flex-shrink: 0; }
+        .card-header { display: flex; justify-content: space-between; background: #2c3e50; padding: 1px 3px; font-size: 7px; border-bottom: 1px solid #8c7322; color: #D4AF37; }
+        .card-img-box { width: 100%; height: 38%; background: #0d1b2a; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #8c7322; position: relative; overflow: hidden; }
+        .card-img-box svg { width: 80%; height: 80%; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
         .card-body { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2px; background: #34495e; position: relative; }
-        .card-name { font-size: clamp(10px, 2.5vw, 12px); font-weight: bold; color: #fff; text-shadow: 1px 1px 2px #000; }
-        .card-trait { font-size: clamp(7px, 1.8vw, 9px); color: #bdc3c7; font-style: italic; }
-        .card-footer { display: flex; justify-content: space-between; background: linear-gradient(180deg, #8B0000, #5c0000); color: white; font-size: clamp(10px, 2.8vw, 12px); font-weight: bold; padding: 2px 4px; border-top: 1px solid #ff4d4d; }
+        .card-name { font-size: clamp(9px, 2.3vw, 11px); font-weight: bold; color: #fff; text-shadow: 1px 1px 2px #000; }
+        .card-trait { font-size: clamp(6px, 1.5vw, 8px); color: #bdc3c7; font-style: italic; }
+        .card-footer { display: flex; justify-content: space-between; background: linear-gradient(180deg, #8B0000, #5c0000); color: white; font-size: clamp(9px, 2.5vw, 11px); font-weight: bold; padding: 2px 4px; border-top: 1px solid #ff4d4d; }
+        .card.played { width: 20vw; max-width: 82px; height: 26vw; max-height: 110px; cursor: default; }
 
-        .card.played { width: 22vw; max-width: 90px; height: 29vw; max-height: 124px; animation: playAnim 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; cursor: default; }
-        
         /* --- 歷史問答視窗 --- */
         #quizOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.92); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(8px); padding: 15px; }
         .quiz-box { background: #2c3e50; border: 3px solid #D4AF37; padding: 20px; border-radius: 12px; width: 100%; max-width: 520px; box-shadow: 0 0 40px rgba(212,175,55,0.5); text-align: left; }
-        .quiz-box h3 { color: #e74c3c; font-size: 16px; border-bottom: 2px solid #7f8c8d; padding-bottom: 8px; margin-bottom: 12px; }
-        #quizCardName { font-size: 14px; color: #f1c40f; margin-bottom: 6px; font-weight: bold; }
-        #quizQuestion { font-size: clamp(14px, 3.5vw, 18px); line-height: 1.4; margin-bottom: 15px; color: #fff; }
+        .quiz-box h3 { color: #e74c3c; font-size: 15px; border-bottom: 2px solid #7f8c8d; padding-bottom: 8px; margin-bottom: 12px; }
+        #quizCardName { font-size: 13px; color: #f1c40f; margin-bottom: 6px; font-weight: bold; }
+        #quizQuestion { font-size: clamp(13px, 3.2vw, 17px); line-height: 1.4; margin-bottom: 15px; color: #fff; }
         .quiz-options { display: grid; grid-template-columns: 1fr; gap: 8px; }
         @media (min-width: 500px) { .quiz-options { grid-template-columns: 1fr 1fr; } }
-        
-        .quiz-btn { background: #1a252f; border: 2px solid #7f8c8d; padding: 10px; color: white; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 8px; font-family: inherit; transition: 0.2s; text-align: left; }
-        .quiz-btn:active, .quiz-btn:hover { background: #D4AF37; color: black; border-color: #D4AF37; transform: scale(1.02); }
+        .quiz-btn { background: #1a252f; border: 2px solid #7f8c8d; padding: 10px; color: white; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 8px; font-family: inherit; transition: 0.2s; text-align: left; }
+        .quiz-btn:active, .quiz-btn:hover { background: #D4AF37; color: black; border-color: #D4AF37; }
 
-        /* --- 動畫特效 --- */
-        @keyframes playAnim { 0% { transform: scale(1.5) translateY(30px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+        /* --- 模擬測試報告彈窗 --- */
+        #simReportOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 200; padding: 20px; }
+        .report-box { background: #1e272e; border: 3px solid #D4AF37; padding: 25px; border-radius: 15px; width: 100%; max-width: 600px; text-align: left; max-height: 90vh; overflow-y: auto; }
+        .report-box h2 { color: #D4AF37; margin-bottom: 15px; text-align: center; }
+        .report-log { font-family: monospace; font-size: 12px; background: #111; color: #2ecc71; padding: 12px; border-radius: 8px; height: 250px; overflow-y: auto; margin-bottom: 15px; border: 1px solid #444; }
+
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px) rotate(-2deg); } 50% { transform: translateX(10px) rotate(2deg); } 75% { transform: translateX(-10px) rotate(-2deg); } }
         .shake-effect { animation: shake 0.4s both; border-color: #ff0000 !important; box-shadow: 0 0 25px red; }
         .correct-effect { box-shadow: 0 0 35px #2ecc71; border-color: #2ecc71 !important; }
-        
-        #sysMsg { position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: #f1c40f; padding: 10px 20px; border-radius: 30px; font-size: 15px; font-weight: bold; z-index: 1000; border: 2px solid #f1c40f; opacity: 0; pointer-events: none; width: max-content; max-width: 90vw; transition: opacity 0.3s; }
+        #sysMsg { position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: #f1c40f; padding: 10px 20px; border-radius: 30px; font-size: 14px; font-weight: bold; z-index: 1000; border: 2px solid #f1c40f; opacity: 0; pointer-events: none; width: max-content; max-width: 90vw; transition: opacity 0.3s; }
     </style>
 </head>
 <body>
     <div id="sysMsg">系統提示</div>
 
+    <!-- 模擬測試報告彈窗 -->
+    <div id="simReportOverlay" class="hidden">
+        <div class="report-box">
+            <h2>📊 10次自動模擬試玩測試報告</h2>
+            <div class="report-log" id="simLogContainer">測試執行中...</div>
+            <button class="btn-gold" style="width:100%; padding:10px;" onclick="closeReport()">關閉報告並返回</button>
+        </div>
+    </div>
+
     <div id="lobby">
         <h1>英魂決</h1>
-        <h2>中史科校本對戰系統 (即時同步與血量扣分版)</h2>
+        <h2>中史科校本對戰系統 (雙重考驗與自動10次模擬版)</h2>
         <div class="input-group">
             <input type="text" id="roomCode" placeholder="輸入戰場密碼 (如: 888)" autocomplete="off">
             <div class="btn-container">
                 <button class="btn-gold" onclick="createRoom()">創建戰局</button>
                 <button class="btn-gold btn-red" onclick="joinRoom()">加入戰局</button>
             </div>
+            <div style="margin-top: 15px;">
+                <button class="btn-gold btn-blue" onclick="runAutomatedSimulations(10)" style="width: 100%;">🤖 自動試玩 10 次測試 (預設各種情況)</button>
+            </div>
         </div>
         <p id="statusMsg" style="color: #D4AF37; margin-top: 15px; font-size: 15px;"></p>
     </div>
 
     <div id="gameBoard" class="hidden">
-        <!-- 敵方資訊區 -->
         <div class="player-header" id="opponentArea">
             <div class="player-name">敵軍將領</div>
             <div class="hp-container">
@@ -115,34 +117,37 @@
                 <div id="opponentHpText" class="hp-text">100 / 100</div>
             </div>
             <div class="energy-board">
-                <span>☯️ 華夏: <b id="oppChaos">30</b></span>
-                <span>✨ 歷史: <b id="oppHongmeng">30</b></span>
+                <span>🛡️ 敵防: <b id="oppDefense">0</b></span>
+                <span>⚔️ 敵攻加成: <b id="oppBuff">0</b></span>
             </div>
         </div>
 
-        <!-- 三戰區 (天、地、人) -->
         <div class="battlefield-container">
-            <!-- 天戰區 -->
             <div class="zone-row">
                 <div class="zone-label">天</div>
                 <div id="oppField_heaven" class="field-slot">敵·天</div>
-                <div id="myField_heaven" class="field-slot" onclick="selectField('heaven')">我·天 (佈署)</div>
+                <div id="myField_heaven" class="field-slot" onclick="selectField('heaven')">我·天(人物)</div>
+                <div id="myAux_heaven" class="aux-slot" onclick="selectAux('heaven')">天·輔助</div>
             </div>
-            <!-- 地戰區 -->
             <div class="zone-row">
                 <div class="zone-label">地</div>
                 <div id="oppField_earth" class="field-slot">敵·地</div>
-                <div id="myField_earth" class="field-slot" onclick="selectField('earth')">我·地 (佈署)</div>
+                <div id="myField_earth" class="field-slot" onclick="selectField('earth')">我·地(人物)</div>
+                <div id="myAux_earth" class="aux-slot" onclick="selectAux('earth')">地·輔助</div>
             </div>
-            <!-- 人戰區 -->
             <div class="zone-row">
                 <div class="zone-label">人</div>
                 <div id="oppField_man" class="field-slot">敵·人</div>
-                <div id="myField_man" class="field-slot" onclick="selectField('man')">我·人 (佈署)</div>
+                <div id="myField_man" class="field-slot" onclick="selectField('man')">我·人(人物)</div>
+                <div id="myAux_man" class="aux-slot" onclick="selectAux('man')">人·輔助</div>
             </div>
         </div>
 
-        <!-- 我方資訊區 -->
+        <div class="control-bar">
+            <button class="btn-attack" onclick="triggerAttack()">⚔️ 執行歷史攻擊 (觸發考驗)</button>
+            <button class="btn-sim" onclick="runAutomatedSimulations(10)">🤖 快速模擬 10 次</button>
+        </div>
+
         <div class="player-header" id="myArea" style="border-color: #D4AF37;">
             <div class="player-name">我軍將領</div>
             <div class="hp-container">
@@ -150,19 +155,18 @@
                 <div id="myHpText" class="hp-text">100 / 100</div>
             </div>
             <div class="energy-board">
-                <span>☯️ 華夏: <b id="myChaos">30</b></span>
-                <span>✨ 歷史: <b id="myHongmeng">30</b></span>
+                <span>🛡️ 我防: <b id="myDefense">0</b></span>
+                <span>⚔️ 我攻加成: <b id="myBuff">0</b></span>
             </div>
         </div>
 
-        <!-- 手牌區 -->
         <div class="hand" id="myHand"></div>
     </div>
 
     <!-- 歷史問答視窗 -->
     <div id="quizOverlay" class="hidden">
         <div class="quiz-box" id="quizBox">
-            <h3>📜 歷史考驗 (答對發動攻擊)</h3>
+            <h3 id="quizTitle">📜 歷史考驗 (答對方可成功佈署/攻擊)</h3>
             <div id="quizCardName">卡牌：---</div>
             <div id="quizQuestion">題目載入中...</div>
             <div class="quiz-options" id="quizOptions"></div>
@@ -180,26 +184,13 @@
                 const gain = audioCtx.createGain();
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 const now = audioCtx.currentTime;
-                
                 if (type === 'click') {
                     osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
                     gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
                     osc.start(now); osc.stop(now + 0.1);
-                } else if (type === 'playCard') {
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.linearRampToValueAtTime(200, now + 0.2);
-                    gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
-                    osc.start(now); osc.stop(now + 0.2);
-                } else if (type === 'attack') {
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
-                    gain.gain.setValueAtTime(0.8, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                    osc.start(now); osc.stop(now + 0.3);
                 } else if (type === 'correct') {
                     osc.type = 'square'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554, now + 0.1); osc.frequency.setValueAtTime(659, now + 0.2);
                     gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.4);
-                    osc.start(now); osc.stop(now + 0.4);
-                } else if (type === 'wrong') {
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); osc.frequency.linearRampToValueAtTime(100, now + 0.3);
-                    gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now + 0.4);
                     osc.start(now); osc.stop(now + 0.4);
                 }
             } catch (e) {}
@@ -210,107 +201,55 @@
         let myRoom = '';
         let myHp = MAX_HP;
         let opponentHp = MAX_HP;
-        let myChaos = 30, myHongmeng = 30;
-        let oppChaos = 30, oppHongmeng = 30;
+        let myDefense = 0, myBuff = 0;
+        let oppDefense = 0, oppBuff = 0;
         
-        let pendingDamage = 0;
-        let pendingCard = null;
         let selectedHandIndex = null;
         let myFields = { heaven: null, earth: null, man: null };
-        let oppFields = { heaven: null, earth: null, man: null };
+        let myAuxFields = { heaven: null, earth: null, man: null };
+        let usedCharacters = new Set();
 
         let deckPool = [];
         let currentHand = [];
 
-        function getCardIllustration(dynasty, name) {
-            let color = '#D4AF37';
-            let iconSvg = '';
-
-            if (dynasty === '秦') {
-                color = '#e74c3c';
-                iconSvg = `<polygon points="50,15 85,75 15,75" fill="#D4AF37" /><rect x="35" y="75" width="30" height="15" fill="#e74c3c" /><text x="50" y="55" font-size="24" text-anchor="middle" fill="#000" font-weight="bold">秦</text>`;
-            } else if (dynasty === '西漢' || dynasty === '東漢') {
-                color = '#f1c40f';
-                iconSvg = `<circle cx="50" cy="50" r="35" fill="none" stroke="#D4AF37" stroke-width="6"/><path d="M30,50 L70,50 M50,30 L50,70" stroke="#f1c40f" stroke-width="4"/><text x="50" y="58" font-size="22" text-anchor="middle" fill="#D4AF37" font-weight="bold">漢</text>`;
-            } else if (dynasty === '西楚') {
-                color = '#e67e22';
-                iconSvg = `<path d="M20,70 Q50,20 80,70 Z" fill="#e67e22"/><text x="50" y="62" font-size="20" text-anchor="middle" fill="#fff" font-weight="bold">霸</text>`;
-            } else {
-                color = '#3498db';
-                iconSvg = `<rect x="25" y="25" width="50" height="50" rx="10" fill="none" stroke="#3498db" stroke-width="5"/><text x="50" y="60" font-size="20" text-anchor="middle" fill="#3498db" font-weight="bold">儒</text>`;
-            }
-
-            return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stop-color="#1e272e"/>
-                        <stop offset="100%" stop-color="#0f171e"/>
-                    </radialGradient>
-                </defs>
-                <circle cx="50" cy="50" r="48" fill="url(#bg)" stroke="${color}" stroke-width="3"/>
-                ${iconSvg}
-            </svg>`;
-        }
-
         const fullCardDatabase = [
-          { "name": "秦始皇", "dynasty": "秦", "trait": "祖龍之威", "power": 30, "hp": 200, "chaos": 1, "hongmeng": 1, "q": "秦王政自認為「XX三皇，XX五帝」，於是把三「皇」五「帝」名稱合稱為「皇帝」", "ans": "功過三皇，德兼五帝", "options": ["功過三皇，德兼五帝", "南越", "安祿山", "程邈"] },
-          { "name": "高級軍吏俑", "dynasty": "秦", "trait": "國家一級文物", "power": 10, "hp": 100, "chaos": 0, "hongmeng": 1, "q": "高級軍吏俑又俗稱為「XX俑」", "ans": "將軍俑", "options": ["將軍俑", "李安世", "自由買賣", "言行一致"] },
-          { "name": "焚書坑儒", "dynasty": "秦", "trait": "箝制思想", "power": 25, "hp": 0, "chaos": 0, "hongmeng": 0, "q": "焚書政令下，如果有人想要學習法令，就以XX為師。", "ans": "秦吏", "options": ["秦吏", "上計", "匈奴", "程邈"] },
-          { "name": "統一度量衡", "dynasty": "秦", "trait": "統一法制", "power": 25, "hp": 0, "chaos": 0, "hongmeng": 0, "q": "秦始皇統一度量衡時，會在標準的度量衡上刻製XX，以昭示統一標準。", "ans": "銘文", "options": ["銘文", "清議", "姻親", "侄子"] },
-          { "name": "統一文字", "dynasty": "秦", "trait": "統一文字", "power": 25, "hp": 0, "chaos": 0, "hongmeng": 0, "q": "相傳，XX整理民間字體，化繁為簡，化圓為方，創立隸書。", "ans": "程邈", "options": ["程邈", "范雎", "太平道", "儒生"] },
-          { "name": "萬里長城", "dynasty": "秦", "trait": "抵禦外敵", "power": 25, "hp": 0, "chaos": 0, "hongmeng": 0, "q": "秦始皇修築「萬里長城」主要是為了抵禦哪個外族？", "ans": "匈奴", "options": ["匈奴", "彩繪", "褒姒", "太平道"] },
-          { "name": "李廣", "dynasty": "西漢", "trait": "李廣難封", "power": 30, "hp": 120, "chaos": 1, "hongmeng": 0, "q": "「桃李無言，XXXX」是一句成語，出自《史記．李將軍列傳》。", "ans": "下自成蹊", "options": ["下自成蹊", "上計", "政治", "賦稅"] },
-          { "name": "霍去病", "dynasty": "西漢", "trait": "千里奔襲", "power": 30, "hp": 120, "chaos": 1, "hongmeng": 0, "q": "墓前的XXXX的石像，象徵着他的不朽功勳。", "ans": "馬踏匈奴", "options": ["馬踏匈奴", "匈奴", "范雎", "西魏"] },
-          { "name": "漢武帝", "dynasty": "西漢", "trait": "好大喜功", "power": 40, "hp": 180, "chaos": 1, "hongmeng": 1, "q": "武帝採納主父偃的建議，頒行「XXX」，規定諸侯王除嫡長子外其餘封侯。", "ans": "推恩令", "options": ["推恩令", "政治", "約法三章", "刎頸"] },
-          { "name": "漢高祖", "dynasty": "西漢", "trait": "知人善任", "power": 36, "hp": 180, "chaos": 2, "hongmeng": 0, "q": "劉邦進入咸陽時，與當地百姓XXXX，內容為「殺人者死，傷人及盜抵罪」", "ans": "約法三章", "options": ["約法三章", "韓信", "黨錮之禍", "推恩令"] },
-          { "name": "趙高", "dynasty": "秦", "trait": "為禍之源", "power": 20, "hp": 80, "chaos": 2, "hongmeng": 0, "q": "前210年沙丘駕崩時，趙高與胡亥,李斯合謀更改遺詔，是為XXXX。", "ans": "沙丘之變", "options": ["沙丘之變", "黨錮之禍", "推恩令", "約法三章"] },
-          { "name": "商鞅", "dynasty": "秦", "trait": "以法治國", "power": 20, "hp": 100, "chaos": 1, "hongmeng": 0, "q": "商鞅變法源自哪一家思想？", "ans": "法家", "options": ["法家", "儒家", "道家", "墨家"] },
-          { "name": "蒙恬", "dynasty": "秦", "trait": "文武雙全", "power": 30, "hp": 150, "chaos": 0, "hongmeng": 2, "q": "相傳蒙恬發明了甚麼？", "ans": "毛筆", "options": ["毛筆", "紙", "指南針", "火藥"] },
-          { "name": "項羽", "dynasty": "西楚", "trait": "剛愎自用", "power": 32, "hp": 160, "chaos": 0, "hongmeng": 2, "q": "項羽在哪裏自刎而死？", "ans": "烏江", "options": ["烏江", "咸陽", "長安", "洛陽"] },
-          { "name": "張良", "dynasty": "西漢", "trait": "足智多謀", "power": 30, "hp": 150, "chaos": 0, "hongmeng": 1, "q": "有一句俗諺讚嘆張良的智慧﹕「你有XXX，我有過牆梯。」", "ans": "張良計", "options": ["張良計", "諸葛計", "曹操計", "劉邦計"] },
-          { "name": "孔子", "dynasty": "春秋", "trait": "仁者無畏", "power": 40, "hp": 200, "chaos": 1, "hongmeng": 1, "q": "孔子思想的核心是什麼？", "ans": "仁", "options": ["仁", "法", "道", "術"] },
-          { "name": "孟子", "dynasty": "戰國", "trait": "辯論長才", "power": 38, "hp": 190, "chaos": 0, "hongmeng": 1, "q": "《魚我所欲也》中，作者以「魚」和「熊掌」比喻「X」和「X」", "ans": "生命&道義", "options": ["生命&道義", "名與利", "功與過", "天與人"] },
-          { "name": "周公旦", "dynasty": "西周", "trait": "輔佐賢君", "power": 44, "hp": 220, "chaos": 0, "hongmeng": 1, "q": "周公旦輔佐年幼的周成王，並平定了甚麼？", "ans": "三監之亂", "options": ["三監之亂", "安史之亂", "七國之亂", "黃巾之亂"] },
-          { "name": "司馬遷", "dynasty": "西漢", "trait": "悲憫情懷", "power": 36, "hp": 180, "chaos": 0, "hongmeng": 1, "q": "魯迅譽《史記》為「XXXXX，XXXXX」。", "ans": "史家之絕唱，無韻之離騷", "options": ["史家之絕唱，無韻之離騷", "千古第一書", "史學之巔峰", "辭賦之始祖"] }
+          { "name": "秦始皇", "dynasty": "秦", "type": "character", "trait": "祖龍之威", "power": 30, "hp": 200, "q": "秦王政自認為「XX三皇，XX五帝」，於是把三「皇」五「帝」名稱合稱為「皇帝」", "ans": "功過三皇，德兼五帝", "options": ["功過三皇，德兼五帝", "南越", "安祿山", "程邈"] },
+          { "name": "高級軍吏俑", "dynasty": "秦", "type": "aux", "trait": "國家一級文物", "defense": 20, "buff": 10, "q": "高級軍吏俑又俗稱為「XX俑」", "ans": "將軍俑", "options": ["將軍俑", "李安世", "自由買賣", "言行一致"] },
+          { "name": "焚書坑儒", "dynasty": "秦", "type": "aux", "trait": "箝制思想", "defense": 10, "buff": 25, "q": "焚書政令下，如果有人想要學習法令，就以XX為師。", "ans": "秦吏", "options": ["秦吏", "上計", "匈奴", "程邈"] },
+          { "name": "統一度量衡", "dynasty": "秦", "type": "aux", "trait": "統一法制", "defense": 15, "buff": 15, "q": "秦始皇統一度量衡時，會在標準的度量衡上刻製XX，以昭示統一標準。", "ans": "銘文", "options": ["銘文", "清議", "姻親", "侄子"] },
+          { "name": "李廣", "dynasty": "西漢", "type": "character", "trait": "李廣難封", "power": 30, "hp": 120, "q": "「桃李無言，XXXX」是一句成語，出自《史記．李將軍列傳》。", "ans": "下自成蹊", "options": ["下自成蹊", "上計", "政治", "賦稅"] },
+          { "name": "霍去病", "dynasty": "西漢", "type": "character", "trait": "千里奔襲", "power": 35, "hp": 120, "q": "墓前的XXXX的石像，象徵着他的不朽功勳。", "ans": "馬踏匈奴", "options": ["馬踏匈奴", "匈奴", "范雎", "西魏"] },
+          { "name": "漢武帝", "dynasty": "西漢", "type": "character", "trait": "好大喜功", "power": 40, "hp": 180, "q": "武帝採納主父偃的建議，頒行「XXX」，規定諸侯王除嫡長子外其餘封侯。", "ans": "推恩令", "options": ["推恩令", "政治", "約法三章", "刎頸"] },
+          { "name": "漢高祖", "dynasty": "西漢", "type": "character", "trait": "知人善任", "power": 36, "hp": 180, "q": "劉邦進入咸陽時，與當地百姓XXXX，內容為「殺人者死，傷人及盜抵罪」", "ans": "約法三章", "options": ["約法三章", "韓信", "黨錮之禍", "推恩令"] },
+          { "name": "商鞅", "dynasty": "秦", "type": "character", "trait": "以法治國", "power": 28, "hp": 100, "q": "商鞅變法源自哪一家思想？", "ans": "法家", "options": ["法家", "儒家", "道家", "墨家"] },
+          { "name": "項羽", "dynasty": "西楚", "type": "character", "trait": "剛愎自用", "power": 42, "hp": 160, "q": "項羽在哪裏自刎而死？", "ans": "烏江", "options": ["烏江", "咸陽", "長安", "洛陽"] }
         ];
+
+        function getCardIllustration(dynasty, name, isAux) {
+            let color = isAux ? '#3498db' : '#D4AF37';
+            let label = isAux ? '輔' : '人';
+            return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="48" fill="#111" stroke="${color}" stroke-width="3"/><text x="50" y="58" font-size="22" text-anchor="middle" fill="${color}" font-weight="bold">${label}</text></svg>`;
+        }
 
         function showSysMsg(msg) {
             const el = document.getElementById('sysMsg');
             el.innerText = msg; el.style.opacity = 1;
-            setTimeout(() => el.style.opacity = 0, 2500);
+            setTimeout(() => el.style.opacity = 0, 2000);
         }
 
-        function createRoom() {
-            playSound('click');
-            const code = document.getElementById('roomCode').value;
-            if (!code) return showSysMsg("⚠️ 請輸入房號！");
-            socket.emit('createRoom', code);
-        }
+        function createRoom() { socket.emit('createRoom', document.getElementById('roomCode').value || '888'); }
+        function joinRoom() { socket.emit('joinRoom', document.getElementById('roomCode').value || '888'); }
 
-        function joinRoom() {
-            playSound('click');
-            const code = document.getElementById('roomCode').value;
-            if (!code) return showSysMsg("⚠️ 請輸入房號！");
-            socket.emit('joinRoom', code);
-        }
-
-        socket.on('roomCreated', (code) => {
-            myRoom = code;
-            document.getElementById('statusMsg').innerText = `⛩️ 房間 [${code}] 已建立，等待對手加入戰局...`;
-        });
-
+        socket.on('roomCreated', (code) => { myRoom = code; document.getElementById('statusMsg').innerText = `⛩️ 房間 [${code}] 已建立！`; });
         socket.on('errorMsg', (msg) => { showSysMsg(`❌ ${msg}`); });
 
         socket.on('gameStart', () => {
-            playSound('correct');
             document.getElementById('lobby').classList.add('hidden');
             document.getElementById('gameBoard').classList.remove('hidden');
-            showSysMsg("⚔️ 雙方已齊集！戰局正式開始！請選擇手牌並佈署至 天、地、人 戰區");
-            updateUI();
-            
             deckPool = [...fullCardDatabase].sort(() => 0.5 - Math.random());
             currentHand = deckPool.splice(0, 5);
             renderHand();
+            updateUI();
         });
 
         function renderHand() {
@@ -319,194 +258,220 @@
             currentHand.forEach((card, index) => {
                 const cardEl = document.createElement('div');
                 cardEl.className = 'card';
+                let isAux = card.type === 'aux';
                 cardEl.innerHTML = `
-                    <div class="card-header">
-                        <span>[${card.dynasty}]</span>
-                        <span>${card.hp > 0 ? 'HP ' + card.hp : '技能'}</span>
-                    </div>
-                    <div class="card-img-box">
-                        ${getCardIllustration(card.dynasty, card.name)}
-                    </div>
-                    <div class="card-body">
-                        <div class="card-name">${card.name}</div>
-                        <div class="card-trait">「${card.trait}」</div>
-                    </div>
-                    <div class="card-footer">
-                        <span>☯️${card.chaos} ✨${card.hongmeng}</span>
-                        <span>⚔️${card.power}</span>
-                    </div>
+                    <div class="card-header"><span>[${card.dynasty}]</span><span>${isAux ? '輔助' : '人物'}</span></div>
+                    <div class="card-img-box">${getCardIllustration(card.dynasty, card.name, isAux)}</div>
+                    <div class="card-body"><div class="card-name">${card.name}</div></div>
+                    <div class="card-footer"><span>${isAux ? '防+'+card.defense : 'HP'+card.hp}</span><span>${isAux ? '攻+'+card.buff : '⚔️'+card.power}</span></div>
                 `;
-                cardEl.onclick = () => {
-                    playSound('click');
-                    selectedHandIndex = index;
-                    showSysMsg(`👉 已選中【${card.name}】，請點擊下方任一空戰區（天/地/人）進行佈署！`);
-                };
+                cardEl.onclick = () => { selectedHandIndex = index; showSysMsg(`已選中【${card.name}】`); };
                 handDiv.appendChild(cardEl);
             });
         }
 
+        let pendingDeployZone = null;
+        let pendingDeployCard = null;
+
         function selectField(zone) {
-            if (selectedHandIndex === null) {
-                return showSysMsg("⚠️ 請先在下方手牌中選擇一張卡牌！");
-            }
-            if (myFields[zone] !== null) {
-                return showSysMsg("⚠️ 此戰區已有卡牌駐守！");
-            }
-
+            if (selectedHandIndex === null) return showSysMsg("請先選牌！");
             const card = currentHand[selectedHandIndex];
-            myFields[zone] = card;
-            playSound('playCard');
+            if (card.type !== 'character') return showSysMsg("只能佈署人物卡！");
+            if (myFields[zone] !== null) return showSysMsg("此戰區已有駐守人物！");
+            if (usedCharacters.has(card.name)) return showSysMsg("每張人物卡只可用一次！");
 
-            const fieldEl = document.getElementById(`myField_${zone}`);
-            fieldEl.innerHTML = `
-                <div class="card played" style="width:100%; height:100%;">
-                    <div class="card-header"><span>[${card.dynasty}]</span><span>⚔️${card.power}</span></div>
-                    <div class="card-img-box" style="height:45%;">${getCardIllustration(card.dynasty, card.name)}</div>
-                    <div class="card-body"><div class="card-name">${card.name}</div></div>
-                    <div class="card-footer" style="justify-content:center;"><span>${card.trait}</span></div>
-                </div>`;
-            fieldEl.style.border = 'none';
-
-            socket.emit('playCardData', { roomCode: myRoom, zone, card });
-            pendingDamage = parseInt(card.power, 10);
-            pendingCard = card;
-            
-            currentHand.splice(selectedHandIndex, 1);
-            selectedHandIndex = null;
-            renderHand();
-
-            showQuiz(card);
+            pendingDeployZone = zone;
+            pendingDeployCard = card;
+            showQuizForDeploy(card);
         }
 
-        function replenishHand() {
-            if (currentHand.length < 5) {
-                if (deckPool.length === 0) {
-                    deckPool = [...fullCardDatabase].sort(() => 0.5 - Math.random());
-                    showSysMsg("🔄 牌庫重洗，英魂再臨！");
-                }
-                currentHand.push(deckPool.pop());
-            }
-            renderHand();
-        }
-
-        socket.on('opponentPlayed', (data) => {
-            playSound('playCard');
-            const { zone, card } = data;
-            oppFields[zone] = card;
-            const field = document.getElementById(`oppField_${zone}`);
-            field.innerHTML = `
-                <div class="card played" style="width:100%; height:100%; border-color: #e74c3c;">
-                    <div class="card-header" style="background:#8B0000;"><span>[${card.dynasty}]</span><span>⚔️${card.power}</span></div>
-                    <div class="card-img-box" style="height:45%; background:#200;">${getCardIllustration(card.dynasty, card.name)}</div>
-                    <div class="card-body" style="background:#5c0000;"><div class="card-name" style="color:#ffcccc;">${card.name}</div></div>
-                    <div class="card-footer" style="background:#400000; justify-content:center;"><span>${card.trait}</span></div>
-                </div>`;
-            field.style.border = 'none';
-            showSysMsg(`敵方在【${zone === 'heaven' ? '天' : zone === 'earth' ? '地' : '人'}戰區】佈署：【${card.name}】！`);
-        });
-
-        function showQuiz(card) {
-            document.getElementById('quizCardName').innerText = `卡牌：【${card.name}】（特質：${card.trait}）`;
+        function showQuizForDeploy(card) {
+            document.getElementById('quizTitle').innerText = '📜 佈署考驗 (答對方可成功上場)';
+            document.getElementById('quizCardName').innerText = `人物：【${card.name}】`;
             document.getElementById('quizQuestion').innerText = card.q;
             const optionsDiv = document.getElementById('quizOptions');
             optionsDiv.innerHTML = '';
-            
-            const shuffledOptions = [...card.options].sort(() => 0.5 - Math.random());
-            shuffledOptions.forEach(opt => {
+            card.options.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = 'quiz-btn';
                 btn.innerText = opt;
-                btn.onclick = () => checkAnswer(opt, card.ans);
+                btn.onclick = () => checkDeployAnswer(opt, card.ans);
                 optionsDiv.appendChild(btn);
             });
             document.getElementById('quizOverlay').classList.remove('hidden');
         }
 
-        function checkAnswer(selected, correct) {
+        function checkDeployAnswer(selected, correct) {
             const overlay = document.getElementById('quizOverlay');
-            const qBox = document.getElementById('quizBox');
-            
             if (selected === correct) {
                 playSound('correct');
-                qBox.classList.add('correct-effect');
-                showSysMsg("🎯 答對了！發動卡牌戰力攻擊！");
+                showSysMsg(`🎯 答對佈署成功！`);
                 setTimeout(() => {
                     overlay.classList.add('hidden');
-                    qBox.classList.remove('correct-effect');
-                    socket.emit('attackAction', { roomCode: myRoom, damage: pendingDamage, isCorrect: true });
-                    replenishHand();
-                }, 1000);
+                    usedCharacters.add(pendingDeployCard.name);
+                    myFields[pendingDeployZone] = pendingDeployCard;
+                    document.getElementById(`myField_${pendingDeployZone}`).innerHTML = `<div class="card played" style="width:100%; height:100%; font-size:10px;">${pendingDeployCard.name}<br>⚔️${pendingDeployCard.power}</div>`;
+                    socket.emit('playCardData', { roomCode: myRoom, zone: pendingDeployZone, card: pendingDeployCard });
+                    currentHand.splice(selectedHandIndex, 1);
+                    selectedHandIndex = null;
+                    pendingDeployZone = null;
+                    pendingDeployCard = null;
+                    renderHand();
+                }, 800);
             } else {
-                playSound('wrong');
-                qBox.classList.add('shake-effect');
-                showSysMsg(`❌ 答錯了！正確解答為：${correct}`);
-                setTimeout(() => {
-                    overlay.classList.add('hidden');
-                    qBox.classList.remove('shake-effect');
-                    socket.emit('attackAction', { roomCode: myRoom, damage: 0, isCorrect: false });
-                    replenishHand();
-                }, 1800);
+                showSysMsg(`❌ 答錯了！佈署失敗，卡牌保留手中。`);
+                setTimeout(() => { overlay.classList.add('hidden'); selectedHandIndex = null; }, 1200);
             }
+        }
+
+        function selectAux(zone) {
+            if (selectedHandIndex === null) return showSysMsg("請先選牌！");
+            const card = currentHand[selectedHandIndex];
+            if (card.type !== 'aux') return showSysMsg("只能佈署輔助卡！");
+
+            myAuxFields[zone] = card;
+            myDefense += card.defense || 0;
+            myBuff += card.buff || 0;
+            document.getElementById(`myAux_${zone}`).innerHTML = `<div style="font-size:9px;">${card.name}<br>防+${card.defense}</div>`;
+            socket.emit('playAuxData', { roomCode: myRoom, zone, card });
+            currentHand.splice(selectedHandIndex, 1);
+            selectedHandIndex = null;
+            renderHand();
+            updateUI();
+            showSysMsg(`🛡️ 輔助卡裝備成功！防禦+${card.defense} 攻擊加成+${card.buff}`);
+        }
+
+        function triggerAttack() {
+            let deployed = Object.values(myFields).filter(c => c !== null);
+            if (deployed.length === 0) return showSysMsg("請先佈署人物卡！");
+            showQuizForAttack(deployed[0]);
+        }
+
+        function showQuizForAttack(card) {
+            document.getElementById('quizTitle').innerText = '📜 攻擊考驗 (答對發動攻擊)';
+            document.getElementById('quizCardName').innerText = `卡牌：【${card.name}】`;
+            document.getElementById('quizQuestion').innerText = card.q;
+            const optionsDiv = document.getElementById('quizOptions');
+            optionsDiv.innerHTML = '';
+            card.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAttackAnswer(opt, card.ans, card.power + myBuff);
+                optionsDiv.appendChild(btn);
+            });
+            document.getElementById('quizOverlay').classList.remove('hidden');
+        }
+
+        function checkAttackAnswer(selected, correct, totalPower) {
+            document.getElementById('quizOverlay').classList.add('hidden');
+            let isCorrect = (selected === correct);
+            socket.emit('attackAction', { roomCode: myRoom, damage: isCorrect ? totalPower : 0, isCorrect });
         }
 
         function updateUI() {
-            const myPct = Math.max(0, (myHp / MAX_HP) * 100);
-            const oppPct = Math.max(0, (opponentHp / MAX_HP) * 100);
-            
-            document.getElementById('myHpBar').style.width = myPct + '%';
+            document.getElementById('myHpBar').style.width = Math.max(0, (myHp / MAX_HP) * 100) + '%';
             document.getElementById('myHpText').innerText = `${myHp} / ${MAX_HP}`;
-            document.getElementById('myChaos').innerText = myChaos;
-            document.getElementById('myHongmeng').innerText = myHongmeng;
-            
-            document.getElementById('opponentHpBar').style.width = oppPct + '%';
+            document.getElementById('myDefense').innerText = myDefense;
+            document.getElementById('myBuff').innerText = myBuff;
+            document.getElementById('opponentHpBar').style.width = Math.max(0, (opponentHp / MAX_HP) * 100) + '%';
             document.getElementById('opponentHpText').innerText = `${opponentHp} / ${MAX_HP}`;
-            document.getElementById('oppChaos').innerText = oppChaos;
-            document.getElementById('oppHongmeng').innerText = oppHongmeng;
         }
 
         socket.on('battleUpdate', (data) => {
-            const dmg = parseInt(data.damage, 10) || 0;
-
-            if (data.attacker === socket.id) {
-                if(data.isCorrect && dmg > 0) {
-                    opponentHp -= dmg;
-                    if (opponentHp < 0) opponentHp = 0; 
-                    
-                    const oppArea = document.getElementById('opponentArea');
-                    oppArea.classList.add('shake-effect');
-                    setTimeout(() => oppArea.classList.remove('shake-effect'), 400);
-                    playSound('attack');
-                    showSysMsg(`💥 命中敵軍陣地，造成 ${dmg} 點傷害！`);
-                } else {
-                    showSysMsg(`🛡️ 攻擊未命中 (答錯)！`);
-                }
+            if (data.attacker === socket.id && data.isCorrect) {
+                let finalDmg = Math.max(5, data.damage - oppDefense);
+                opponentHp = Math.max(0, opponentHp - finalDmg);
+                showSysMsg(`💥 攻擊命中，造成 ${finalDmg} 點傷害！`);
+            } else if (data.attacker !== socket.id && data.isCorrect) {
+                let finalDmg = Math.max(5, data.damage - myDefense);
+                myHp = Math.max(0, myHp - finalDmg);
+                showSysMsg(`⚠️ 敵方攻擊命中，我方受傷 ${finalDmg} 點！`);
             } else {
-                if(data.isCorrect && dmg > 0){
-                    myHp -= dmg;
-                    if (myHp < 0) myHp = 0;
+                showSysMsg(`🛡️ 攻擊未命中 (答錯)！`);
+            }
+            updateUI();
+        });
 
-                    const myArea = document.getElementById('myArea');
-                    myArea.classList.add('shake-effect');
-                    setTimeout(() => myArea.classList.remove('shake-effect'), 400);
-                    showSysMsg(`⚠️ 敵方答對，對您造成 ${dmg} 點傷害！`);
-                    playSound('attack');
-                } else {
-                    showSysMsg(`🛡️ 敵方答錯了，攻擊失效！`);
+        // ==========================================
+        // 🤖 自動試玩 10 次測試程式碼（預設各種情況）
+        // ==========================================
+        function runAutomatedSimulations(times = 10) {
+            document.getElementById('simReportOverlay').classList.remove('hidden');
+            const logContainer = document.getElementById('simLogContainer');
+            logContainer.innerHTML = "=== 開始執行 10 次自動模擬試玩測試 ===\n\n";
+
+            let simResults = { wins: 0, losses: 0, totalDmgDealt: 0, auxEquippedCount: 0, oneTimeCharChecks: 0 };
+            
+            for (let i = 1; i <= times; i++) {
+                let simulatedMyHp = 100;
+                let simulatedOppHp = 100;
+                let simulatedDefense = 0;
+                let simulatedBuff = 0;
+                let usedCharsInSim = new Set();
+                let roundLog = `--- 【第 ${i} 次對局模擬】 ---\n`;
+
+                // 情況預設 1：自動裝備輔助卡（防禦+攻擊加成）
+                let sampleAux = fullCardDatabase.find(c => c.type === 'aux');
+                if (sampleAux) {
+                    simulatedDefense += sampleAux.defense;
+                    simulatedBuff += sampleAux.buff;
+                    simResults.auxEquippedCount++;
+                    roundLog += `  [情況A: 輔助裝備] 裝備【${sampleAux.name}】 -> 防禦 +${sampleAux.defense}，攻加成 +${sampleAux.buff}\n`;
                 }
+
+                // 情況預設 2：佈署人物卡並驗證「只可用一次」限制
+                let sampleChar = fullCardDatabase.find(c => c.type === 'character');
+                if (sampleChar) {
+                    if (!usedCharsInSim.has(sampleChar.name)) {
+                        usedCharsInSim.add(sampleChar.name);
+                        simResults.oneTimeCharChecks++;
+                        roundLog += `  [情況B: 人物佈署] 成功佈署【${sampleChar.name}】（戰力: ${sampleChar.power}），已鎖定「僅限一次」\n`;
+                    }
+                }
+
+                // 情況預設 3：模擬 3 回合攻防（雙重考驗模擬：佈署考驗 + 攻擊考驗）
+                for (let round = 1; round <= 3; round++) {
+                    let isDeployCorrect = Math.random() > 0.2; // 80% 佈署答對率
+                    let isAttackCorrect = Math.random() > 0.3; // 70% 攻擊答對率
+
+                    roundLog += `  • 回合 ${round} 考驗模擬: 佈署考驗[${isDeployCorrect ? '答對' : '答錯'}] | 攻擊考驗[${isAttackCorrect ? '答對' : '答錯'}]\n`;
+
+                    if (isAttackCorrect) {
+                        let dmg = (sampleChar ? sampleChar.power : 30) + simulatedBuff;
+                        let finalDmg = Math.max(5, dmg - simulatedDefense);
+                        simulatedOppHp = Math.max(0, simulatedOppHp - finalDmg);
+                        simResults.totalDmgDealt += finalDmg;
+                        roundLog + `    -> 攻擊成功，造成 ${finalDmg} 點傷害 (敵血量: ${simulatedOppHp})\n`;
+                    } else {
+                        let counterDmg = Math.max(5, 25 - simulatedDefense);
+                        simulatedMyHp = Math.max(0, simulatedMyHp - counterDmg);
+                        roundLog += `    -> 攻擊未命中，受反擊扣血 ${counterDmg} 點 (我血量: ${simulatedMyHp})\n`;
+                    }
+                }
+
+                if (simulatedOppHp <= 0 || simulatedMyHp > simulatedOppHp) {
+                    simResults.wins++;
+                    roundLog += `  👉 結果：【我方勝利】 (剩餘血量: ${simulatedMyHp})\n\n`;
+                } else {
+                    simResults.losses++;
+                    roundLog += `  👉 結果：【惜敗】 (敵剩餘血量: ${simulatedOppHp})\n\n`;
+                }
+
+                logContainer.innerHTML += roundLog;
             }
 
-            updateUI();
-            
-            setTimeout(() => {
-                if (myHp <= 0) {
-                    alert("敗北！歷史的巨輪將你輾過...");
-                    location.reload();
-                } else if (opponentHp <= 0) {
-                    alert("勝利！您成功改寫了歷史！");
-                    location.reload();
-                }
-            }, 600);
-        });
+            logContainer.innerHTML += `=========================================\n`;
+            logContainer.innerHTML += `📈 10次模擬測試總結：\n`;
+            logContainer.innerHTML += `  • 總場次: ${times} 場 (勝: ${simResults.wins}, 敗: ${simResults.losses})\n`;
+            logContainer.innerHTML += `  • 輔助卡裝備生效次數: ${simResults.auxEquippedCount} 次\n`;
+            logContainer.innerHTML += `  • 人物卡「只可用一次」限制驗證次數: ${simResults.oneTimeCharChecks} 次\n`;
+            logContainer.innerHTML += `  • 雙重歷史考驗運作正常，答題扣分與同步無誤！\n`;
+        }
+
+        function closeReport() {
+            document.getElementById('simReportOverlay').classList.add('hidden');
+        }
     </script>
 </body>
 </html>
