@@ -8,22 +8,11 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: { origin: "*" }
 });
-// 讓伺服器自動讀取並顯示同資料夾的 index.html
-// server.js - 《英魂決》WebSocket 即時對戰伺服器
-const http = require('http');
-const express = require('express');
-const { Server } = require('socket.io');
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: { origin: "*" }
-});
-
-// 💡 1. 載入同資料夾的靜態網頁檔案
+// 1. 設定靜態檔案目錄，讓伺服器能讀取 index.html 等前端檔案
 app.use(express.static(__dirname));
 
-// 💡 2. 確保用戶造訪根目錄 (/) 時，精準回傳 index.html 畫面
+// 2. 確保用戶造訪網址時，精準回傳 index.html 遊戲畫面
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
@@ -33,21 +22,8 @@ const rooms = {};
 
 io.on('connection', (socket) => {
     console.log(`玩家連線: ${socket.id}`);
-    
-    // (下方其餘的 socket 監聽與事件保持不變...)
-});
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`《英魂決》伺服器已在 port ${PORT} 啟動`);
-});
-
-
-const rooms = {};
-
-io.on('connection', (socket) => {
-    console.log(`玩家連線: ${socket.id}`);
-
+    // 建立房間
     socket.on('createRoom', (roomCode) => {
         if (rooms[roomCode]) {
             socket.emit('errorMsg', '房間代碼已存在！');
@@ -59,8 +35,10 @@ io.on('connection', (socket) => {
         };
         socket.join(roomCode);
         socket.emit('roomCreated', roomCode);
+        console.log(`房間建立: ${roomCode}`);
     });
 
+    // 加入房間
     socket.on('joinRoom', (roomCode) => {
         const room = rooms[roomCode];
         if (!room) {
@@ -73,14 +51,23 @@ io.on('connection', (socket) => {
         }
         room.players.push({ id: socket.id, hp: 60, card: null });
         socket.join(roomCode);
+        
+        // 通知雙方對戰開始
         io.to(roomCode).emit('gameStart', { players: room.players });
+        console.log(`玩家加入房間: ${roomCode}`);
     });
 
+    // 玩家出牌同步
     socket.on('playCardData', ({ roomCode, card }) => {
+        const room = rooms[roomCode];
+        if (!room) return;
         socket.to(roomCode).emit('opponentPlayed', { card, playerId: socket.id });
     });
 
+    // 攻擊與答題同步
     socket.on('attackAction', ({ roomCode, damage, isCorrect }) => {
+        const room = rooms[roomCode];
+        if (!room) return;
         io.to(roomCode).emit('battleUpdate', { attacker: socket.id, damage, isCorrect });
     });
 
