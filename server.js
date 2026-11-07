@@ -1,116 +1,119 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
-});
+const io = new Server(server);
 
-// 託管靜態檔案
-app.use(express.static('.'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// 記錄房間狀態
-const rooms = {};
+const ALL_CARDS = [
+  { id: "card_0", dynasty: "秦", name: "秦始皇", hp: 200.0, category: "人物", trait: "祖龍之威", skill: "六合一統", skill_detail: "攻擊30", chaos: 1, harmony: 1 },
+  { id: "card_1", dynasty: "秦", name: "高級軍吏俑", hp: 100.0, category: "人物", trait: "", skill: "衝鋒陷陣", skill_detail: "攻擊10", chaos: 0, harmony: 1 },
+  { id: "card_6", dynasty: "西漢", name: "李廣", hp: 120.0, category: "人物", trait: "李廣難封", skill: "精誠所至", skill_detail: "攻擊30", chaos: 1, harmony: 0 },
+  { id: "card_7", dynasty: "西漢", name: "霍去病", hp: 120.0, category: "人物", trait: "千里奔襲", skill: "馬踏匈奴", skill_detail: "攻擊30", chaos: 1, harmony: 0 },
+  { id: "card_8", dynasty: "西漢", name: "漢武帝", hp: 180.0, category: "人物", trait: "好大喜功", skill: "豐功偉績", skill_detail: "攻擊40", chaos: 1, harmony: 1 }
+];
+
+let waitingPlayer = null;
+let rooms = {};
 
 io.on('connection', (socket) => {
-    console.log(`使用者連線: ${socket.id}`);
+    socket.on('find_game', () => {
+        if (waitingPlayer && waitingPlayer !== socket) {
+            const roomId = `room_${Date.now()}`;
+            socket.join(roomId);
+            waitingPlayer.join(roomId);
 
-    // 創建房間
-    socket.on('createRoom', (roomCode) => {
-        if (!roomCode) {
-            socket.emit('errorMsg', '房號不能為空！');
-            return;
-        }
-        
-        socket.join(roomCode);
-        rooms[roomCode] = { players: [socket.id] };
-        console.log(`房間已創建: ${roomCode} 由 ${socket.id}`);
-        socket.emit('roomCreated', roomCode);
-    });
+            rooms[roomId] = {
+                players: [waitingPlayer, socket],
+                state: {
+                    [waitingPlayer.id]: { hp: 300, energyChaos: 1, energyHarmony: 1, hand: getRandomCards(5), active: null },
+                    [socket.id]: { hp: 300, energyChaos: 1, energyHarmony: 1, hand: getRandomCards(5), active: null }
+                },
+                turn: waitingPlayer.id
+            };
 
-    // 加入房間
-    socket.on('joinRoom', (roomCode) => {
-        const room = io.sockets.adapter.rooms.get(roomCode);
-        
-        if (!room) {
-            socket.emit('errorMsg', '房間不存在！請先創建房間。');
-            return;
-        }
-
-        if (room.size >= 2) {
-            socket.emit('errorMsg', '房間人數已滿（雙人對戰已齊集）！');
-            return;
-        }
-
-        socket.join(roomCode);
-        if (!rooms[roomCode]) {
-            rooms[roomCode] = { players: [] };
-        }
-        if (!rooms[roomCode].players.includes(socket.id)) {
-            rooms[roomCode].players.push(socket.id);
-        }
-
-        console.log(`使用者 ${socket.id} 加入房間: ${roomCode}。當前人數: ${room.size}`);
-
-        // 當雙方齊集（剛好2人）時，正式啟動遊戲
-        if (room.size === 2) {
-            io.to(roomCode).emit('gameStart');
-            console.log(`房間 ${roomCode} 雙方已齊集，遊戲正式開始！`);
+            io.to(roomId).emit('game_start', { roomId });
+            broadcastGameState(roomId);
+            waitingPlayer = null;
+        } else {
+            waitingPlayer = socket;
+            socket.emit('waiting', '正在配對對手...');
         }
     });
 
-    // 同步輔助卡裝備動作
-    socket.on('playAuxData', (data) => {
-        socket.to(data.roomCode).emit('opponentAux', { zone: data.zone, card: data.card });
+    socket.on('play_card', ({ roomId, cardIndex }) => {
+        const room = rooms[roomId];
+        if (!room || room.turn !== socket.id) return;
+        const pState = room.state[socket.id];
+        const card = pState.hand.splice(cardIndex, 1)[0];
+        if (card.hp > 0 && !pState.active) {
+            pState.active = card;
+        } else {
+            pState.hand.push(card); // 若無效則放回
+        }
+        broadcastGameState(roomId);
     });
 
-    // 同步人物卡佈署動作
-    socket.on('playCardData', (data) => {
-        if (!data || !data.roomCode) return;
-        socket.to(data.roomCode).emit('opponentPlayed', { 
-            card: data.card, 
-            zone: data.zone 
+    socket.on('attack', ({ roomId, answerCorrect }) => {
+        const room = rooms[roomId];
+        if (!room || room.turn !== socket.id) return;
+        const pState = room.state[socket.id];
+        const opSocket = room.players.find(p => p.id !== socket.id);
+        const opState = room.state[opSocket.id];
+
+        if (!pState.active) return;
+
+        // 生命值扣減處理：答對扣 80 點，答錯扣 40 點
+        let dmg = answerCorrect ? 80 : 40;
+        opState.hp -= dmg;
+        if (opState.hp < 0) opState.hp = 0;
+
+        io.to(roomId).emit('battle_log', { msg: `【${pState.active.name}】發動攻擊，造成 ${dmg} 點傷害！` });
+
+        if (opState.hp <= 0) {
+            io.to(roomId).emit('game_over', { winner: socket.id });
+            delete rooms[roomId];
+        } else {
+            // 攻擊後自動切換回合
+            room.turn = opSocket.id;
+            broadcastGameState(roomId);
+        }
+    });
+
+    socket.on('end_turn', (roomId) => {
+        const room = rooms[roomId];
+        if (!room || room.turn !== socket.id) return;
+        room.turn = room.players.find(p => p.id !== socket.id).id;
+        broadcastGameState(roomId);
+    });
+
+    socket.on('disconnect', () => { if (waitingPlayer === socket) waitingPlayer = null; });
+});
+
+function getRandomCards(count) {
+    let res = [];
+    for(let i=0; i<count; i++) {
+        let card = ALL_CARDS[Math.floor(Math.random() * ALL_CARDS.length)];
+        res.push(JSON.parse(JSON.stringify(card)));
+    }
+    return res;
+}
+
+function broadcastGameState(roomId) {
+    const room = rooms[roomId];
+    if (!room) return;
+    room.players.forEach(p => {
+        const opId = room.players.find(x => x.id !== p.id).id;
+        p.emit('game_state_update', {
+            myState: room.state[p.id],
+            opState: room.state[opId],
+            isMyTurn: room.turn === p.id
         });
     });
+}
 
-    // 攻擊與傷害血量同步廣播
-    socket.on('attackAction', (data) => {
-        if (!data || !data.roomCode) return;
-        const room = io.sockets.adapter.rooms.get(data.roomCode);
-        
-        if (room) {
-            // 向房間內雙方同步廣播攻擊結果與傷害數值
-            io.to(data.roomCode).emit('battleUpdate', {
-                attacker: socket.id,
-                damage: data.damage,
-                isCorrect: data.isCorrect
-            });
-        }
-    });
-
-    // 斷線處理
-    socket.on('disconnect', () => {
-        console.log(`使用者離線: ${socket.id}`);
-        for (const code in rooms) {
-            if (rooms[code].players) {
-                rooms[code].players = rooms[code].players.filter(id => id !== socket.id);
-                if (rooms[code].players.length === 0) {
-                    delete rooms[code];
-                }
-            }
-        }
-    });
-});
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`=================================`);
-    console.log(`英魂決 TCG 伺服器已成功啟動！`);
-    console.log(`請在瀏覽器開啟: http://localhost:${PORT}`);
-    console.log(`=================================`);
-});
+server.listen(3000, () => console.log('伺服器運行於 http://localhost:3000'));
