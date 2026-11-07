@@ -4,61 +4,104 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
 // 託管靜態檔案
 app.use(express.static('.'));
 
+// 記錄房間狀態
 const rooms = {};
 
 io.on('connection', (socket) => {
-    console.log(`玩家連線: ${socket.id}`);
+    console.log(`使用者連線: ${socket.id}`);
 
+    // 創建房間
     socket.on('createRoom', (roomCode) => {
-        if (rooms[roomCode]) {
-            socket.emit('errorMsg', '此房間已存在，請加入或更換房號！');
-        } else {
-            rooms[roomCode] = [socket.id];
-            socket.join(roomCode);
-            socket.emit('roomCreated', roomCode);
-            console.log(`房間建立: ${roomCode} 由 ${socket.id}`);
+        if (!roomCode) {
+            socket.emit('errorMsg', '房號不能為空！');
+            return;
         }
+        
+        socket.join(roomCode);
+        rooms[roomCode] = { players: [socket.id] };
+        console.log(`房間已創建: ${roomCode} 由 ${socket.id}`);
+        socket.emit('roomCreated', roomCode);
     });
 
+    // 加入房間
     socket.on('joinRoom', (roomCode) => {
+        const room = io.sockets.adapter.rooms.get(roomCode);
+        
+        if (!room) {
+            socket.emit('errorMsg', '房間不存在！請先創建房間。');
+            return;
+        }
+
+        if (room.size >= 2) {
+            socket.emit('errorMsg', '房間人數已滿（雙人對戰已齊集）！');
+            return;
+        }
+
+        socket.join(roomCode);
         if (!rooms[roomCode]) {
-            socket.emit('errorMsg', '房間不存在，請先創建戰局！');
-        } else if (rooms[roomCode].length >= 2) {
-            socket.emit('errorMsg', '房間已滿，請加入其他戰局！');
-        } else {
-            rooms[roomCode].push(socket.id);
-            socket.join(roomCode);
+            rooms[roomCode] = { players: [] };
+        }
+        if (!rooms[roomCode].players.includes(socket.id)) {
+            rooms[roomCode].players.push(socket.id);
+        }
+
+        console.log(`使用者 ${socket.id} 加入房間: ${roomCode}。當前人數: ${room.size}`);
+
+        // 當雙方齊集（剛好2人）時，正式啟動遊戲
+        if (room.size === 2) {
             io.to(roomCode).emit('gameStart');
-            console.log(`雙方齊集，房間 ${roomCode} 開始對戰`);
+            console.log(`房間 ${roomCode} 雙方已齊集，遊戲正式開始！`);
         }
     });
 
+    // 同步輔助卡裝備動作
+    socket.on('playAuxData', (data) => {
+        socket.to(data.roomCode).emit('opponentAux', { zone: data.zone, card: data.card });
+    });
+
+    // 同步人物卡佈署動作
     socket.on('playCardData', (data) => {
-        socket.to(data.roomCode).emit('opponentPlayed', {
-            zone: data.zone,
-            card: data.card
+        if (!data || !data.roomCode) return;
+        socket.to(data.roomCode).emit('opponentPlayed', { 
+            card: data.card, 
+            zone: data.zone 
         });
     });
 
+    // 攻擊與傷害血量同步廣播
     socket.on('attackAction', (data) => {
-        io.to(data.roomCode).emit('battleUpdate', {
-            attacker: socket.id,
-            damage: data.damage,
-            isCorrect: data.isCorrect
-        });
+        if (!data || !data.roomCode) return;
+        const room = io.sockets.adapter.rooms.get(data.roomCode);
+        
+        if (room) {
+            // 向房間內雙方同步廣播攻擊結果與傷害數值
+            io.to(data.roomCode).emit('battleUpdate', {
+                attacker: socket.id,
+                damage: data.damage,
+                isCorrect: data.isCorrect
+            });
+        }
     });
 
+    // 斷線處理
     socket.on('disconnect', () => {
-        console.log(`玩家離線: ${socket.id}`);
-        for (let code in rooms) {
-            rooms[code] = rooms[code].filter(id => id !== socket.id);
-            if (rooms[code].length === 0) {
-                delete rooms[code];
+        console.log(`使用者離線: ${socket.id}`);
+        for (const code in rooms) {
+            if (rooms[code].players) {
+                rooms[code].players = rooms[code].players.filter(id => id !== socket.id);
+                if (rooms[code].players.length === 0) {
+                    delete rooms[code];
+                }
             }
         }
     });
@@ -66,5 +109,8 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`「英魂決 TCG」伺服器已在 http://localhost:${PORT} 啟動`);
+    console.log(`=================================`);
+    console.log(`英魂決 TCG 伺服器已成功啟動！`);
+    console.log(`請在瀏覽器開啟: http://localhost:${PORT}`);
+    console.log(`=================================`);
 });
