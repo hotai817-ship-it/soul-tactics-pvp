@@ -82,7 +82,7 @@ const SUPPORT_CARDS = [
     { id: "s_16", dynasty: "東漢", name: "黨錮之禍", type: "輔助", skill: "清議士人", desc: "士族不滿，宦官專權", questions: generate10Questions("黨錮之禍", "東漢") },
     { id: "s_17", dynasty: "東漢", name: "黃巾之亂", type: "輔助", skill: "太平道興", desc: "蒼天已死黃天當立", questions: generate10Questions("黃巾之亂", "東漢") },
     { id: "s_18", dynasty: "三國", name: "赤壁之戰", type: "輔助", skill: "三分天下", desc: "火燒連環，奠定鼎足", questions: generate10Questions("赤壁之戰", "三國") },
-    { id: "s_19", dynasty: "三國", name: "屯田制", type: "輔助", skill: "休養生息", desc: "軍國足食，兵農合一", questions: generate10Questions("屯田制", "三國") },
+    { id: "s_19", 三國: "屯田制", type: "輔助", skill: "休養生息", desc: "軍國足食，兵農合一", questions: generate10Questions("屯田制", "三國") },
     { id: "s_20", dynasty: "北朝", name: "均田制", type: "輔助", skill: "授田於民", desc: "保障生計，恢復農業", questions: generate10Questions("均田制", "北朝") },
     { id: "s_21", dynasty: "北朝", name: "三長制", type: "輔助", skill: "整頓戶籍", desc: "五家為鄰，嚴密管治", questions: generate10Questions("三長制", "北朝") },
     { id: "s_22", dynasty: "北朝", name: "租調制", type: "輔助", skill: "明定稅額", desc: "減輕負擔，穩定稅收", questions: generate10Questions("租調制", "北朝") },
@@ -138,9 +138,10 @@ io.on('connection', (socket) => {
         socket.join(roomId);
         room.players.push(socket);
 
+        // 新增 hasPlayedCard 狀態，管控每回合只能出一次牌
         room.state = {
-            [hostSocket.id]: { hp: 300, hand: getRandomCards(5), active: null, supportArea: [] },
-            [socket.id]: { hp: 300, hand: getRandomCards(5), active: null, supportArea: [] }
+            [hostSocket.id]: { hp: 300, hand: getRandomCards(5), active: null, supportArea: [], hasPlayedCard: false },
+            [socket.id]: { hp: 300, hand: getRandomCards(5), active: null, supportArea: [], hasPlayedCard: false }
         };
         room.turn = hostSocket.id;
 
@@ -152,6 +153,13 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
         const pState = room.state[socket.id];
+        
+        // 防禦：如果這回合已經出過牌了，不准再抽題出牌
+        if (pState.hasPlayedCard) {
+            socket.emit('error_msg', '一回合只能點選部署一張卡片！請發動攻擊或結束回合。');
+            return;
+        }
+        
         if (cardIndex < 0 || cardIndex >= pState.hand.length) return;
 
         const card = pState.hand[cardIndex];
@@ -167,16 +175,20 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
         const pState = room.state[socket.id];
-        if (cardIndex < 0 || cardIndex >= pState.hand.length) return;
+        
+        if (pState.hasPlayedCard || cardIndex < 0 || cardIndex >= pState.hand.length) return;
 
+        // 消耗卡牌並標記為已出牌
         const card = pState.hand.splice(cardIndex, 1)[0];
+        pState.hasPlayedCard = true; 
+        
         const opSocket = room.players.find(p => p.id !== socket.id);
         const opState = room.state[opSocket.id];
 
         if (answerCorrect) {
             if (card.type === "人物") {
-                if (pState.active) pState.hand.push(pState.active);
-                pState.active = card;
+                // 修正：舊武將直接丟棄，不再塞回手牌導致數量暴增
+                pState.active = card; 
             } else if (card.type === "輔助") {
                 pState.supportArea.push(card);
                 opState.hp -= 20;
@@ -193,14 +205,17 @@ io.on('connection', (socket) => {
             return;
         }
 
-        room.turn = opSocket.id;
-        room.state[opSocket.id].hand.push(...getRandomCards(2));
+        // 修正：出牌後【保留在玩家回合】，讓玩家可以點主將發動攻擊
         broadcastGameState(roomId);
     });
 
     socket.on('get_attack_question', ({ roomId }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
+        
+        const pState = room.state[socket.id];
+        if (!pState.active) { socket.emit('error_msg', '請先部署歷史人物才能發動攻擊！'); return; }
+
         const questions = [
             { q: "秦王政自認為「XX三皇，XX五帝」，於是把三「皇」五「帝」名稱合稱為「皇帝」。請填空：", opts: ["A. 功過三皇，德兼五帝", "B. 德高三皇，功過五帝", "C. 德兼三皇，功過五帝", "D. 功德三皇五帝"], correctIndex: 0 },
             { q: "漢武帝採納主父偃的建議，頒行哪一項法令削弱諸侯王勢力？", opts: ["A. 削藩令", "B. 推恩令", "C. 漢律令", "D. 推恩法"], correctIndex: 1 },
@@ -217,7 +232,7 @@ io.on('connection', (socket) => {
         const opSocket = room.players.find(p => p.id !== socket.id);
         const opState = room.state[opSocket.id];
 
-        if (!pState.active) { socket.emit('error_msg', '請先部署歷史人物才能發動攻擊！'); return; }
+        if (!pState.active) return;
 
         let dmg = answerCorrect ? 80 : 40;
         opState.hp -= dmg;
@@ -229,8 +244,11 @@ io.on('connection', (socket) => {
             io.to(roomId).emit('game_over', { winner: socket.id });
             delete rooms[roomId];
         } else {
+            // 攻擊完畢，正式切換回合
             room.turn = opSocket.id;
-            room.state[opSocket.id].hand.push(...getRandomCards(2));
+            pState.hasPlayedCard = false; // 重置狀態
+            room.state[opSocket.id].hasPlayedCard = false; // 重置對手狀態
+            room.state[opSocket.id].hand.push(...getRandomCards(2)); // 給對手補2張牌
             broadcastGameState(roomId);
         }
     });
@@ -238,8 +256,13 @@ io.on('connection', (socket) => {
     socket.on('end_turn', (roomId) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
+        
+        const pState = room.state[socket.id];
+        pState.hasPlayedCard = false; // 重置狀態
+
         const nextSocket = room.players.find(p => p.id !== socket.id);
         room.turn = nextSocket.id;
+        room.state[nextSocket.id].hasPlayedCard = false;
         room.state[nextSocket.id].hand.push(...getRandomCards(2));
         broadcastGameState(roomId);
     });
