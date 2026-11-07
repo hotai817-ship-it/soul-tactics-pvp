@@ -66,7 +66,6 @@ const SUPPORT_CARDS = [
     { id: "s_29", dynasty: "唐", name: "兩稅法", type: "輔助", skill: "量出為入", desc: "楊炎建議，夏秋納稅" }
 ];
 
-// ================= 3. 完整專屬卡牌題庫 (加在這裏) =================
 const CARD_QUESTIONS_DB = {
     "秦始皇": [
         { q: "秦王政滅六國統一天下後，認為自己「德兼三皇，功過五帝」，因此創立了什麼稱號？", opts: ["A. 天子", "B. 皇帝", "C. 霸王", "D. 單于"], correctIndex: 1 },
@@ -198,7 +197,7 @@ const CARD_QUESTIONS_DB = {
         { q: "北魏時期，為配合均田制並清查隱瞞的戶口，設立了哪一項基層組織制度（鄰長、里長、黨長）？", opts: ["A. 保甲制", "B. 里甲制", "C. 三長制", "D. 猛安謀克制"], correctIndex: 2 }
     ],
     "租調制": [
-        { q: "北魏實施的賦稅制度「租調制」中，「租」與「調」分別代表繳納什麼？", opts: ["A. 田租與戶稅 (絹帛等)", "B. 兵役與勞役", "C. 商業稅與關稅", "D. 人頭稅與鹽鐵稅"], correctIndex: 0 }
+        { q: "北魏實施的賦稅制度「租調制」中、「租」與「調」分別代表繳納什麼？", opts: ["A. 田租與戶稅 (絹帛等)", "B. 兵役與勞役", "C. 商業稅與關稅", "D. 人頭稅與鹽鐵稅"], correctIndex: 0 }
     ],
     "三省六部制": [
         { q: "隋唐時期確立了「三省六部制」，其中負責執行具體政務的是哪一省？", opts: ["A. 中書省", "B. 門下省", "C. 尚書省", "D. 秘書省"], correctIndex: 2 }
@@ -223,13 +222,11 @@ const CARD_QUESTIONS_DB = {
     ]
 };
 
-// 4. 卡牌題庫調用函數
 function generate10Questions(cardName, dynasty) {
     let qs = [];
     if (CARD_QUESTIONS_DB[cardName]) {
         CARD_QUESTIONS_DB[cardName].forEach(qItem => qs.push(qItem));
     }
-    // 萬一題目不夠，自動補足通用進階題
     while (qs.length < 10) {
         let idx = qs.length + 1;
         let correctAns = `此選項符合${dynasty}時期的歷史發展與核心典章`;
@@ -251,4 +248,177 @@ function generate10Questions(cardName, dynasty) {
 const ALL_CARDS = [...HERO_CARDS, ...SUPPORT_CARDS];
 let rooms = {};
 
-// ... (之後的 io.on('connection', ...) 遊戲邏輯伺服器程式碼維持不變)
+io.on('connection', (socket) => {
+    socket.on('create_room', (roomId) => {
+        if (rooms[roomId]) {
+            socket.emit('error_msg', '房間已存在，請直接加入！');
+            return;
+        }
+        rooms[roomId] = {
+            players: [socket.id],
+            state: {
+                [socket.id]: { hp: 300, hand: [], deck: [], active: null, supportArea: [], hasPlayedCard: false }
+            },
+            turn: socket.id
+        };
+        socket.join(roomId);
+        socket.emit('room_created', roomId);
+    });
+
+    socket.on('join_room', (roomId) => {
+        const room = rooms[roomId];
+        if (!room) {
+            socket.emit('error_msg', '房間不存在！');
+            return;
+        }
+        if (room.players.length >= 2) {
+            socket.emit('error_msg', '房間已滿！');
+            return;
+        }
+        room.players.push(socket.id);
+        room.state[socket.id] = { hp: 300, hand: [], deck: [], active: null, supportArea: [], hasPlayedCard: false };
+        socket.join(roomId);
+
+        room.players.forEach(pid => {
+            let shuffled = [...ALL_CARDS].sort(() => Math.random() - 0.5);
+            room.state[pid].deck = shuffled;
+            room.state[pid].hand = shuffled.splice(0, 5);
+        });
+
+        io.to(roomId).emit('game_start', { roomId });
+        updateGameState(roomId);
+    });
+
+    socket.on('get_card_question', ({ roomId, cardIndex }) => {
+        const room = rooms[roomId];
+        if (!room || room.turn !== socket.id) return;
+        const pState = room.state[socket.id];
+        if (pState.hasPlayedCard) {
+            socket.emit('error_msg', '每回合只能出一張牌！');
+            return;
+        }
+        const card = pState.hand[cardIndex];
+        if (!card) return;
+
+        let questions = generate10Questions(card.name, card.dynasty);
+        let qData = questions[Math.floor(Math.random() * questions.length)];
+        qData.cardName = card.name;
+        socket.emit('show_card_question', { qData });
+    });
+
+    socket.on('play_card_with_answer', ({ roomId, cardIndex, answerCorrect }) => {
+        const room = rooms[roomId];
+        if (!room || room.turn !== socket.id) return;
+        const pState = room.state[socket.id];
+        if (pState.hasPlayedCard) return;
+
+        const card = pState.hand[cardIndex];
+        if (!card) return;
+
+        pState.hasPlayedCard = true;
+        pState.hand.splice(cardIndex, 1);
+
+        if (answerCorrect) {
+            io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 回答正確！成功部署【${card.name}】！` });
+            if (card.type === '人物') {
+                if (!pState.active) {
+                    pState.active = card;
+                } else {
+                    pState.supportArea.push(card);
+                }
+            } else {
+                pState.supportArea.push(card);
+            }
+        } else {
+            io.to(roomId).emit('battle_log', { msg: `[歷史考驗] ${socket.id.substring(4,8)} 回答錯誤！【${card.name}】化為灰燼...` });
+        }
+        updateGameState(roomId);
+    });
+
+    socket.on('get_attack_question', ({ roomId }) => {
+        const room = rooms[roomId];
+        if (!room || room.turn !== socket.id) return;
+        const pState = room.state[socket.id];
+        if (!pState.active) {
+            socket.emit('error_msg', '您尚未部署主戰人物！');
+            return;
+        }
+
+        let questions = generate10Questions(pState.active.name, pState.active.dynasty);
+        let qData = questions[Math.floor(Math.random() * questions.length)];
+        socket.emit('show_attack_question', { qData });
+    });
+
+    socket.on('attack', ({ roomId, answerCorrect }) => {
+        const room = rooms[roomId];
+        if (!room || room.turn !== socket.id) return;
+        const pState = room.state[socket.id];
+        const opId = room.players.find(id => id !== socket.id);
+        const opState = room.state[opId];
+
+        if (!pState.active) return;
+
+        let damage = answerCorrect ? 60 : 20;
+        opState.hp -= damage;
+
+        if (answerCorrect) {
+            io.to(roomId).emit('battle_log', { msg: `⚔️ 【${pState.active.name}】戰技激發成功！答題正確，對對手造成 ${damage} 點爆發傷害！` });
+        } else {
+            io.to(roomId).emit('battle_log', { msg: `⚠️ 【${pState.active.name}】戰技答題錯誤！僅造成微弱的 ${damage} 點傷害。` });
+        }
+
+        if (opState.hp <= 0) {
+            opState.hp = 0;
+            io.to(roomId).emit('game_over', { winner: socket.id });
+            delete rooms[roomId];
+            return;
+        }
+
+        updateGameState(roomId);
+    });
+
+    socket.on('end_turn', (roomId) => {
+        const room = rooms[roomId];
+        if (!room || room.turn !== socket.id) return;
+
+        room.turn = room.players.find(id => id !== socket.id);
+        room.state[room.turn].hasPlayedCard = false;
+
+        let nextPlayerState = room.state[room.turn];
+        if (nextPlayerState.deck.length > 0) {
+            nextPlayerState.hand.push(nextPlayerState.deck.shift());
+        }
+
+        io.to(roomId).emit('battle_log', { msg: `🔄 回合結束，輪到下一位少俠。` });
+        updateGameState(roomId);
+    });
+
+    socket.on('disconnect', () => {
+        for (let roomId in rooms) {
+            let room = rooms[roomId];
+            if (room.players.includes(socket.id)) {
+                io.to(roomId).emit('battle_log', { msg: `⚠️ 對手已斷線，遊戲結束。` });
+                io.to(roomId).emit('game_over', { winner: room.players.find(id => id !== socket.id) || socket.id });
+                delete rooms[roomId];
+            }
+        }
+    });
+});
+
+function updateGameState(roomId) {
+    const room = rooms[roomId];
+    if (!room) return;
+    room.players.forEach(pid => {
+        const opId = room.players.find(id => id !== pid);
+        io.to(pid).emit('game_state_update', {
+            myState: room.state[pid],
+            opState: room.state[opId] || { hp: 300, active: null, supportArea: [] },
+            isMyTurn: room.turn === pid
+        });
+    });
+}
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`《英魂決》伺服器已在 port ${PORT} 啟動！`);
+});
