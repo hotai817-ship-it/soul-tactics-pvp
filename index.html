@@ -1,408 +1,62 @@
-<!DOCTYPE html>
-<html lang="zh-HK">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>英魂決 TCG - 中史科校本對戰系統</title>
-    <script src="/socket.io/socket.io.js"></script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; touch-action: manipulation; }
-        body { 
-            font-family: "PMingLiU", "MingLiU", "Noto Serif TC", serif; 
-            background: radial-gradient(circle at center, #1a252f 0%, #000000 100%);
-            color: #ecf0f1; text-align: center; overflow: hidden; height: 100vh; width: 100vw;
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
+app.use(express.static('.'));
+
+io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+
+    socket.on('createRoom', (roomCode) => {
+        socket.join(roomCode);
+        socket.emit('roomCreated', roomCode);
+        console.log(`Room created: ${roomCode} by ${socket.id}`);
+    });
+
+    socket.on('joinRoom', (roomCode) => {
+        const room = io.sockets.adapter.rooms.get(roomCode);
+        if (room) {
+            if (room.size === 1) {
+                socket.join(roomCode);
+                console.log(`User ${socket.id} joined room: ${roomCode}. Total players: 2. Starting game!`);
+                // 確保雙方玩家完全齊集後才啟動遊戲
+                io.to(roomCode).emit('gameStart');
+            } else if (room.size >= 2) {
+                socket.emit('errorMsg', '房間人數已滿（雙人對戰已齊集）！');
+            }
+        } else {
+            socket.emit('errorMsg', '房間不存在！請先創建房間。');
         }
-        .hidden { display: none !important; }
+    });
 
-        /* --- 遊戲大廳 --- */
-        #lobby { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; }
-        h1 { font-size: clamp(40px, 8vw, 60px); color: #D4AF37; text-shadow: 2px 2px 10px rgba(212, 175, 55, 0.8); margin-bottom: 10px; letter-spacing: 2px; }
-        h2 { font-size: clamp(16px, 4vw, 24px); color: #bdc3c7; margin-bottom: 30px; letter-spacing: 5px; }
-        .input-group { background: rgba(0,0,0,0.7); padding: 30px; border-radius: 15px; border: 2px solid #D4AF37; width: 100%; max-width: 400px; box-shadow: 0 0 25px rgba(212,175,55,0.3); }
-        input { padding: 15px; font-size: 18px; text-align: center; border: 2px solid #7f8c8d; background: #111; color: #D4AF37; border-radius: 8px; margin-bottom: 20px; width: 100%; font-family: inherit; font-weight: bold; }
-        .btn-container { display: flex; gap: 15px; justify-content: center; }
-        .btn-gold { flex: 1; padding: 12px 10px; font-size: 18px; font-weight: bold; cursor: pointer; background: linear-gradient(135deg, #B8860B, #D4AF37); border: none; color: #000; border-radius: 8px; transition: 0.3s; }
-        .btn-red { background: linear-gradient(135deg, #8B0000, #B22222); color: white; }
+    socket.on('playCardData', (data) => {
+        socket.to(data.roomCode).emit('opponentPlayed', { card: data.card, zone: data.zone });
+    });
 
-        /* --- 戰鬥介面 (RWD) --- */
-        #gameBoard { display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 10px 5px; }
-        
-        .player-info { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 8px 15px; background: rgba(255,255,255,0.05); border: 1px solid #7f8c8d; border-radius: 8px; margin: 5px 0; }
-        .hp-container { width: 55%; background: #2c3e50; border: 2px solid #000; border-radius: 15px; overflow: hidden; position: relative; height: 20px; }
-        .hp-bar { height: 100%; background: linear-gradient(90deg, #ff0000, #ff4d4d); width: 100%; transition: width 0.4s ease-out; }
-        .hp-text { position: absolute; width: 100%; text-align: center; top: 1px; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px #000; }
-        .player-name { font-size: clamp(16px, 4vw, 20px); color: #D4AF37; font-weight: bold; }
-
-        /* --- 戰場交鋒區 --- */
-        .battlefield { flex-grow: 1; display: flex; justify-content: center; align-items: center; gap: 20px; padding: 10px 0; }
-        .field-slot { width: 26vw; max-width: 120px; height: 38vw; max-height: 175px; border: 2px dashed rgba(212, 175, 55, 0.4); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); font-size: 14px; }
-
-        /* --- 卡牌設計 --- */
-        .hand { display: flex; justify-content: center; gap: 2vw; height: auto; padding: 5px 0; align-items: flex-end; }
-        .card { 
-            width: 23vw; max-width: 110px; height: 34vw; max-height: 160px; background: #1a252f;
-            border: 2px solid #8c7322; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; 
-            transition: all 0.2s; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.8);
-            overflow: hidden; flex-shrink: 0;
-        }
-        .card:active, .card:hover { transform: translateY(-15px); border-color: #f1c40f; box-shadow: 0 5px 20px rgba(212,175,55,0.6); z-index: 10; }
-        
-        .card-image { width: 100%; height: 55%; background-size: cover; background-position: center; border-bottom: 1px solid #8c7322; position: relative; background-color: #34495e; }
-        .card-name-mask { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8); color: #D4AF37; font-size: clamp(11px, 3.2vw, 15px); font-weight: bold; padding: 2px 0; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .card-trait { font-size: clamp(9px, 2.2vw, 11px); color: #bdc3c7; margin-top: 4px; font-style: italic; padding: 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .card-power { position: absolute; bottom: 0; width: 100%; background: linear-gradient(180deg, #8B0000, #5c0000); color: white; font-size: clamp(14px, 4vw, 18px); font-weight: bold; padding: 4px 0; border-top: 1px solid #ff4d4d; }
-
-        .card.played { width: 26vw; max-width: 120px; height: 38vw; max-height: 175px; animation: playAnim 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; cursor: default; }
-        .card.hidden-card { background: #111; border-color: #333; }
-        
-        /* --- 歷史問答視窗 --- */
-        #quizOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.92); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(8px); padding: 20px; }
-        .quiz-box { background: #2c3e50; border: 3px solid #D4AF37; padding: 25px; border-radius: 12px; width: 100%; max-width: 550px; box-shadow: 0 0 40px rgba(212,175,55,0.5); text-align: left; }
-        .quiz-box h3 { color: #e74c3c; font-size: 18px; border-bottom: 2px solid #7f8c8d; padding-bottom: 10px; margin-bottom: 15px; }
-        #quizQuestion { font-size: clamp(16px, 4.5vw, 22px); line-height: 1.5; margin-bottom: 25px; color: #fff; }
-        .quiz-options { display: grid; grid-template-columns: 1fr; gap: 12px; }
-        @media (min-width: 500px) { .quiz-options { grid-template-columns: 1fr 1fr; } }
-        
-        .quiz-btn { background: #1a252f; border: 2px solid #7f8c8d; padding: 15px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 8px; font-family: inherit; transition: 0.2s; text-align: left; }
-        .quiz-btn:active, .quiz-btn:hover { background: #D4AF37; color: black; border-color: #D4AF37; transform: scale(1.02); }
-
-        /* --- 動畫特效 --- */
-        @keyframes playAnim { 0% { transform: scale(1.5) translateY(40px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-12px) rotate(-3deg); } 50% { transform: translateX(12px) rotate(3deg); } 75% { transform: translateX(-12px) rotate(-3deg); } }
-        .shake-effect { animation: shake 0.4s both; border-color: #ff0000 !important; box-shadow: 0 0 25px red; }
-        .correct-effect { box-shadow: 0 0 35px #2ecc71; border-color: #2ecc71 !important; }
-        
-        #sysMsg { position: fixed; top: 12%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: #f1c40f; padding: 12px 25px; border-radius: 30px; font-size: 18px; font-weight: bold; z-index: 1000; border: 2px solid #f1c40f; opacity: 0; pointer-events: none; width: max-content; max-width: 90vw; transition: opacity 0.3s; }
-    </style>
-</head>
-<body>
-    <div id="sysMsg">系統提示</div>
-
-    <div id="lobby">
-        <h1>英魂決</h1>
-        <h2>中史科歷史卡牌戰場</h2>
-        <div class="input-group">
-            <input type="text" id="roomCode" placeholder="輸入戰場密碼 (如: 888)" autocomplete="off">
-            <div class="btn-container">
-                <button class="btn-gold" onclick="createRoom()">創建戰局</button>
-                <button class="btn-gold btn-red" onclick="joinRoom()">加入戰局</button>
-            </div>
-        </div>
-        <p id="statusMsg" style="color: #D4AF37; margin-top: 20px; font-size: 16px;"></p>
-    </div>
-
-    <div id="gameBoard" class="hidden">
-        <div class="player-info" id="opponentArea">
-            <div class="player-name">敵軍將領</div>
-            <div class="hp-container">
-                <div id="opponentHpBar" class="hp-bar"></div>
-                <div id="opponentHpText" class="hp-text">100 / 100</div>
-            </div>
-        </div>
-        <div class="hand" id="opponentHand" style="height: 40px; transform: scale(0.6) translateY(-20px);">
-            <div class="card hidden-card"></div><div class="card hidden-card"></div><div class="card hidden-card"></div><div class="card hidden-card"></div>
-        </div>
-
-        <div class="battlefield">
-            <div id="opponentField" class="field-slot">敵軍陣地</div>
-            <div id="myField" class="field-slot">我方陣地</div>
-        </div>
-
-        <div class="player-info" id="myArea" style="border-color: #D4AF37;">
-            <div class="player-name">我軍將領</div>
-            <div class="hp-container">
-                <div id="myHpBar" class="hp-bar" style="background: linear-gradient(90deg, #2ecc71, #27ae60);"></div>
-                <div id="myHpText" class="hp-text">100 / 100</div>
-            </div>
-        </div>
-        <div class="hand" id="myHand"></div>
-    </div>
-
-    <div id="quizOverlay" class="hidden">
-        <div class="quiz-box" id="quizBox">
-            <h3>📜 歷史考驗 (答對發動攻擊)</h3>
-            <div id="quizQuestion">題目載入中...</div>
-            <div class="quiz-options" id="quizOptions"></div>
-        </div>
-    </div>
-
-    <script>
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        const audioCtx = new AudioContext();
-
-        function playSound(type) {
-            try {
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                const now = audioCtx.currentTime;
-                
-                if (type === 'click') {
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
-                    gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                    osc.start(now); osc.stop(now + 0.1);
-                } else if (type === 'playCard') {
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.linearRampToValueAtTime(200, now + 0.2);
-                    gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
-                    osc.start(now); osc.stop(now + 0.2);
-                } else if (type === 'attack') {
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
-                    gain.gain.setValueAtTime(0.8, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                    osc.start(now); osc.stop(now + 0.3);
-                } else if (type === 'correct') {
-                    osc.type = 'square'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554, now + 0.1); osc.frequency.setValueAtTime(659, now + 0.2);
-                    gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.4);
-                    osc.start(now); osc.stop(now + 0.4);
-                } else if (type === 'wrong') {
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); osc.frequency.linearRampToValueAtTime(100, now + 0.3);
-                    gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now + 0.4);
-                    osc.start(now); osc.stop(now + 0.4);
-                }
-            } catch (e) {}
-        }
-
-        const socket = io();
-        const MAX_HP = 100; 
-        let myRoom = '';
-        let myHp = MAX_HP;
-        let opponentHp = MAX_HP;
-        let pendingDamage = 0;
-        
-        let deckPool = [];
-        let currentHand = [];
-
-        const questionBank = [
-          { "q": "秦王政自認為「XX三皇，XX五帝」，於是把三「皇」五「帝」名稱合稱為「皇帝」", "options": ["南越", "功過三皇，德兼五帝", "安祿山", "程邈"], "ans": "功過三皇，德兼五帝" },
-          { "q": "高級軍吏俑又俗稱為「XX俑」", "options": ["將軍俑", "李安世", "自由買賣", "言行一致、信守承諾、說到做到"], "ans": "將軍俑" },
-          { "q": "焚書政令下，如果有人想要學習法令，就以XX為師。", "options": ["秦吏", "上計", "匈奴", "程邈"], "ans": "秦吏" },
-          { "q": "秦始皇統一度量衡時，會在標準的度量衡上刻製XX，以昭示統一的標準，並方便各地使用。", "options": ["清議", "姻親", "侄子", "銘文"], "ans": "銘文" },
-          { "q": "相傳，XX整理民間字體，化繁為簡，化圓為方，對小篆進行改良，創立了一種新的字體—隸書。", "options": ["范雎", "太平道", "程邈", "儒生"], "ans": "程邈" },
-          { "q": "秦始皇修築「萬里長城」主要是為了抵禦哪個外族？", "options": ["彩繪", "褒姒", "匈奴", "太平道"], "ans": "匈奴" },
-          { "q": "「桃李無言，XXXX」是一句成語，出自《史記．李將軍列傳》。", "options": ["上計", "下自成蹊", "政治", "賦稅"], "ans": "下自成蹊" },
-          { "q": "墓前的XXXX的石像，象徵着他的不朽功勳。", "options": ["匈奴", "范雎", "西魏", "馬踏匈奴"], "ans": "馬踏匈奴" },
-          { "q": "武帝採納主父偃的建議，頒行「XXX」，規定諸侯王除以嫡長子繼承王位外，其餘諸子在原封國內封侯，新封侯國不再受王國管轄，直接由各郡來管理。", "options": ["政治", "顛倒是非、混淆黑白", "推恩令", "刎頸"], "ans": "推恩令" },
-          { "q": "劉邦在秦朝滅亡後，進入咸陽時，與當地百姓XXXX，內容為「殺人者死，傷人及盜抵罪」", "options": ["韓信", "黨錮之禍", "約法三章", "三次"], "ans": "約法三章" }
-        ];
-
-        const fullDeck = [
-          { "name": "秦始皇", "trait": "祖龍之威", "power": 40, "img": "https://upload.wikimedia.org/wikipedia/commons/2/27/Qin_Shi_Huangdi.jpg" },
-          { "name": "高級軍吏俑", "trait": "歷史英魂", "power": 20, "img": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Xiang_Yu.jpg" },
-          { "name": "焚書坑儒", "trait": "箝制思想", "power": 25, "img": "https://upload.wikimedia.org/wikipedia/commons/5/5a/Han_Wudi.jpg" },
-          { "name": "統一度量衝", "trait": "統一法制、統一民心", "power": 25, "img": "https://upload.wikimedia.org/wikipedia/commons/4/45/Cao_Cao.jpg" },
-          { "name": "統一文字", "trait": "統一文字、統一民心", "power": 25, "img": "https://upload.wikimedia.org/wikipedia/commons/4/4b/Zhuge_Liang.jpg" },
-          { "name": "萬里長城", "trait": "抵禦外敵", "power": 25, "img": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Tang_Taizong.jpg" },
-          { "name": "李廣", "trait": "李廣難封", "power": 24, "img": "https://upload.wikimedia.org/wikipedia/commons/1/1a/Wu_Zetian.jpg" },
-          { "name": "霍去病", "trait": "千里奔襲", "power": 24, "img": "https://upload.wikimedia.org/wikipedia/commons/6/6f/Yue_Fei.jpg" },
-          { "name": "漢武帝", "trait": "好大喜功", "power": 36, "img": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Genghis_Khan.jpg" },
-          { "name": "漢高祖", "trait": "知人善任", "power": 36, "img": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Ming_Taizu.jpg" }
-        ];
-
-        function showSysMsg(msg) {
-            const el = document.getElementById('sysMsg');
-            el.innerText = msg; el.style.opacity = 1;
-            setTimeout(() => el.style.opacity = 0, 2500);
-        }
-
-        function createRoom() {
-            playSound('click');
-            const code = document.getElementById('roomCode').value;
-            if (!code) return showSysMsg("⚠️ 請輸入房號！");
-            socket.emit('createRoom', code);
-        }
-
-        function joinRoom() {
-            playSound('click');
-            const code = document.getElementById('roomCode').value;
-            if (!code) return showSysMsg("⚠️ 請輸入房號！");
-            socket.emit('joinRoom', code);
-        }
-
-        socket.on('roomCreated', (code) => {
-            myRoom = code;
-            document.getElementById('statusMsg').innerText = `⛩️ 房間 [${code}] 已建立，等待將領入陣...`;
-        });
-
-        socket.on('errorMsg', (msg) => { showSysMsg(`❌ ${msg}`); });
-
-        socket.on('gameStart', () => {
-            playSound('correct');
-            document.getElementById('lobby').classList.add('hidden');
-            document.getElementById('gameBoard').classList.remove('hidden');
-            showSysMsg("⚔️ 戰局開始！");
-            updateHpUI();
-            
-            deckPool = [...fullDeck].sort(() => 0.5 - Math.random());
-            currentHand = deckPool.splice(0, 4);
-            renderHand();
-        });
-
-        function renderHand() {
-            const handDiv = document.getElementById('myHand');
-            handDiv.innerHTML = '';
-            currentHand.forEach((card, index) => {
-                const cardEl = document.createElement('div');
-                cardEl.className = 'card';
-                cardEl.innerHTML = `
-                    <div class="card-image" style="background-image: url('${card.img}');">
-                        <div class="card-name-mask">${card.name}</div>
-                    </div>
-                    <div class="card-trait">「${card.trait}」</div>
-                    <div class="card-power">⚔️ ${card.power}</div>
-                `;
-                cardEl.onclick = () => {
-                    playSound('playCard');
-                    playCard(card, index);
-                };
-                handDiv.appendChild(cardEl);
+    // 嚴格檢查：必須雙方齊集（房間內剛好2人）才允許執行攻擊與扣血
+    socket.on('attackAction', (data) => {
+        const room = io.sockets.adapter.rooms.get(data.roomCode);
+        if (room && room.size === 2) {
+            io.to(data.roomCode).emit('battleUpdate', {
+                attacker: socket.id,
+                damage: data.damage,
+                isCorrect: data.isCorrect
             });
+        } else {
+            socket.emit('errorMsg', '⚠️ 尚有對手未加入，請等待所有人齊集後方可發動攻擊！');
         }
+    });
 
-        function playCard(card, index) {
-            const field = document.getElementById('myField');
-            field.innerHTML = `
-                <div class="card played">
-                    <div class="card-image" style="background-image: url('${card.img}');">
-                        <div class="card-name-mask">${card.name}</div>
-                    </div>
-                    <div class="card-power">⚔️ ${card.power}</div>
-                </div>`;
-            field.style.border = 'none';
+    socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
+    });
+});
 
-            socket.emit('playCardData', { roomCode: myRoom, card });
-            pendingDamage = parseInt(card.power, 10);
-            
-            currentHand.splice(index, 1);
-            showQuiz();
-        }
-
-        function replenishHand() {
-            if (currentHand.length < 4) {
-                if (deckPool.length === 0) {
-                    deckPool = [...fullDeck].sort(() => 0.5 - Math.random());
-                    showSysMsg("🔄 牌庫重洗，英魂再臨！");
-                }
-                currentHand.push(deckPool.pop());
-            }
-            renderHand();
-        }
-
-        socket.on('opponentPlayed', (data) => {
-            playSound('playCard');
-            const card = data.card;
-            const field = document.getElementById('opponentField');
-            field.innerHTML = `
-                <div class="card played" style="border-color: #e74c3c;">
-                    <div class="card-image" style="background-image: url('${card.img}');">
-                        <div class="card-name-mask" style="color:#ffcccc;">${card.name}</div>
-                    </div>
-                    <div class="card-power" style="background:#8B0000; border-top-color:#e74c3c;">⚔️ ${card.power}</div>
-                </div>`;
-            field.style.border = 'none';
-            showSysMsg(`敵方出陣：【${card.name}】！`);
-        });
-
-        function showQuiz() {
-            const q = questionBank[Math.floor(Math.random() * questionBank.length)];
-            document.getElementById('quizQuestion').innerText = q.q;
-            const optionsDiv = document.getElementById('quizOptions');
-            optionsDiv.innerHTML = '';
-            
-            const shuffledOptions = [...q.options].sort(() => 0.5 - Math.random());
-            shuffledOptions.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = 'quiz-btn';
-                btn.innerText = opt;
-                btn.onclick = () => checkAnswer(opt, q.ans);
-                optionsDiv.appendChild(btn);
-            });
-            document.getElementById('quizOverlay').classList.remove('hidden');
-        }
-
-        function checkAnswer(selected, correct) {
-            const overlay = document.getElementById('quizOverlay');
-            const qBox = document.getElementById('quizBox');
-            
-            if (selected === correct) {
-                playSound('correct');
-                qBox.classList.add('correct-effect');
-                showSysMsg("🎯 答對了！發動攻擊！");
-                setTimeout(() => {
-                    overlay.classList.add('hidden');
-                    qBox.classList.remove('correct-effect');
-                    socket.emit('attackAction', { roomCode: myRoom, damage: pendingDamage, isCorrect: true });
-                    replenishHand();
-                }, 1000);
-            } else {
-                playSound('wrong');
-                qBox.classList.add('shake-effect');
-                showSysMsg(`❌ 答錯了！正確解答為：${correct}`);
-                setTimeout(() => {
-                    overlay.classList.add('hidden');
-                    qBox.classList.remove('shake-effect');
-                    socket.emit('attackAction', { roomCode: myRoom, damage: 0, isCorrect: false });
-                    replenishHand();
-                }, 1800);
-            }
-        }
-
-        function updateHpUI() {
-            const myPct = Math.max(0, (myHp / MAX_HP) * 100);
-            const oppPct = Math.max(0, (opponentHp / MAX_HP) * 100);
-            
-            document.getElementById('myHpBar').style.width = myPct + '%';
-            document.getElementById('myHpText').innerText = `${myHp} / ${MAX_HP}`;
-            
-            document.getElementById('opponentHpBar').style.width = oppPct + '%';
-            document.getElementById('opponentHpText').innerText = `${opponentHp} / ${MAX_HP}`;
-        }
-
-        // 接收伺服器廣播的戰鬥結果並同步雙方血量
-        socket.on('battleUpdate', (data) => {
-            const dmg = parseInt(data.damage, 10) || 0;
-
-            if (data.attacker === socket.id) {
-                // 我方發起攻擊且答對
-                if(data.isCorrect && dmg > 0) {
-                    opponentHp -= dmg;
-                    if (opponentHp < 0) opponentHp = 0; 
-                    
-                    const oppArea = document.getElementById('opponentArea');
-                    oppArea.classList.add('shake-effect');
-                    setTimeout(() => oppArea.classList.remove('shake-effect'), 400);
-                    playSound('attack');
-                    showSysMsg(`💥 命中敵軍，造成 ${dmg} 點傷害！`);
-                } else {
-                    showSysMsg(`🛡️ 攻擊未命中 (答錯)！`);
-                }
-            } else {
-                // 敵方發起攻擊
-                if(data.isCorrect && dmg > 0){
-                    myHp -= dmg;
-                    if (myHp < 0) myHp = 0;
-
-                    const myArea = document.getElementById('myArea');
-                    myArea.classList.add('shake-effect');
-                    setTimeout(() => myArea.classList.remove('shake-effect'), 400);
-                    showSysMsg(`⚠️ 敵方答對，對您造成 ${dmg} 點傷害！`);
-                    playSound('attack');
-                } else {
-                    showSysMsg(`🛡️ 敵方答錯了，攻擊失效！`);
-                }
-            }
-
-            updateHpUI();
-            
-            setTimeout(() => {
-                if (myHp <= 0) {
-                    alert("敗北！歷史的巨輪將你輾過...");
-                    location.reload();
-                } else if (opponentHp <= 0) {
-                    alert("勝利！您成功改寫了歷史！");
-                    location.reload();
-                }
-            }, 600);
-        });
-    </script>
-</body>
-</html>
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
