@@ -36,8 +36,6 @@
         .modal-content { background: #1e293b; border: 3px solid var(--gold); padding: 25px; border-radius: 12px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .modal-btn { background: #3b82f6; color: white; border: none; padding: 14px; margin: 8px 0; border-radius: 8px; width: 100%; cursor: pointer; text-align: left; font-weight: bold; font-size: clamp(0.95rem, 1.5vw, 1.05rem); touch-action: manipulation; }
         .modal-btn:hover { background: #2563eb; }
-        .modal-close-btn { background: #ef4444; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; touch-action: manipulation; }
-        .modal-close-btn:hover { background: #dc2626; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -47,10 +45,10 @@
     
     <div id="lobby" style="margin: auto; text-align: center; background: var(--panel); padding: 35px; border: 2px solid var(--gold); border-radius: 15px;">
         <h3 style="color: var(--gold); margin-top:0; font-size: 1.5rem;">輸入房號開始對戰</h3>
-        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">點選手牌直接部署或發動策略（卡片已標註攻擊／恢復數值）！</p>
+        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">點選手牌中的人物卡直接部署，發動策略卡或攻擊時才會進行歷史考驗答題！</p>
         <input type="text" id="roomInput" class="input-box" placeholder="例如: 8888"><br>
-        <button class="btn" onclick="playSound('click'); createRoom();">🏠 建立房間</button>
-        <button class="btn" onclick="playSound('click'); joinRoom();">🔑 加入房間</button>
+        <button class="btn" onclick="createRoom();">🏠 建立房間</button>
+        <button class="btn" onclick="joinRoom();">🔑 加入房間</button>
     </div>
 
     <div id="gameArea" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1; gap: 8px; overflow: hidden;">
@@ -62,17 +60,17 @@
 
         <div class="arena">
             <div>
-                <div style="color:var(--gold); font-size:0.85em; text-align:left;">對手陣地 (主戰人物與支援區)</div>
+                <div style="color:var(--gold); font-size:0.85em; text-align:left;">對手陣地</div>
                 <div class="zone" id="opActive"></div>
             </div>
             <div>
-                <div style="color:var(--gold); font-size:0.85em; text-align:left;">我方陣地 (點擊主戰人物答題：答對 60 點 / 答錯 20 點傷害)</div>
+                <div style="color:var(--gold); font-size:0.85em; text-align:left;">我方陣地 (點擊主戰人物進行戰技激發答題：答對 60 點 / 答錯 20 點傷害)</div>
                 <div class="zone" id="myActive"></div>
             </div>
         </div>
 
         <div>
-            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (策略卡具體數值已標註於下方)</div>
+            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (人物卡點擊直接部署，輔助卡點擊觸發策略考驗)</div>
             <div class="zone" id="myHand" style="min-height: 160px; background: rgba(0,0,0,0.3); border-radius: 8px;"></div>
         </div>
 
@@ -88,7 +86,6 @@
         <h3 id="modalTitle" style="color:var(--gold); margin-top:0;">📜 歷史考驗與戰技激發</h3>
         <p id="qText" style="font-size: clamp(1rem, 1.5vw, 1.15rem); margin: 20px 0; line-height: 1.5;"></p>
         <div id="qOptions"></div>
-        <button class="modal-close-btn" onclick="forfeitTurnAction()">❌ 放棄作答 (視為回合結束)</button>
     </div>
 </div>
 
@@ -97,54 +94,6 @@
     let currentRoomId = null;
     let pendingSupportCardName = null;
     let isModalOpen = false;
-
-    function playSound(type) {
-        try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
-            if (type === 'deploy') {
-                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.15);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.15);
-            } else if (type === 'attack_success') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-            } else if (type === 'attack_fail') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.25);
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.25);
-            } else if (type === 'heal') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
-                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-            } else {
-                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.05);
-            }
-        } catch (e) {}
-    }
-
-    socket.on('play_sound', (data) => {
-        playSound(data.type);
-    });
 
     function createRoom() {
         const roomId = document.getElementById('roomInput').value.trim();
@@ -172,7 +121,7 @@
         currentRoomId = roomId;
         document.getElementById('lobby').classList.add('hidden');
         document.getElementById('gameArea').classList.remove('hidden');
-        appendLog(`🎉 成功進入房間 [${roomId}]，請點選手牌直接部署人物或發動策略！`);
+        appendLog(`🎉 成功進入房間 [${roomId}]，遊戲開始！`);
     });
 
     socket.on('game_state_update', ({ myState, opState, isMyTurn }) => {
@@ -181,7 +130,7 @@
 
         const indicator = document.getElementById('turnIndicator');
         if (isMyTurn) {
-            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊英雄進攻（答對60點/答錯20點）" : "⭐ 請點選手牌出牌，或點擊英雄進攻";
+            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊主戰人物進攻" : "⭐ 請點選手牌出牌（人物直接部署，策略觸發考驗），或點擊英雄進攻";
             indicator.innerText = actionText;
             indicator.style.color = "#4ade80";
         } else {
@@ -201,7 +150,7 @@
                     <div style="font-size:0.75em; font-weight:bold; color:${tagColor};">[${card.dynasty}] ${card.type}</div>
                     <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${card.name}</div>
                     <div style="font-size:0.6em; color:#475569; overflow:hidden; max-height:45px;">${card.desc}</div>
-                    <div style="font-size:0.65em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">${canPlay ? '點擊出牌' : '等待中'}</div>
+                    <div style="font-size:0.65em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">${canPlay ? (card.type === '人物' ? '點擊直接部署' : '點擊策略考驗') : '等待中'}</div>
                 </div>`;
         });
 
@@ -218,13 +167,13 @@
                             <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${myState.active.dynasty}] 主戰人物</div>
                             <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${myState.active.name}</div>
                             <div style="font-size:0.6em; color:#475569;">${myState.active.skill}</div>
-                            <div style="font-size:0.65em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">${canAttack ? '⚔️ 攻擊(對答60/錯20)' : '等待回合'}</div>
+                            <div style="font-size:0.65em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">${canAttack ? '⚔️ 戰技攻擊(答對60/錯20)' : '等待回合'}</div>
                         </div>
                     </div>
                     ${supportHtml ? `<div style="font-size:0.85rem; color:#38bdf8;">支援區: ${supportHtml}</div>` : ''}
                 </div>`;
         } else {
-            myActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">請從手牌點擊歷史人物卡部署到戰陣上 ${supportHtml ? '<br>支援區: ' + supportHtml : ''}</div>`;
+            myActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">尚未部署主戰人物（請從手牌點擊人物卡直接部署） ${supportHtml ? '<br>支援區: ' + supportHtml : ''}</div>`;
         }
 
         const opActive = document.getElementById('opActive');
@@ -247,7 +196,6 @@
 
     function playCard(cardIndex, canPlay) {
         if (!canPlay || isModalOpen) return;
-        playSound('click');
         socket.emit('play_card', { roomId: currentRoomId, cardIndex });
     }
 
@@ -274,7 +222,6 @@
 
     function triggerAttack(isMyTurn) {
         if (!isMyTurn || isModalOpen) return;
-        playSound('click');
         isModalOpen = true;
         socket.emit('get_attack_question', { roomId: currentRoomId });
     }
@@ -298,23 +245,12 @@
         socket.emit('attack', { roomId: currentRoomId, answerCorrect: isCorrect });
     }
 
-    function forfeitTurnAction() {
-        document.getElementById('questionModal').classList.add('hidden');
-        isModalOpen = false;
-        
-        if (currentRoomId) {
-            socket.emit('forfeit_turn', { roomId: currentRoomId });
-        }
-        
-        pendingSupportCardName = null;
-    }
-
     socket.on('battle_log', (data) => { appendLog(data.msg); });
     socket.on('game_over', ({ winner }) => {
         if (winner === socket.id) {
-            alert("🎉 恭喜您在《英魂決：時空交錯》中獲得勝利！");
+            alert("🎉 恭喜您在對戰中獲得勝利！");
         } else {
-            alert("❌ 勝敗乃兵家常事，穿越時空者請重新來過！");
+            alert("❌ 勝敗乃兵家常事，請捲土重來！");
         }
         location.reload();
     });
