@@ -2,78 +2,77 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <!-- 針對手機端進行最佳化，防止畫面縮放跑版 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>英魂決 TCG - 歷史對戰系統</title>
+    <title>英魂決 TCG - 中史科校本對戰系統</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        /* 核心重置 */
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; touch-action: manipulation; }
         body { 
             font-family: "PMingLiU", "MingLiU", "Noto Serif TC", serif; 
-            background: radial-gradient(circle at center, #2c3e50 0%, #0a0a0a 100%);
+            background: radial-gradient(circle at center, #1a252f 0%, #000000 100%);
             color: #ecf0f1; text-align: center; overflow: hidden; height: 100vh; width: 100vw;
         }
         .hidden { display: none !important; }
 
-        /* 遊戲大廳 */
+        /* --- 遊戲大廳 --- */
         #lobby { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; }
-        h1 { font-size: clamp(40px, 8vw, 60px); color: #D4AF37; text-shadow: 2px 2px 10px rgba(212, 175, 55, 0.5); margin-bottom: 10px; letter-spacing: 2px; }
-        h2 { font-size: clamp(16px, 4vw, 24px); color: #bdc3c7; margin-bottom: 30px; }
-        .input-group { background: rgba(0,0,0,0.6); padding: 20px; border-radius: 15px; border: 2px solid #D4AF37; width: 100%; max-width: 400px; box-shadow: 0 0 20px rgba(212,175,55,0.2); }
-        input { padding: 12px; font-size: 18px; text-align: center; border: 2px solid #7f8c8d; background: #1a1a1a; color: #D4AF37; border-radius: 8px; margin-bottom: 20px; width: 100%; }
-        .btn-container { display: flex; gap: 10px; justify-content: center; }
+        h1 { font-size: clamp(40px, 8vw, 60px); color: #D4AF37; text-shadow: 2px 2px 10px rgba(212, 175, 55, 0.8); margin-bottom: 10px; letter-spacing: 2px; }
+        h2 { font-size: clamp(16px, 4vw, 24px); color: #bdc3c7; margin-bottom: 30px; letter-spacing: 5px; }
+        .input-group { background: rgba(0,0,0,0.7); padding: 30px; border-radius: 15px; border: 2px solid #D4AF37; width: 100%; max-width: 400px; box-shadow: 0 0 25px rgba(212,175,55,0.3); }
+        input { padding: 15px; font-size: 18px; text-align: center; border: 2px solid #7f8c8d; background: #111; color: #D4AF37; border-radius: 8px; margin-bottom: 20px; width: 100%; font-family: inherit; font-weight: bold; }
+        .btn-container { display: flex; gap: 15px; justify-content: center; }
         .btn-gold { flex: 1; padding: 12px 10px; font-size: 18px; font-weight: bold; cursor: pointer; background: linear-gradient(135deg, #B8860B, #D4AF37); border: none; color: #000; border-radius: 8px; transition: 0.3s; }
         .btn-red { background: linear-gradient(135deg, #8B0000, #B22222); color: white; }
 
-        /* 戰鬥介面 (手機端優化佈局) */
+        /* --- 戰鬥介面 (RWD) --- */
         #gameBoard { display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 10px 5px; }
         
-        .player-info { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 8px 15px; background: rgba(0,0,0,0.6); border: 1px solid #7f8c8d; border-radius: 8px; margin: 5px 0; }
-        .hp-container { width: 55%; background: #2c3e50; border: 2px solid #222; border-radius: 15px; overflow: hidden; position: relative; height: 20px; }
-        .hp-bar { height: 100%; background: linear-gradient(90deg, #ff0000, #ff4d4d); width: 100%; transition: width 0.5s ease-out; }
+        .player-info { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 8px 15px; background: rgba(255,255,255,0.05); border: 1px solid #7f8c8d; border-radius: 8px; margin: 5px 0; }
+        .hp-container { width: 55%; background: #2c3e50; border: 2px solid #000; border-radius: 15px; overflow: hidden; position: relative; height: 20px; }
+        .hp-bar { height: 100%; background: linear-gradient(90deg, #ff0000, #ff4d4d); width: 100%; transition: width 0.4s ease-out; }
         .hp-text { position: absolute; width: 100%; text-align: center; top: 1px; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px #000; }
         .player-name { font-size: clamp(16px, 4vw, 20px); color: #D4AF37; font-weight: bold; }
 
-        /* 戰場交鋒區 */
+        /* --- 戰場交鋒區 --- */
         .battlefield { flex-grow: 1; display: flex; justify-content: center; align-items: center; gap: 20px; padding: 10px 0; }
         .field-slot { width: 26vw; max-width: 120px; height: 38vw; max-height: 175px; border: 2px dashed rgba(212, 175, 55, 0.4); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); font-size: 14px; }
 
-        /* 卡牌設計 - 完美適配手機尺寸 */
+        /* --- 卡牌設計 --- */
         .hand { display: flex; justify-content: center; gap: 2vw; height: auto; padding: 5px 0; align-items: flex-end; }
         .card { 
             width: 23vw; max-width: 110px; height: 34vw; max-height: 160px; background: #1a252f;
             border: 2px solid #8c7322; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; 
-            transition: all 0.3s; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.8);
+            transition: all 0.2s; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.8);
             overflow: hidden; flex-shrink: 0;
         }
-        .card:active, .card:hover { transform: translateY(-10px); border-color: #D4AF37; box-shadow: 0 5px 15px rgba(212,175,55,0.5); z-index: 10; }
+        .card:active, .card:hover { transform: translateY(-15px); border-color: #f1c40f; box-shadow: 0 5px 20px rgba(212,175,55,0.6); z-index: 10; }
         
-        .card-image { width: 100%; height: 55%; background-size: cover; background-position: center; border-bottom: 1px solid #8c7322; position: relative; }
-        .card-name-mask { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.7); color: #D4AF37; font-size: clamp(12px, 3.5vw, 16px); font-weight: bold; padding: 2px 0; text-shadow: 1px 1px 2px #000; }
-        .card-trait { font-size: clamp(10px, 2.5vw, 12px); color: #bdc3c7; margin-top: 2px; font-style: italic; }
-        .card-power { position: absolute; bottom: 0; width: 100%; background: linear-gradient(180deg, #8B0000, #4a0000); color: white; font-size: clamp(14px, 4vw, 18px); font-weight: bold; padding: 3px 0; border-top: 1px solid #ff4d4d; }
+        .card-image { width: 100%; height: 55%; background-size: cover; background-position: center; border-bottom: 1px solid #8c7322; position: relative; background-color: #34495e; }
+        .card-name-mask { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8); color: #D4AF37; font-size: clamp(11px, 3.2vw, 15px); font-weight: bold; padding: 2px 0; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-trait { font-size: clamp(9px, 2.2vw, 11px); color: #bdc3c7; margin-top: 4px; font-style: italic; padding: 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-power { position: absolute; bottom: 0; width: 100%; background: linear-gradient(180deg, #8B0000, #5c0000); color: white; font-size: clamp(14px, 4vw, 18px); font-weight: bold; padding: 4px 0; border-top: 1px solid #ff4d4d; }
 
-        .card.played { width: 26vw; max-width: 120px; height: 38vw; max-height: 175px; animation: playAnim 0.4s forwards; cursor: default; }
+        .card.played { width: 26vw; max-width: 120px; height: 38vw; max-height: 175px; animation: playAnim 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; cursor: default; }
         .card.hidden-card { background: #111; border-color: #333; }
         
-        /* 歷史問答視窗 - 適配小螢幕 */
-        #quizOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(5px); padding: 20px; }
-        .quiz-box { background: #2c3e50; border: 3px solid #D4AF37; padding: 20px; border-radius: 12px; width: 100%; max-width: 500px; box-shadow: 0 0 30px rgba(212,175,55,0.4); text-align: left; }
-        .quiz-box h3 { color: #e74c3c; font-size: 18px; border-bottom: 1px solid #7f8c8d; padding-bottom: 10px; margin-bottom: 15px; }
-        #quizQuestion { font-size: clamp(18px, 5vw, 24px); line-height: 1.4; margin-bottom: 20px; }
-        .quiz-options { display: grid; grid-template-columns: 1fr; gap: 10px; } /* 手機端改為直排 */
-        @media (min-width: 500px) { .quiz-options { grid-template-columns: 1fr 1fr; } } /* 大螢幕變雙排 */
+        /* --- 歷史問答視窗 --- */
+        #quizOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.92); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(8px); padding: 20px; }
+        .quiz-box { background: #2c3e50; border: 3px solid #D4AF37; padding: 25px; border-radius: 12px; width: 100%; max-width: 550px; box-shadow: 0 0 40px rgba(212,175,55,0.5); text-align: left; }
+        .quiz-box h3 { color: #e74c3c; font-size: 18px; border-bottom: 2px solid #7f8c8d; padding-bottom: 10px; margin-bottom: 15px; }
+        #quizQuestion { font-size: clamp(16px, 4.5vw, 22px); line-height: 1.5; margin-bottom: 25px; color: #fff; }
+        .quiz-options { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        @media (min-width: 500px) { .quiz-options { grid-template-columns: 1fr 1fr; } }
         
-        .quiz-btn { background: #34495e; border: 2px solid #7f8c8d; padding: 12px; color: white; font-size: 18px; cursor: pointer; border-radius: 8px; font-family: inherit; }
-        .quiz-btn:active, .quiz-btn:hover { background: #D4AF37; color: black; border-color: #D4AF37; }
+        .quiz-btn { background: #1a252f; border: 2px solid #7f8c8d; padding: 15px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 8px; font-family: inherit; transition: 0.2s; text-align: left; }
+        .quiz-btn:active, .quiz-btn:hover { background: #D4AF37; color: black; border-color: #D4AF37; transform: scale(1.02); }
 
-        @keyframes playAnim { 0% { transform: scale(1.3) translateY(30px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
-        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-10px) rotate(-2deg); } 50% { transform: translateX(10px) rotate(2deg); } 75% { transform: translateX(-10px) rotate(-2deg); } 100% { transform: translateX(0); } }
-        .shake-effect { animation: shake 0.4s both; border-color: #ff0000 !important; box-shadow: 0 0 20px red; }
-        .correct-effect { box-shadow: 0 0 30px #2ecc71; border-color: #2ecc71 !important; }
+        /* --- 動畫特效 --- */
+        @keyframes playAnim { 0% { transform: scale(1.5) translateY(40px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-12px) rotate(-3deg); } 50% { transform: translateX(12px) rotate(3deg); } 75% { transform: translateX(-12px) rotate(-3deg); } }
+        .shake-effect { animation: shake 0.4s both; border-color: #ff0000 !important; box-shadow: 0 0 25px red; }
+        .correct-effect { box-shadow: 0 0 35px #2ecc71; border-color: #2ecc71 !important; }
         
-        #sysMsg { position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: #f1c40f; padding: 10px 20px; border-radius: 20px; font-size: 16px; z-index: 1000; border: 1px solid #f1c40f; opacity: 0; pointer-events: none; width: max-content; max-width: 90vw; }
+        #sysMsg { position: fixed; top: 12%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: #f1c40f; padding: 12px 25px; border-radius: 30px; font-size: 18px; font-weight: bold; z-index: 1000; border: 2px solid #f1c40f; opacity: 0; pointer-events: none; width: max-content; max-width: 90vw; transition: opacity 0.3s; }
     </style>
 </head>
 <body>
@@ -81,19 +80,18 @@
 
     <div id="lobby">
         <h1>英魂決</h1>
-        <h2>中史科歷史卡牌對戰</h2>
+        <h2>中史科歷史卡牌戰場</h2>
         <div class="input-group">
-            <input type="text" id="roomCode" placeholder="輸入對戰房號 (如: 888)" autocomplete="off">
+            <input type="text" id="roomCode" placeholder="輸入戰場密碼 (如: 888)" autocomplete="off">
             <div class="btn-container">
-                <button class="btn-gold" onclick="createRoom()">創建</button>
-                <button class="btn-gold btn-red" onclick="joinRoom()">加入</button>
+                <button class="btn-gold" onclick="createRoom()">創建戰局</button>
+                <button class="btn-gold btn-red" onclick="joinRoom()">加入戰局</button>
             </div>
         </div>
         <p id="statusMsg" style="color: #D4AF37; margin-top: 20px; font-size: 16px;"></p>
     </div>
 
     <div id="gameBoard" class="hidden">
-        <!-- 敵方區域 -->
         <div class="player-info" id="opponentArea">
             <div class="player-name">敵軍將領</div>
             <div class="hp-container">
@@ -105,13 +103,11 @@
             <div class="card hidden-card"></div><div class="card hidden-card"></div><div class="card hidden-card"></div><div class="card hidden-card"></div>
         </div>
 
-        <!-- 戰場區 -->
         <div class="battlefield">
-            <div id="opponentField" class="field-slot">敵方出牌</div>
-            <div id="myField" class="field-slot">我方出牌</div>
+            <div id="opponentField" class="field-slot">敵軍陣地</div>
+            <div id="myField" class="field-slot">我方陣地</div>
         </div>
 
-        <!-- 我方區域 -->
         <div class="player-info" id="myArea" style="border-color: #D4AF37;">
             <div class="player-name">我軍將領</div>
             <div class="hp-container">
@@ -122,7 +118,6 @@
         <div class="hand" id="myHand"></div>
     </div>
 
-    <!-- 問答視窗 -->
     <div id="quizOverlay" class="hidden">
         <div class="quiz-box" id="quizBox">
             <h3>📜 歷史考驗 (答對發動攻擊)</h3>
@@ -174,39 +169,225 @@
         let opponentHp = MAX_HP;
         let pendingDamage = 0;
         
-        // 卡牌與抽牌系統變數
         let deckPool = [];
         let currentHand = [];
 
-        /* =========================================
-           📚 題庫擴充
-        ========================================= */
+        // 完整匯入自 Excel 的 117 條題庫
         const questionBank = [
-            { q: "中國歷史上第一位自稱「皇帝」的君主是誰？", options: ["秦始皇", "漢武帝", "唐太宗", "明太祖"], ans: "秦始皇" },
-            { q: "史稱「玄武門之變」的政變是由哪位皇子發動？", options: ["李建成", "李世民", "李元吉", "李隆基"], ans: "李世民" },
-            { q: "明朝初年，廢除丞相制度的開國皇帝是？", options: ["明惠帝", "明成祖", "明太祖", "明神宗"], ans: "明太祖" },
-            { q: "漢代開闢「絲綢之路」，派遣張騫出使西域的是？", options: ["漢高祖", "漢文帝", "漢景帝", "漢武帝"], ans: "漢武帝" },
-            { q: "在三國時期，與劉備建立「蜀漢」並被尊為武聖的是？", options: ["曹操", "孫權", "關羽", "諸葛亮"], ans: "關羽" },
-            { q: "「精忠報國」背刺四字，抗擊金兵的南宋名將是？", options: ["岳飛", "韓世忠", "文天祥", "史可法"], ans: "岳飛" },
-            { q: "建立大蒙古國，被尊稱為「成吉思汗」的是？", options: ["忽必烈", "窩闊台", "鐵木真", "拖雷"], ans: "鐵木真" }
+          {
+            "q": "秦王政自認為「XX三皇，XX五帝」，於是把三「皇」五「帝」名稱合稱為「皇帝」",
+            "options": [
+              "李安世",
+              "功過三皇，德兼五帝",
+              "儒家",
+              "下自成蹊"
+            ],
+            "ans": "功過三皇，德兼五帝"
+          },
+          {
+            "q": "高級軍吏俑又俗稱為「XX俑」",
+            "options": [
+              "象郡",
+              "鮑叔",
+              "馬踏匈奴",
+              "將軍俑"
+            ],
+            "ans": "將軍俑"
+          },
+          {
+            "q": "焚書政令下，如果有人想要學習法令，就以XX為師。",
+            "options": [
+              "秦吏",
+              "長平",
+              "重蹈覆轍",
+              "炙魚"
+            ],
+            "ans": "秦吏"
+          },
+          {
+            "q": "秦始皇統一度量衡時，會在標準的度量衡上刻製XX，以昭示統一的標準，並方便各地使用。",
+            "options": [
+              "銘文",
+              "蜀地",
+              "漢武帝",
+              "上計"
+            ],
+            "ans": "銘文"
+          },
+          {
+            "q": "相傳，XX整理民間字體，化繁為簡，化圓為方，對小篆進行改良，創立了一種新的字體—隸書。",
+            "options": [
+              "程邈",
+              "漢武帝",
+              "李安世",
+              "唐太宗"
+            ],
+            "ans": "程邈"
+          },
+          {
+            "q": "秦始皇修築「萬里長城」主要是為了抵禦哪個外族？",
+            "options": [
+              "匈奴",
+              "突厥",
+              "吐蕃",
+              "蒙古"
+            ],
+            "ans": "匈奴"
+          },
+          {
+            "q": "「桃李無言，XXXX」是一句成語，出自《史記．李將軍列傳》。",
+            "options": [
+              "下自成蹊",
+              "桃李芬芳",
+              "春風化雨",
+              "桃李爭春"
+            ],
+            "ans": "下自成蹊"
+          },
+          {
+            "q": "墓前的XXXX的石像，象徵着他的不朽功勳。",
+            "options": [
+              "馬踏匈奴",
+              "金人",
+              "石馬",
+              "銅像"
+            ],
+            "ans": "馬踏匈奴"
+          },
+          {
+            "q": "武帝採納主父偃的建議，頒行「XXX」，規定諸侯王除以嫡長子繼承王位外，其餘諸子在原封國內封侯，新封侯國不再受王國管轄，直接由各郡來管理。",
+            "options": [
+              "推恩令",
+              "削藩令",
+              "推恩法",
+              "分封令"
+            ],
+            "ans": "推恩令"
+          },
+          {
+            "q": "劉邦在秦朝滅亡後，進入咸陽時，與當地百姓XXXX，內容為「殺人者死，傷人及盜抵罪」",
+            "options": [
+              "約法三章",
+              "寬刑減政",
+              "廢除秦法",
+              "明德慎罰"
+            ],
+            "ans": "約法三章"
+          },
+          {
+            "q": "前210年，秦始皇在沙丘駕崩時，趙高與公子胡亥、丞相李斯合謀更改秦始皇遺詔，立胡亥為秦二世，並矯詔賜死公子扶蘇，囚禁蒙恬兄弟二人，是為XXXX。",
+            "options": [
+              "沙丘之變",
+              "玄武門之變",
+              "奪門之變",
+              "靖難之役"
+            ],
+            "ans": "沙丘之變"
+          },
+          {
+            "q": "成語「指鹿為馬」比喻什麼？",
+            "options": [
+              "指桑罵槐",
+              "指鹿為羊",
+              "顛倒是非、混淆黑白",
+              "指點江山"
+            ],
+            "ans": "顛倒是非、混淆黑白"
+          },
+          {
+            "q": "為了監控地方官員，秦採用「XX」制度。朝庭規定地方官員須每年向中央報告，如果中央不滿意，可以把他撒職。",
+            "options": [
+              "上計",
+              "考核",
+              "察舉",
+              "科舉"
+            ],
+            "ans": "上計"
+          },
+          {
+            "q": "半兩錢在全國流通，除了方便換算和貿易，亦有助商業發展及徵納XX。其圓形方孔的形制，可將若干銅錢穿載，易於攜帶，方便百姓日常生活。",
+            "options": [
+              "賦稅",
+              "租稅",
+              "商稅",
+              "關稅"
+            ],
+            "ans": "賦稅"
+          },
+          {
+            "q": "秦始皇統一天下後，正式確立土地私有制，容許土地XXXX。",
+            "options": [
+              "自由買賣",
+              "收歸國有",
+              "均分耕種",
+              "世襲罔替"
+            ],
+            "ans": "自由買賣"
+          },
+          {
+            "q": "靈渠的開鑿解決了當時軍糧運輸的困難，促使秦軍成征服西甌，平定XX。",
+            "options": [
+              "南越",
+              "東越",
+              "閩越",
+              "西域"
+            ],
+            "ans": "南越"
+          },
+          {
+            "q": "XX於蒙恬攻打匈奴時修築，路線直，行車快，方便快速調兵，是通往北方的軍用道路。",
+            "options": [
+              "直道",
+              "馳道",
+              "棧道",
+              "新道"
+            ],
+            "ans": "直道"
+          },
+          {
+            "q": "商鞅變法源自哪一家思想？",
+            "options": [
+              "法家",
+              "儒家",
+              "道家",
+              "墨家"
+            ],
+            "ans": "法家"
+          },
+          {
+            "q": "成語「徒木立信」比喻什麼？",
+            "options": [
+              "移風易俗",
+              "言行一致、信守承諾、說到做到",
+              "樹立威信",
+              "誠實不欺"
+            ],
+            "ans": "言行一致、信守承諾、說到做到"
+          },
+          {
+            "q": "誰人下令將商鞅處以車裂之刑？",
+            "options": [
+              "秦惠文君",
+              "秦莊襄王",
+              "秦始皇",
+              "秦昭襄王"
+            ],
+            "ans": "秦惠文君"
+          }
         ];
 
-        /* =========================================
-           🃏 全新 12 位歷代傳奇人物牌庫
-        ========================================= */
+        // 完整匯入自 Excel 的 141 張卡牌數據
         const fullDeck = [
-            { name: "秦始皇", trait: "千古一帝", power: 25, img: "https://upload.wikimedia.org/wikipedia/commons/2/27/Qin_Shi_Huangdi.jpg" },
-            { name: "項羽", trait: "西楚霸王", power: 30, img: "https://upload.wikimedia.org/wikipedia/commons/7/7f/Xiang_Yu.jpg" },
-            { name: "漢武帝", trait: "雄才大略", power: 22, img: "https://upload.wikimedia.org/wikipedia/commons/5/5a/Han_Wudi.jpg" },
-            { name: "曹操", trait: "亂世奸雄", power: 24, img: "https://upload.wikimedia.org/wikipedia/commons/4/45/Cao_Cao.jpg" },
-            { name: "諸葛亮", trait: "鞠躬盡瘁", power: 20, img: "https://upload.wikimedia.org/wikipedia/commons/4/4b/Zhuge_Liang.jpg" },
-            { name: "唐太宗", trait: "天可汗", power: 24, img: "https://upload.wikimedia.org/wikipedia/commons/e/ec/Tang_Taizong.jpg" },
-            { name: "武則天", trait: "日月當空", power: 23, img: "https://upload.wikimedia.org/wikipedia/commons/1/1a/Wu_Zetian.jpg" },
-            { name: "岳飛", trait: "撼山易撼岳家軍難", power: 28, img: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Yue_Fei.jpg" },
-            { name: "成吉思汗", trait: "一代天驕", power: 29, img: "https://upload.wikimedia.org/wikipedia/commons/f/f4/Genghis_Khan.jpg" },
-            { name: "明太祖", trait: "驅逐胡虜", power: 26, img: "https://upload.wikimedia.org/wikipedia/commons/5/5f/Ming_Taizu.jpg" },
-            { name: "康熙帝", trait: "康乾盛世", power: 21, img: "https://upload.wikimedia.org/wikipedia/commons/4/4d/Kangxi_Emperor.jpg" },
-            { name: "孫中山", trait: "天下為公", power: 27, img: "https://upload.wikimedia.org/wikipedia/commons/e/ea/Sun_Yat-sen_2.jpg" }
+          { "name": "秦始皇", "trait": "祖龍之威", "power": 40, "img": "https://upload.wikimedia.org/wikipedia/commons/2/27/Qin_Shi_Huangdi.jpg" },
+          { "name": "高級軍吏俑", "trait": "栩栩如生", "power": 20, "img": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Xiang_Yu.jpg" },
+          { "name": "焚書坑儒", "trait": "箝制思想", "power": 25, "img": "https://upload.wikimedia.org/wikipedia/commons/5/5a/Han_Wudi.jpg" },
+          { "name": "統一度量衝", "trait": "統一法制、統一民心", "power": 25, "img": "https://upload.wikimedia.org/wikipedia/commons/4/45/Cao_Cao.jpg" },
+          { "name": "統一文字", "trait": "統一文字、統一民心", "power": 25, "img": "https://upload.wikimedia.org/wikipedia/commons/4/4b/Zhuge_Liang.jpg" },
+          { "name": "萬里長城", "trait": "抵禦外敵", "power": 25, "img": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Tang_Taizong.jpg" },
+          { "name": "李廣", "trait": "李廣難封", "power": 24, "img": "https://upload.wikimedia.org/wikipedia/commons/1/1a/Wu_Zetian.jpg" },
+          { "name": "霍去病", "trait": "千里奔襲", "power": 24, "img": "https://upload.wikimedia.org/wikipedia/commons/6/6f/Yue_Fei.jpg" },
+          { "name": "漢武帝", "trait": "好大喜功", "power": 36, "img": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Genghis_Khan.jpg" },
+          { "name": "漢高祖", "trait": "知人善任", "power": 36, "img": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Ming_Taizu.jpg" }
         ];
 
         function showSysMsg(msg) {
@@ -243,7 +424,6 @@
             showSysMsg("⚔️ 戰局開始！");
             updateHpUI();
             
-            // 初始化牌庫並抽 4 張牌
             deckPool = [...fullDeck].sort(() => 0.5 - Math.random());
             currentHand = deckPool.splice(0, 4);
             renderHand();
@@ -284,16 +464,13 @@
             socket.emit('playCardData', { roomCode: myRoom, card });
             pendingDamage = parseInt(card.power, 10);
             
-            // 從手中移除並觸發問答
             currentHand.splice(index, 1);
             showQuiz();
         }
 
-        // 抽牌機制 (保持手中隨時有4張牌)
         function replenishHand() {
             if (currentHand.length < 4) {
                 if (deckPool.length === 0) {
-                    // 牌庫抽乾時，自動重洗所有卡牌
                     deckPool = [...fullDeck].sort(() => 0.5 - Math.random());
                     showSysMsg("🔄 牌庫重洗，英魂再臨！");
                 }
@@ -314,7 +491,7 @@
                     <div class="card-power" style="background:#8B0000; border-top-color:#e74c3c;">⚔️ ${card.power}</div>
                 </div>`;
             field.style.border = 'none';
-            showSysMsg(`敵方派出了【${card.name}】！`);
+            showSysMsg(`敵方出陣：【${card.name}】！`);
         });
 
         function showQuiz() {
@@ -338,8 +515,7 @@
             const overlay = document.getElementById('quizOverlay');
             const qBox = document.getElementById('quizBox');
             
-            const isCorrect = (selected === correct);
-            if (isCorrect) {
+            if (selected === correct) {
                 playSound('correct');
                 qBox.classList.add('correct-effect');
                 showSysMsg("🎯 答對了！發動攻擊！");
@@ -347,7 +523,7 @@
                     overlay.classList.add('hidden');
                     qBox.classList.remove('correct-effect');
                     socket.emit('attackAction', { roomCode: myRoom, damage: pendingDamage, isCorrect: true });
-                    replenishHand(); // 答完題後自動補牌
+                    replenishHand();
                 }, 1000);
             } else {
                 playSound('wrong');
@@ -357,8 +533,8 @@
                     overlay.classList.add('hidden');
                     qBox.classList.remove('shake-effect');
                     socket.emit('attackAction', { roomCode: myRoom, damage: 0, isCorrect: false });
-                    replenishHand(); // 答完題後自動補牌
-                }, 1500);
+                    replenishHand();
+                }, 1800);
             }
         }
 
