@@ -30,6 +30,9 @@
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 15px; }
         .modal-content { background: #1e293b; border: 3px solid var(--gold); padding: 25px; border-radius: 12px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .modal-btn { background: #3b82f6; color: white; border: none; padding: 14px; margin: 8px 0; border-radius: 8px; width: 100%; cursor: pointer; text-align: left; font-weight: bold; font-size: clamp(0.95rem, 1.5vw, 1.05rem); }
+        .modal-btn:hover { background: #2563eb; }
+        .modal-close-btn { background: #ef4444; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; }
+        .modal-close-btn:hover { background: #dc2626; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -75,11 +78,13 @@
     </div>
 </div>
 
+<!-- 答題互動視窗 -->
 <div id="questionModal" class="modal hidden">
     <div class="modal-content">
         <h3 id="modalTitle" style="color:var(--gold); margin-top:0;">📜 歷史考驗與戰技激發</h3>
         <p id="qText" style="font-size: clamp(1rem, 1.5vw, 1.15rem); margin: 20px 0; line-height: 1.5;"></p>
         <div id="qOptions"></div>
+        <button class="modal-close-btn" onclick="closeModal()">❌ 放棄作答</button>
     </div>
 </div>
 
@@ -118,7 +123,10 @@
         document.getElementById('lobby').innerHTML = `<h3 style='color:var(--gold);'>🏠 房間 [${roomId}] 建立成功！</h3><p style='color:#38bdf8;'>等待對手加入中...</p>`;
     });
 
-    socket.on('error_msg', (msg) => { alert(msg); isModalOpen = false; });
+    socket.on('error_msg', (msg) => { 
+        alert(msg); 
+        isModalOpen = false; 
+    });
 
     socket.on('game_start', ({ roomId }) => {
         currentRoomId = roomId;
@@ -163,14 +171,16 @@
         let supportHtml = myState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px; margin-right:4px;">🛡️ ${c.name}</span>`).join('');
         
         if (myState.active) {
+            let canAttack = isMyTurn;
+            let activeOpacity = canAttack ? '1' : '0.6';
             myActive.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:100%;">
                     <div style="display:flex; gap:10px; align-items:center;">
-                        <div class="card" style="border:3px solid #22c55e;" onclick="triggerAttack(${isMyTurn})">
+                        <div class="card" style="border:3px solid #22c55e; opacity: ${activeOpacity};" onclick="triggerAttack(${isMyTurn})">
                             <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${myState.active.dynasty}] 主戰人物</div>
                             <div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;">${myState.active.name}</div>
                             <div style="font-size:0.65em; color:#475569;">${myState.active.skill}</div>
-                            <div style="font-size:0.7em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">⚔️ 點擊答題攻擊</div>
+                            <div style="font-size:0.7em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">${canAttack ? '⚔️ 點擊答題攻擊' : '等待回合'}</div>
                         </div>
                     </div>
                     ${supportHtml ? `<div style="font-size:0.85rem; color:#38bdf8;">支援區: ${supportHtml}</div>` : ''}
@@ -207,6 +217,7 @@
     }
 
     socket.on('show_card_question', ({ qData }) => {
+        isModalOpen = true;
         document.getElementById('modalTitle').innerText = `📜 ${qData.cardName} - 歷史考驗`;
         document.getElementById('qText').innerText = qData.q;
         const optDiv = document.getElementById('qOptions');
@@ -232,6 +243,7 @@
     }
 
     socket.on('show_attack_question', ({ qData }) => {
+        isModalOpen = true;
         document.getElementById('modalTitle').innerText = "⚔️ 主戰人物戰技激發";
         document.getElementById('qText').innerText = qData.q;
         const optDiv = document.getElementById('qOptions');
@@ -247,6 +259,13 @@
         document.getElementById('questionModal').classList.add('hidden');
         isModalOpen = false;
         socket.emit('attack', { roomId: currentRoomId, answerCorrect: isCorrect });
+    }
+
+    // 關閉／放棄作答按鈕邏輯
+    function closeModal() {
+        document.getElementById('questionModal').classList.add('hidden');
+        isModalOpen = false;
+        pendingCardIndex = null;
     }
 
     function endTurn() { 
