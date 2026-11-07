@@ -11,7 +11,6 @@ const io = new Server(server, {
 
 app.use(express.static(__dirname));
 
-// 1. 歷史人物卡片陣列
 const HERO_CARDS = [
     { id: "h_0", dynasty: "秦", name: "秦始皇", type: "人物", skill: "六合一統", desc: "祖龍之威，橫掃六合" },
     { id: "h_1", dynasty: "秦", name: "高級軍吏俑", type: "人物", skill: "衝鋒陷陣", desc: "百戰精銳，威震沙場" },
@@ -35,7 +34,6 @@ const HERO_CARDS = [
     { id: "h_19", dynasty: "唐", name: "郭子儀", type: "人物", skill: "再造唐朝", desc: "平定安史，功蓋天下" }
 ];
 
-// 2. 輔助卡片陣列
 const SUPPORT_CARDS = [
     { id: "s_0", dynasty: "秦", name: "焚書坑儒", type: "輔助", skill: "箝制思想", desc: "對手扣除 25 點生命" },
     { id: "s_1", dynasty: "秦", name: "統一度量衝", type: "輔助", skill: "車同軌", desc: "高級防禦：恢復 30 點生命" },
@@ -69,69 +67,30 @@ const SUPPORT_CARDS = [
     { id: "s_29", dynasty: "唐", name: "兩稅法", type: "輔助", skill: "量出為入", desc: "其他策略：恢復 25 點生命" }
 ];
 
-// 3. 題庫
 const CARD_QUESTIONS_DB = {
     "秦始皇": [
         { q: "秦王政滅六國統一天下後，認為自己「德兼三皇，功過五帝」，因此創立了什麼稱號？", opts: ["A. 天子", "B. 皇帝", "C. 霸王", "D. 單于"], correctIndex: 1 },
         { q: "秦始皇為了加強中央集權，在地方上廢除了西周以來的分封制，全面推行什麼制度？", opts: ["A. 郡縣制", "B. 行省制", "C. 察舉制", "D. 三省六部制"], correctIndex: 0 }
     ],
-    "高級軍吏俑": [
-        { q: "在秦始皇陵兵馬俑中，級別最高、數量最少，俗稱為「將軍俑」的是哪一種俑？", opts: ["A. 跪射俑", "B. 高級軍吏俑", "C. 騎兵俑", "D. 武士俑"], correctIndex: 1 }
-    ],
-    "李廣": [
-        { q: "漢朝名將李廣以英勇善戰著稱，匈奴人對他十分敬畏，稱他為什麼？", opts: ["A. 飛將軍", "B. 冠軍侯", "C. 戰神", "D. 天可汗"], correctIndex: 0 }
-    ],
-    "霍去病": [
-        { q: "西漢名將霍去病曾率軍深入漠北，大破匈奴，並在何處舉行祭天大典，史稱「封狼居胥」？", opts: ["A. 泰山", "B. 祁連山", "C. 狼居胥山", "D. 陰山"], correctIndex: 2 }
-    ],
-    "漢武帝": [
-        { q: "漢武帝採納了董仲舒的建議，實施了哪一項影響中國兩千多年的文化政策？", opts: ["A. 焚書坑儒", "B. 罷黜百家，獨尊儒術", "C. 崇尚黃老", "D. 提倡佛法"], correctIndex: 1 }
-    ],
-    "漢高祖": [
-        { q: "劉邦率軍攻入咸陽後，廢除秦朝苛法，與關中百姓訂立了什麼約定？", opts: ["A. 約法三章", "B. 削藩策", "C. 輕徭薄賦", "D. 均田令"], correctIndex: 0 }
-    ],
-    "趙高": [
-        { q: "秦始皇死後，宦官趙高聯合李斯偽造詔書，逼死公子扶蘇，改立胡亥為帝，史稱什麼事件？", opts: ["A. 玄武門之變", "B. 沙丘之變", "C. 陳橋兵變", "D. 靖難之役"], correctIndex: 1 }
-    ],
-    "蒙恬": [
-        { q: "秦始皇統一六國後，派哪一位將領率領大軍北擊匈奴，並修築萬里長城？", opts: ["A. 白起", "B. 王翦", "C. 蒙恬", "D. 章邯"], correctIndex: 2 }
-    ],
-    "蕭何": [
-        { q: "「成也蕭何，敗也蕭何」這句俗語，與哪一位漢初軍事天才的命運息息相關？", opts: ["A. 張良", "B. 韓信", "C. 陳平", "D. 彭越"], correctIndex: 1 }
-    ],
-    "項羽": [
-        { q: "在鉅鹿之戰中，項羽命令士兵砸破鍋子、鑿沉船隻，以示決死一戰，衍生出哪一句成語？", opts: ["A. 破釜沉舟", "B. 背水一戰", "C. 四面楚歌", "D. 十面埋伏"], correctIndex: 0 }
-    ],
-    "張良": [
-        { q: "張良是「漢初三傑」之一，他在漢高祖劉邦建立漢朝的過程中主要擔任什麼角色？", opts: ["A. 統帥大軍", "B. 籌集糧草", "C. 出謀劃策 (謀士)", "D. 衝鋒陷陣"], correctIndex: 2 }
-    ],
-    "孔子": [
-        { q: "孔子創立了儒家學派，其思想的核心概念是什麼？", opts: ["A. 兼愛", "B. 仁", "C. 無為", "D. 法治"], correctIndex: 1 }
-    ],
-    "孟子": [
-        { q: "孟子是戰國時期儒家的代表人物，他提出了哪一種政治主張？", opts: ["A. 民貴君輕", "B. 嚴刑峻法", "C. 無為而治", "D. 兼愛非攻"], correctIndex: 0 }
-    ],
-    "齊桓公": [
-        { q: "齊桓公提出的哪一個口號，成功團結了中原諸侯，抵禦外族入侵，成為春秋首霸？", opts: ["A. 遠交近攻", "B. 尊王攘夷", "C. 合縱連橫", "D. 挾天子以令諸侯"], correctIndex: 1 }
-    ],
-    "唐太宗": [
-        { q: "唐太宗李世民在位期間，政治清明，經濟繁榮，史稱為什麼？", opts: ["A. 文景之治", "B. 開皇之治", "C. 貞觀之治", "D. 開元盛世"], correctIndex: 2 }
-    ],
-    "魏徵": [
-        { q: "魏徵以敢於直言進諫著稱，唐太宗曾將他比喻為什麼，表示能藉此「明得失」？", opts: ["A. 銅鏡", "B. 人鏡", "C. 歷史", "D. 寶劍"], correctIndex: 1 }
-    ],
-    "武則天": [
-        { q: "武則天在位期間，為了打擊關隴門閥，大力發展了哪一項制度來提拔寒門人才？", opts: ["A. 九品中正制", "B. 察舉制", "C. 科舉制 (開創殿試)", "D. 世卿世祿制"], correctIndex: 2 }
-    ],
-    "唐玄宗": [
-        { q: "唐玄宗統治前期，唐朝達到了極盛，史稱為什麼？", opts: ["A. 貞觀之治", "B. 開元盛世", "C. 元嘉之治", "D. 康乾盛世"], correctIndex: 1 }
-    ],
-    "狄仁傑": [
-        { q: "狄仁傑是武則天時期的著名宰相，他以什麼才能最為後世所熟知？", opts: ["A. 領兵打仗", "B. 賦詩作詞", "C. 斷案如神、明察秋毫", "D. 發明創造"], correctIndex: 2 }
-    ],
-    "郭子儀": [
-        { q: "在安史之亂中，哪一位唐朝將領力挽狂瀾，收復了長安、洛陽，對平定叛亂有極大貢獻？", opts: ["A. 岳飛", "B. 郭子儀", "C. 韓信", "D. 衛青"], correctIndex: 1 }
-    ]
+    "高級軍吏俑": [{ q: "在秦始皇陵兵馬俑中，級別最高、數量最少，俗稱為「將軍俑」的是哪一種俑？", opts: ["A. 跪射俑", "B. 高級軍吏俑", "C. 騎兵俑", "D. 武士俑"], correctIndex: 1 }],
+    "李廣": [{ q: "漢朝名將李廣以英勇善戰著稱，匈奴人對他十分敬畏，稱他為什麼？", opts: ["A. 飛將軍", "B. 冠軍侯", "C. 戰神", "D. 天可汗"], correctIndex: 0 }],
+    "霍去病": [{ q: "西漢名將霍去病曾率軍深入漠北，大破匈奴，並在何處舉行祭天大典，史稱「封狼居胥」？", opts: ["A. 泰山", "B. 祁連山", "C. 狼居胥山", "D. 陰山"], correctIndex: 2 }],
+    "漢武帝": [{ q: "漢武帝採納了董仲舒的建議，實施了哪一項影響中國兩千多年的文化政策？", opts: ["A. 焚書坑儒", "B. 罷黜百家，獨尊儒術", "C. 崇尚黃老", "D. 提倡佛法"], correctIndex: 1 }],
+    "漢高祖": [{ q: "劉邦率軍攻入咸陽後，廢除秦朝苛法，與關中百姓訂立了什麼約定？", opts: ["A. 約法三章", "B. 削藩策", "C. 輕徭薄賦", "D. 均田令"], correctIndex: 0 }],
+    "趙高": [{ q: "秦始皇死後，宦官趙高聯合李斯偽造詔書，逼死公子扶蘇，改立胡亥為帝，史稱什麼事件？", opts: ["A. 玄武門之變", "B. 沙丘之變", "C. 陳橋兵變", "D. 靖難之役"], correctIndex: 1 }],
+    "蒙恬": [{ q: "秦始皇統一六國後，派哪一位將領率領大軍北擊匈奴，並修築萬里長城？", opts: ["A. 白起", "B. 王翦", "C. 蒙恬", "D. 章邯"], correctIndex: 2 }],
+    "蕭何": [{ q: "「成也蕭何，敗也蕭何」這句俗語，與哪一位漢初軍事天才的命運息息相關？", opts: ["A. 張良", "B. 韓信", "C. 陳平", "D. 彭越"], correctIndex: 1 }],
+    "項羽": [{ q: "在鉅鹿之戰中，項羽命令士兵砸破鍋子、鑿沉船隻，以示決死一戰，衍生出哪一句成語？", opts: ["A. 破釜沉舟", "B. 背水一戰", "C. 四面楚歌", "D. 十面埋伏"], correctIndex: 0 }],
+    "張良": [{ q: "張良是「漢初三傑」之一，他在漢高祖劉邦建立漢朝的過程中主要擔任什麼角色？", opts: ["A. 統帥大軍", "B. 籌集糧草", "C. 出謀劃策 (謀士)", "D. 衝鋒陷陣"], correctIndex: 2 }],
+    "孔子": [{ q: "孔子創立了儒家學派，其思想的核心概念是什麼？", opts: ["A. 兼愛", "B. 仁", "C. 無為", "D. 法治"], correctIndex: 1 }],
+    "孟子": [{ q: "孟子是戰國時期儒家的代表人物，他提出了哪一種政治主張？", opts: ["A. 民貴君輕", "B. 嚴刑峻法", "C. 無為而治", "D. 兼愛非攻"], correctIndex: 0 }],
+    "齊桓公": [{ q: "齊桓公提出的哪一個口號，成功團結了中原諸侯，抵禦外族入侵，成為春秋首霸？", opts: ["A. 遠交近攻", "B. 尊王攘夷", "C. 合縱連橫", "D. 挾天子以令諸侯"], correctIndex: 1 }],
+    "唐太宗": [{ q: "唐太宗李世民在位期間，政治清明，經濟繁榮，史稱為什麼？", opts: ["A. 文景之治", "B. 開皇之治", "C. 貞觀之治", "D. 開元盛世"], correctIndex: 2 }],
+    "魏徵": [{ q: "魏徵以敢於直言進諫著稱，唐太宗曾將他比喻為什麼，表示能藉此「明得失」？", opts: ["A. 銅鏡", "B. 人鏡", "C. 歷史", "D. 寶劍"], correctIndex: 1 }],
+    "武則天": [{ q: "武則天在位期間，為了打擊關隴門閥，大力發展了哪一項制度來提拔寒門人才？", opts: ["A. 九品中正制", "B. 察舉制", "C. 科舉制 (開創殿試)", "D. 世卿世祿制"], correctIndex: 2 }],
+    "唐玄宗": [{ q: "唐玄宗統治前期，唐朝達到了極盛，史稱為什麼？", opts: ["A. 貞觀之治", "B. 開元盛世", "C. 元嘉之治", "D. 康乾盛世"], correctIndex: 1 }],
+    "狄仁傑": [{ q: "狄仁傑是武則天時期的著名宰相，他以什麼才能最為後世所熟知？", opts: ["A. 領兵打仗", "B. 賦詩作詞", "C. 斷案如神、明察秋毫", "D. 發明創造"], correctIndex: 2 }],
+    "郭子儀": [{ q: "在安史之亂中，哪一位唐朝將領力挽狂瀾，收復了長安、洛陽，對平定叛亂有極大貢獻？", opts: ["A. 岳飛", "B. 郭子儀", "C. 韓信", "D. 衛青"], correctIndex: 1 }]
 };
 
 const SUPPORT_QUESTIONS_DB = {
@@ -185,6 +144,11 @@ let rooms = {};
 
 io.on('connection', (socket) => {
     socket.on('create_room', (roomId) => {
+        if (!roomId || typeof roomId !== 'string') {
+            socket.emit('error_msg', '房號格式不正確！');
+            return;
+        }
+        roomId = roomId.trim();
         if (rooms[roomId]) {
             socket.emit('error_msg', '房間已存在，請直接加入！');
             return;
@@ -201,11 +165,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('join_room', (roomId) => {
-        const room = rooms[roomId];
-        if (!room) {
+        if (!roomId || !rooms[roomId]) {
             socket.emit('error_msg', '房間不存在！');
             return;
         }
+        roomId = roomId.trim();
+        const room = rooms[roomId];
         if (room.players.length >= 2) {
             socket.emit('error_msg', '房間已滿！');
             return;
@@ -230,10 +195,15 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
         const pState = room.state[socket.id];
-        if (pState.hasPlayedCard) {
+        if (!pState || pState.hasPlayedCard) {
             socket.emit('error_msg', '每回合只能出一張牌！');
             return;
         }
+        if (typeof cardIndex !== 'number' || cardIndex < 0 || cardIndex >= pState.hand.length) {
+            socket.emit('error_msg', '無效的卡牌索引！');
+            return;
+        }
+        
         const card = pState.hand[cardIndex];
         if (!card) return;
 
@@ -263,14 +233,15 @@ io.on('connection', (socket) => {
         const pState = room.state[socket.id];
         const opId = room.players.find(id => id !== socket.id);
         const opState = room.state[opId];
+        if (!pState) return;
 
         if (answerCorrect) {
-            io.to(roomId).emit('battle_log', { msg: `[歷史考驗] 穿越時空者 ${socket.id.substring(4,8)} 策略考驗答對！【${cardName}】策略生效！` });
+            io.to(roomId).emit('battle_log', { msg: `[歷史考驗] 策略考驗答對！【${cardName}】策略生效！` });
             
             if (!pState.supportArea) pState.supportArea = [];
             pState.supportArea.push({ name: cardName });
 
-            if (cardName === '萬里長城' || cardName === '統一度量衝' || cardName === '徒木立信' || cardName === '和親制度' || cardName === '屯田制' || cardName === '均田制' || cardName === '三省六部制' || cardName === '科舉制度') {
+            if (['萬里長城', '統一度量衝', '徒木立信', '和親制度', '屯田制', '均田制', '三省六部制', '科舉制度'].includes(cardName)) {
                 pState.hp = Math.min(300, pState.hp + 30);
                 io.to(roomId).emit('play_sound', { type: 'heal' });
                 io.to(roomId).emit('battle_log', { msg: `🛡️ 防禦策略生效！恢復 30 點生命值。` });
@@ -282,7 +253,7 @@ io.on('connection', (socket) => {
                 pState.hp = Math.min(300, pState.hp + 35);
                 io.to(roomId).emit('play_sound', { type: 'heal' });
                 io.to(roomId).emit('battle_log', { msg: `✨ 大幅恢復策略生效！恢復 35 點生命值。` });
-            } else if (cardName === '焚書坑儒' || cardName === '黃巾之亂' || cardName === '赤壁之戰' || cardName === '安史之亂' || cardName === '指鹿為馬') {
+            } else if (['焚書坑儒', '黃巾之亂', '赤壁之戰', '安史之亂', '指鹿為馬'].includes(cardName)) {
                 if (opState) opState.hp = Math.max(0, opState.hp - 25);
                 io.to(roomId).emit('play_sound', { type: 'attack_success' });
                 io.to(roomId).emit('battle_log', { msg: `🔥 攻擊策略生效！對手扣除 25 點生命值。` });
@@ -291,13 +262,13 @@ io.on('connection', (socket) => {
                 io.to(roomId).emit('play_sound', { type: 'heal' });
                 io.to(roomId).emit('battle_log', { msg: `✨ 策略生效！恢復 15 點生命值。` });
             } else {
-                let healVal = (cardName === '統一文字' || cardName === '統一貨幣' || cardName === '開鑿運河' || cardName === '修築道路' || cardName === '五經博士' || cardName === '三長制' || cardName === '租調制') ? 20 : 25;
+                let healVal = ['統一文字', '統一貨幣', '開鑿運河', '修築道路', '五經博士', '三長制', '租調制'].includes(cardName) ? 20 : 25;
                 pState.hp = Math.min(300, pState.hp + healVal);
                 io.to(roomId).emit('play_sound', { type: 'heal' });
                 io.to(roomId).emit('battle_log', { msg: `✨ 策略生效！恢復 ${healVal} 點生命值。` });
             }
         } else {
-            io.to(roomId).emit('battle_log', { msg: `[歷史考驗] 穿越時空者 ${socket.id.substring(4,8)} 策略考驗答錯！【${cardName}】計謀失敗被棄掉。` });
+            io.to(roomId).emit('battle_log', { msg: `[歷史考驗] 策略考驗答錯！【${cardName}】計謀失敗被棄掉。` });
             io.to(roomId).emit('play_sound', { type: 'attack_fail' });
         }
 
@@ -315,7 +286,7 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
         const pState = room.state[socket.id];
-        if (!pState.active) {
+        if (!pState || !pState.active) {
             socket.emit('error_msg', '您尚未部署主戰人物！');
             return;
         }
@@ -328,18 +299,17 @@ io.on('connection', (socket) => {
         if (!room || room.turn !== socket.id) return;
         const pState = room.state[socket.id];
         const opId = room.players.find(id => id !== socket.id);
-        if (!opId || !room.state[opId]) return;
+        if (!opId || !room.state[opId] || !pState || !pState.active) return;
         const opState = room.state[opId];
-        if (!pState.active) return;
 
         let damage = answerCorrect ? 60 : 20;
         opState.hp = Math.max(0, opState.hp - damage);
 
         if (answerCorrect) {
-            io.to(roomId).emit('battle_log', { msg: `⚔️ 【${pState.active.name}】戰技激發成功！造成 60 點爆發傷害，隨後功成身退被棄掉！` });
+            io.to(roomId).emit('battle_log', { msg: `⚔️ 【${pState.active.name}】戰技激發成功！造成 60 點爆發傷害！` });
             io.to(roomId).emit('play_sound', { type: 'attack_success' });
         } else {
-            io.to(roomId).emit('battle_log', { msg: `⚠️ 【${pState.active.name}】戰技答題錯誤！造成微弱 20 點傷害，隨後被棄掉。` });
+            io.to(roomId).emit('battle_log', { msg: `⚠️ 【${pState.active.name}】戰技答題錯誤！造成微弱 20 點傷害。` });
             io.to(roomId).emit('play_sound', { type: 'attack_fail' });
         }
 
@@ -359,7 +329,7 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
         
-        io.to(roomId).emit('battle_log', { msg: `⚠️ 穿越時空者 ${socket.id.substring(4,8)} 放棄了此次行動，回合結束。` });
+        io.to(roomId).emit('battle_log', { msg: `⚠️ 玩家放棄作答，回合結束。` });
         switchTurnAndDraw(room, roomId);
     });
 
@@ -377,6 +347,7 @@ io.on('connection', (socket) => {
 });
 
 function switchTurnAndDraw(room, roomId) {
+    if (!room) return;
     room.turn = room.players.find(id => id !== room.turn);
     if (room.state[room.turn]) {
         room.state[room.turn].hasPlayedCard = false;
@@ -391,7 +362,7 @@ function switchTurnAndDraw(room, roomId) {
             }
         }
     }
-    io.to(roomId).emit('battle_log', { msg: `🔄 行動完畢，回合結束，輪到下一位穿越時空者（已補給 2 張卡牌）。` });
+    io.to(roomId).emit('battle_log', { msg: `🔄 回合結束，輪到下一位玩家（已補給 2 張卡牌）。` });
     updateGameState(roomId);
 }
 
