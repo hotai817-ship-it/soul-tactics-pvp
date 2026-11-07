@@ -1,4 +1,4 @@
-// server.js - 《英魂決》WebSocket 即時對戰伺服器
+ // server.js - 《英魂決》WebSocket 即時對戰伺服器
 const http = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
