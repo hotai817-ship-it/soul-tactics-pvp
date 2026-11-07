@@ -35,38 +35,38 @@ const HERO_CARDS = [
     { id: "h_19", dynasty: "唐", name: "郭子儀", type: "人物", skill: "再造唐朝", desc: "平定安史，功蓋天下"}
 ];
 
-// 2. 輔助卡片陣列（策略卡）
+// 2. 輔助卡片陣列（策略卡 - 已標註明確的恢復與傷害數值）
 const SUPPORT_CARDS = [
-    { id: "s_0", dynasty: "秦", name: "焚書坑儒", type: "輔助", skill: "箝制思想", desc: "效果：對對手造成 20 點精神壓迫傷害" },
-    { id: "s_1", dynasty: "秦", name: "統一度量衝", type: "輔助", skill: "車同軌", desc: "效果：穩固內政，恢復 30 點生命值" },
-    { id: "s_2", dynasty: "秦", name: "統一文字", type: "輔助", skill: "小篆隸書", desc: "效果：文化凝聚，恢復 20 點生命值" },
-    { id: "s_3", dynasty: "秦", name: "萬里長城", type: "輔助", skill: "固若金湯", desc: "效果：防禦加固，恢復 30 點生命值" },
-    { id: "s_4", dynasty: "秦", name: "指鹿為馬", type: "輔助", skill: "顛倒是非", desc: "效果：擾亂敵心，扣除對手 15 點生命" },
-    { id: "s_5", dynasty: "秦", name: "推行郡縣制度", type: "輔助", skill: "收歸中央", desc: "效果：中央集權，恢復 25 點生命" },
-    { id: "s_6", dynasty: "秦", name: "統一貨幣", type: "輔助", skill: "半兩錢", desc: "效果：繁榮經濟，恢復 20 點生命" },
-    { id: "s_7", dynasty: "秦", name: "重農輕商", type: "輔助", skill: "土地私有", desc: "效果：鞏固根本，恢復 25 點生命" },
-    { id: "s_8", dynasty: "秦", name: "開鑿運河", type: "輔助", skill: "靈渠漕運", desc: "效果：物資調配，恢復 20 點生命" },
-    { id: "s_9", dynasty: "秦", name: "修築道路", type: "輔助", skill: "直道馳道", desc: "效果：兵貴神速，恢復 20 點生命" },
-    { id: "s_10", dynasty: "秦", name: "徒木立信", type: "輔助", skill: "商鞅變法", desc: "效果：取信於民，恢復 30 點生命" },
-    { id: "s_11", dynasty: "西漢", name: "推恩令", type: "輔助", skill: "削弱諸侯", desc: "效果：瓦解敵勢，恢復 25 點生命" },
-    { id: "s_12", dynasty: "西漢", name: "和親制度", type: "輔助", skill: "姻親關係", desc: "效果：安定邊防，恢復 30 點生命" },
-    { id: "s_13", dynasty: "西漢", name: "士人政府", type: "輔助", skill: "獨尊儒術", desc: "效果：思想統治，恢復 25 點生命" },
-    { id: "s_14", dynasty: "西漢", name: "五經博士", type: "輔助", skill: "罷黜百家", desc: "效果：文教興盛，恢復 20 點生命" },
-    { id: "s_15", dynasty: "西漢", name: "輪台罪己詔", type: "輔助", skill: "反思休養", desc: "效果：休養生息，大幅恢復 40 點生命" },
-    { id: "s_16", dynasty: "東漢", name: "黨錮之禍", type: "輔助", skill: "清議士人", desc: "效果：士林風骨，恢復 15 點生命" },
-    { id: "s_17", dynasty: "東漢", name: "黃巾之亂", type: "輔助", skill: "太平道興", desc: "效果：動搖國本，對對手造成 25 點傷害" },
-    { id: "s_18", dynasty: "三國", name: "赤壁之戰", type: "輔助", skill: "三分天下", desc: "效果：火攻大捷，對對手造成 40 點傷害" },
-    { id: "s_19", dynasty: "三國", name: "屯田制", type: "輔助", skill: "休養生息", desc: "效果：軍國足食，恢復 30 點生命" },
-    { id: "s_20", dynasty: "北朝", name: "均田制", type: "輔助", skill: "授田於民", desc: "效果：民生安康，恢復 30 點生命" },
-    { id: "s_21", dynasty: "北朝", name: "三長制", type: "輔助", skill: "整頓戶籍", desc: "效果：嚴密管治，恢復 20 點生命" },
-    { id: "s_22", dynasty: "北朝", name: "租調制", type: "輔助", skill: "明定稅額", desc: "效果：賦稅穩定，恢復 20 點生命" },
-    { id: "s_23", dynasty: "隋", name: "三省六部制", type: "輔助", skill: "分工協作", desc: "效果：行政高效，恢復 30 點生命" },
-    { id: "s_24", dynasty: "隋", name: "大運河", type: "輔助", skill: "南糧北運", desc: "效果：南北暢通，恢復 35 點生命" },
-    { id: "s_25", dynasty: "唐", name: "科舉制度", type: "輔助", skill: "進士明經", desc: "效果：選拔賢能，恢復 30 點生命" },
-    { id: "s_26", dynasty: "唐", name: "府兵制", type: "輔助", skill: "兵農合一", desc: "效果：兵力強盛，恢復 25 點生命" },
-    { id: "s_27", dynasty: "唐", name: "租庸調制", type: "輔助", skill: "納粟代役", desc: "效果：輕徭薄賦，恢復 25 點生命" },
-    { id: "s_28", dynasty: "唐", name: "安史之亂", type: "輔助", skill: "盛極而衰", desc: "效果：局勢動盪，對手扣除 30 點生命" },
-    { id: "s_29", dynasty: "唐", name: "兩稅法", type: "輔助", skill: "量出為入", desc: "效果：財政健全，恢復 25 點生命" }
+    { id: "s_0", dynasty: "秦", name: "焚書坑儒", type: "輔助", skill: "箝制思想", desc: "對手扣除 20 點生命" },
+    { id: "s_1", dynasty: "秦", name: "統一度量衝", type: "輔助", skill: "車同軌", desc: "高級防禦：恢復 30 點生命" },
+    { id: "s_2", dynasty: "秦", name: "統一文字", type: "輔助", skill: "小篆隸書", desc: "一般策略：恢復 20 點生命" },
+    { id: "s_3", dynasty: "秦", name: "萬里長城", type: "輔助", skill: "固若金湯", desc: "高級防禦：恢復 30 點生命" },
+    { id: "s_4", dynasty: "秦", name: "指鹿為馬", type: "輔助", skill: "顛倒是非", desc: "對手扣除 25 點生命" },
+    { id: "s_5", dynasty: "秦", name: "推行郡縣制度", type: "輔助", skill: "收歸中央", desc: "其他策略：恢復 25 點生命" },
+    { id: "s_6", dynasty: "秦", name: "統一貨幣", type: "輔助", skill: "半兩錢", desc: "一般策略：恢復 20 點生命" },
+    { id: "s_7", dynasty: "秦", name: "重農輕商", type: "輔助", skill: "土地私有", desc: "其他策略：恢復 25 點生命" },
+    { id: "s_8", dynasty: "秦", name: "開鑿運河", type: "輔助", skill: "靈渠漕運", desc: "一般策略：恢復 20 點生命" },
+    { id: "s_9", dynasty: "秦", name: "修築道路", type: "輔助", skill: "直道馳道", desc: "一般策略：恢復 20 點生命" },
+    { id: "s_10", dynasty: "秦", name: "徒木立信", type: "輔助", skill: "商鞅變法", desc: "高級防禦：恢復 30 點生命" },
+    { id: "s_11", dynasty: "西漢", name: "推恩令", type: "輔助", skill: "削弱諸侯", desc: "其他策略：恢復 25 點生命" },
+    { id: "s_12", dynasty: "西漢", name: "和親制度", type: "輔助", skill: "姻親關係", desc: "高級防禦：恢復 30 點生命" },
+    { id: "s_13", dynasty: "西漢", name: "士人政府", type: "輔助", skill: "獨尊儒術", desc: "其他策略：恢復 25 點生命" },
+    { id: "s_14", dynasty: "西漢", name: "五經博士", type: "輔助", skill: "罷黜百家", desc: "一般策略：恢復 20 點生命" },
+    { id: "s_15", dynasty: "西漢", name: "輪台罪己詔", type: "輔助", skill: "反思休養", desc: "大幅恢復：恢復 40 點生命" },
+    { id: "s_16", dynasty: "東漢", name: "黨錮之禍", type: "輔助", skill: "清議士人", desc: "一般策略：恢復 15 點生命" },
+    { id: "s_17", dynasty: "東漢", name: "黃巾之亂", type: "輔助", skill: "太平道興", desc: "對手扣除 25 點生命" },
+    { id: "s_18", dynasty: "三國", name: "赤壁之戰", type: "輔助", skill: "三分天下", desc: "對手扣除 25 點生命" },
+    { id: "s_19", dynasty: "三國", name: "屯田制", type: "輔助", skill: "休養生息", desc: "高級防禦：恢復 30 點生命" },
+    { id: "s_20", dynasty: "北朝", name: "均田制", type: "輔助", skill: "授田於民", desc: "高級防禦：恢復 30 點生命" },
+    { id: "s_21", dynasty: "北朝", name: "三長制", type: "輔助", skill: "整頓戶籍", desc: "一般策略：恢復 20 點生命" },
+    { id: "s_22", dynasty: "北朝", name: "租調制", type: "輔助", skill: "明定稅額", desc: "一般策略：恢復 20 點生命" },
+    { id: "s_23", dynasty: "隋", name: "三省六部制", type: "輔助", skill: "分工協作", desc: "高級防禦：恢復 30 點生命" },
+    { id: "s_24", dynasty: "隋", name: "大運河", type: "輔助", skill: "南糧北運", desc: "大幅恢復：恢復 35 點生命" },
+    { id: "s_25", dynasty: "唐", name: "科舉制度", type: "輔助", skill: "進士明經", desc: "高級防禦：恢復 30 點生命" },
+    { id: "s_26", dynasty: "唐", name: "府兵制", type: "輔助", skill: "兵農合一", desc: "其他策略：恢復 25 點生命" },
+    { id: "s_27", dynasty: "唐", name: "租庸調制", type: "輔助", skill: "納粟代役", desc: "其他策略：恢復 25 點生命" },
+    { id: "s_28", dynasty: "唐", name: "安史之亂", type: "輔助", skill: "盛極而衰", desc: "對手扣除 25 點生命" },
+    { id: "s_29", dynasty: "唐", name: "兩稅法", type: "輔助", skill: "量出為入", desc: "其他策略：恢復 25 點生命" }
 ];
 
 // 3. 題庫
@@ -164,7 +164,7 @@ const SUPPORT_QUESTIONS_DB = {
     "府兵制": [{ q: "唐朝前期實行的兵役制度，平時生產農耕、戰時應徵入伍，稱為？", opts: ["A. 府兵制", "B. 募兵制", "C. 衛所制", "D. 八旗制"], correctIndex: 0 }],
     "租庸調制": [{ q: "唐代賦稅制度中的「庸」代表什麼含義？", opts: ["A. 交納絹布以代替服勞役", "B. 繳納田租", "C. 繳納商業稅", "D. 官員的薪俸"], correctIndex: 0 }],
     "安史之亂": [{ q: "唐朝由盛轉衰的轉折點是由安祿山與史思明發動的什麼叛亂？", opts: ["A. 安史之亂", "B. 黃巢之亂", "C. 侯景之亂", "D. 八王之亂"], correctIndex: 0 }],
-    "兩稅法": [{ q: "唐德宗時期，宰相楊炎建議改行哪一稅制，規定每戶按資產和土地繳納夏稅和秋稅？", opts: ["A. 兩稅法", "B. 租庸調制", "C. 初稅畝", "D. 一條鞭法"], correctIndex: 0 }]
+    "兩稅法": [{ q: "唐德宗時期，宰相楊炎建議改行哪一稅制，規定每戶按資產和土地繳納夏稅和秋稅？", opts: ["A. 兩稅法", "B. 租庸調制", "C. 初稅畝", "D. 一條鞭法"], correctIndex: 0 }
 };
 
 function getRandomQuestion(cardName, dynasty, cardType) {
@@ -226,7 +226,6 @@ io.on('connection', (socket) => {
         updateGameState(roomId);
     });
 
-    // 1. 點擊手牌出牌：不問問題，直接部署或觸發效果！
     socket.on('play_card', ({ roomId, cardIndex }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
@@ -255,15 +254,13 @@ io.on('connection', (socket) => {
             io.to(roomId).emit('play_sound', { type: 'deploy' });
             updateGameState(roomId);
         } else {
-            // 輔助卡直接發動效果前，先請求歷史考驗（如您要求：恢復/攻擊才問問題）
-            // 這裡我們發送事件讓前端彈出輔助卡考驗題目
             let qData = getRandomQuestion(card.name, card.dynasty, '輔助');
             qData.cardName = card.name;
             socket.emit('show_support_question', { qData, cardName: card.name });
         }
     });
 
-    // 2. 輔助卡答題結算
+    // 輔助卡答題結算（嚴格對應數值：30點、25點、20點、15點、40點、35點）
     socket.on('resolve_support_card', ({ roomId, cardName, answerCorrect }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
@@ -273,13 +270,33 @@ io.on('connection', (socket) => {
 
         if (answerCorrect) {
             io.to(roomId).emit('battle_log', { msg: `[歷史考驗] 穿越時空者 ${socket.id.substring(4,8)} 策略考驗答對！【${cardName}】策略生效！` });
-            io.to(roomId).emit('play_sound', { type: 'heal' });
-            if (cardName === '萬里長城' || cardName === '統一度量衝' || cardName === '輪台罪己詔') {
+            
+            if (cardName === '萬里長城' || cardName === '統一度量衝' || cardName === '徒木立信' || cardName === '和親制度' || cardName === '屯田制' || cardName === '均田制' || cardName === '三省六部制' || cardName === '科舉制度') {
                 pState.hp = Math.min(300, pState.hp + 30);
-            } else if (cardName === '赤壁之戰' || cardName === '安史之亂' || cardName === '黃巾之亂' || cardName === '指鹿為馬') {
+                io.to(roomId).emit('play_sound', { type: 'heal' });
+                io.to(roomId).emit('battle_log', { msg: `🛡️ 防禦策略生效！恢復 30 點生命值。` });
+            } else if (cardName === '輪台罪己詔') {
+                pState.hp = Math.min(300, pState.hp + 40);
+                io.to(roomId).emit('play_sound', { type: 'heal' });
+                io.to(roomId).emit('battle_log', { msg: `✨ 大幅恢復策略生效！恢復 40 點生命值。` });
+            } else if (cardName === '大運河') {
+                pState.hp = Math.min(300, pState.hp + 35);
+                io.to(roomId).emit('play_sound', { type: 'heal' });
+                io.to(roomId).emit('battle_log', { msg: `✨ 大幅恢復策略生效！恢復 35 點生命值。` });
+            } else if (cardName === '焚書坑儒' || cardName === '黃巾之亂' || cardName === '赤壁之戰' || cardName === '安史之亂' || cardName === '指鹿為馬') {
                 if (opState) opState.hp = Math.max(0, opState.hp - 25);
+                io.to(roomId).emit('play_sound', { type: 'attack_success' });
+                io.to(roomId).emit('battle_log', { msg: `🔥 攻擊策略生效！對手扣除 25 點生命值。` });
+            } else if (cardName === '黨錮之禍') {
+                pState.hp = Math.min(300, pState.hp + 15);
+                io.to(roomId).emit('play_sound', { type: 'heal' });
+                io.to(roomId).emit('battle_log', { msg: `✨ 策略生效！恢復 15 點生命值。` });
             } else {
-                pState.hp = Math.min(300, pState.hp + 20);
+                // 其他一般策略恢復 25 或 20 點
+                let healVal = (cardName === '統一文字' || cardName === '統一貨幣' || cardName === '開鑿運河' || cardName === '修築道路' || cardName === '五經博士' || cardName === '三長制' || cardName === '租調制') ? 20 : 25;
+                pState.hp = Math.min(300, pState.hp + healVal);
+                io.to(roomId).emit('play_sound', { type: 'heal' });
+                io.to(roomId).emit('battle_log', { msg: `✨ 策略生效！恢復 ${healVal} 點生命值。` });
             }
         } else {
             io.to(roomId).emit('battle_log', { msg: `[歷史考驗] 穿越時空者 ${socket.id.substring(4,8)} 策略考驗答錯！【${cardName}】計謀失敗被棄掉。` });
@@ -296,7 +313,6 @@ io.on('connection', (socket) => {
         switchTurnAndDraw(room, roomId);
     });
 
-    // 3. 攻擊時詢問歷史問題
     socket.on('get_attack_question', ({ roomId }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
@@ -309,7 +325,7 @@ io.on('connection', (socket) => {
         socket.emit('show_attack_question', { qData });
     });
 
-    // 4. 執行攻擊結算
+    // 攻擊結算（答對 60 點，答錯 20 點）
     socket.on('attack', ({ roomId, answerCorrect }) => {
         const room = rooms[roomId];
         if (!room || room.turn !== socket.id) return;
@@ -323,10 +339,10 @@ io.on('connection', (socket) => {
         opState.hp = Math.max(0, opState.hp - damage);
 
         if (answerCorrect) {
-            io.to(roomId).emit('battle_log', { msg: `⚔️ 【${pState.active.name}】戰技激發成功！造成 ${damage} 點爆發傷害，隨後功成身退被棄掉！` });
+            io.to(roomId).emit('battle_log', { msg: `⚔️ 【${pState.active.name}】戰技激發成功！造成 60 點爆發傷害，隨後功成身退被棄掉！` });
             io.to(roomId).emit('play_sound', { type: 'attack_success' });
         } else {
-            io.to(roomId).emit('battle_log', { msg: `⚠️ 【${pState.active.name}】戰技答題錯誤！造成微弱 ${damage} 點傷害，隨後被棄掉。` });
+            io.to(roomId).emit('battle_log', { msg: `⚠️ 【${pState.active.name}】戰技答題錯誤！造成微弱 20 點傷害，隨後被棄掉。` });
             io.to(roomId).emit('play_sound', { type: 'attack_fail' });
         }
 
@@ -339,6 +355,15 @@ io.on('connection', (socket) => {
             return;
         }
 
+        switchTurnAndDraw(room, roomId);
+    });
+
+    // 放棄作答：視為回合結束
+    socket.on('forfeit_turn', ({ roomId }) => {
+        const room = rooms[roomId];
+        if (!room || room.turn !== socket.id) return;
+        
+        io.to(roomId).emit('battle_log', { msg: `⚠️ 穿越時空者 ${socket.id.substring(4,8)} 放棄了此次行動，回合結束。` });
         switchTurnAndDraw(room, roomId);
     });
 
