@@ -11,6 +11,7 @@
         body { 
             font-family: sans-serif; background: var(--bg); color: #f8fafc; margin: 0; 
             min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
+            /* 防止手機端長按選取文字或彈出選單 */
             -webkit-user-select: none; user-select: none;
         }
         .container { width: 100%; max-width: 1200px; height: 100vh; max-height: 950px; display: flex; flex-direction: column; padding: 10px; }
@@ -24,6 +25,7 @@
             background: #FFFDF0; color: #1e293b; border: 3px solid var(--gold); border-radius: 10px; 
             width: clamp(110px, 16vw, 135px); height: clamp(150px, 22vw, 185px); padding: 8px; 
             display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; flex-shrink: 0; box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+            /* 優化手機點擊反應，消除點擊藍色陰影與延遲 */
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
             transition: transform 0.15s;
@@ -47,7 +49,7 @@
     
     <div id="lobby" style="margin: auto; text-align: center; background: var(--panel); padding: 35px; border: 2px solid var(--gold); border-radius: 15px;">
         <h3 style="color: var(--gold); margin-top:0; font-size: 1.5rem;">輸入房號開始對戰</h3>
-        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">點選手牌直接部署或發動策略（卡片已標註攻擊／恢復數值）！</p>
+        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">點選手牌直接部署人物或發動策略，發動攻擊與恢復時接受歷史考驗！</p>
         <input type="text" id="roomInput" class="input-box" placeholder="例如: 8888"><br>
         <button class="btn" onclick="playSound('click'); createRoom();">🏠 建立房間</button>
         <button class="btn" onclick="playSound('click'); joinRoom();">🔑 加入房間</button>
@@ -66,13 +68,13 @@
                 <div class="zone" id="opActive"></div>
             </div>
             <div>
-                <div style="color:var(--gold); font-size:0.85em; text-align:left;">我方陣地 (點擊主戰人物答題：答對 60 點 / 答錯 20 點傷害)</div>
+                <div style="color:var(--gold); font-size:0.85em; text-align:left;">我方陣地 (點擊主戰人物答題發動攻擊)</div>
                 <div class="zone" id="myActive"></div>
             </div>
         </div>
 
         <div>
-            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (策略卡具體數值已標註於下方)</div>
+            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (點擊卡牌直接部署或發動策略)</div>
             <div class="zone" id="myHand" style="min-height: 160px; background: rgba(0,0,0,0.3); border-radius: 8px;"></div>
         </div>
 
@@ -88,7 +90,7 @@
         <h3 id="modalTitle" style="color:var(--gold); margin-top:0;">📜 歷史考驗與戰技激發</h3>
         <p id="qText" style="font-size: clamp(1rem, 1.5vw, 1.15rem); margin: 20px 0; line-height: 1.5;"></p>
         <div id="qOptions"></div>
-        <button class="modal-close-btn" onclick="forfeitTurnAction()">❌ 放棄作答 (視為回合結束)</button>
+        <button class="modal-close-btn" onclick="closeModal()">❌ 放棄作答</button>
     </div>
 </div>
 
@@ -98,6 +100,7 @@
     let pendingSupportCardName = null;
     let isModalOpen = false;
 
+    // 內建 Web Audio API 音效產生器
     function playSound(type) {
         try {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -119,13 +122,6 @@
                 gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
                 osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-            } else if (type === 'attack_fail') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.25);
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.25);
             } else if (type === 'heal') {
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
@@ -181,7 +177,7 @@
 
         const indicator = document.getElementById('turnIndicator');
         if (isMyTurn) {
-            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊英雄進攻（答對60點/答錯20點）" : "⭐ 請點選手牌出牌，或點擊英雄進攻";
+            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊英雄答題攻擊" : "⭐ 請點選手牌出牌，或點擊英雄進攻";
             indicator.innerText = actionText;
             indicator.style.color = "#4ade80";
         } else {
@@ -189,6 +185,7 @@
             indicator.style.color = "#f87171";
         }
 
+        // 渲染手牌：使用 onpointerdown 取代 onclick，完美解決手機點擊無反應與雙擊延遲
         const handDiv = document.getElementById('myHand');
         handDiv.innerHTML = "";
         myState.hand.forEach((card, idx) => {
@@ -197,14 +194,15 @@
             let opacity = canPlay ? '1' : '0.5';
             
             handDiv.innerHTML += `
-                <div class="card" style="opacity: ${opacity};" onclick="playCard(${idx}, ${canPlay})">
+                <div class="card" style="opacity: ${opacity};" onpointerdown="playCard(${idx}, ${canPlay})">
                     <div style="font-size:0.75em; font-weight:bold; color:${tagColor};">[${card.dynasty}] ${card.type}</div>
-                    <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${card.name}</div>
-                    <div style="font-size:0.6em; color:#475569; overflow:hidden; max-height:45px;">${card.desc}</div>
-                    <div style="font-size:0.65em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">${canPlay ? '點擊出牌' : '等待中'}</div>
+                    <div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;">${card.name}</div>
+                    <div style="font-size:0.65em; color:#475569; overflow:hidden; max-height:45px;">${card.skill}: ${card.desc}</div>
+                    <div style="font-size:0.7em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">${canPlay ? '點擊直接出牌' : '等待中'}</div>
                 </div>`;
         });
 
+        // 渲染我方主戰人物與支援區
         const myActive = document.getElementById('myActive');
         let supportHtml = myState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px; margin-right:4px;">🛡️ ${c.name}</span>`).join('');
         
@@ -214,11 +212,11 @@
             myActive.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:100%;">
                     <div style="display:flex; gap:10px; align-items:center;">
-                        <div class="card" style="border:3px solid #22c55e; opacity: ${activeOpacity};" onclick="triggerAttack(${isMyTurn})">
+                        <div class="card" style="border:3px solid #22c55e; opacity: ${activeOpacity};" onpointerdown="triggerAttack(${isMyTurn})">
                             <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${myState.active.dynasty}] 主戰人物</div>
-                            <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${myState.active.name}</div>
-                            <div style="font-size:0.6em; color:#475569;">${myState.active.skill}</div>
-                            <div style="font-size:0.65em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">${canAttack ? '⚔️ 攻擊(對答60/錯20)' : '等待回合'}</div>
+                            <div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;">${myState.active.name}</div>
+                            <div style="font-size:0.65em; color:#475569;">${myState.active.skill}</div>
+                            <div style="font-size:0.7em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">${canAttack ? '⚔️ 點擊答題攻擊' : '等待回合'}</div>
                         </div>
                     </div>
                     ${supportHtml ? `<div style="font-size:0.85rem; color:#38bdf8;">支援區: ${supportHtml}</div>` : ''}
@@ -227,6 +225,7 @@
             myActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">請從手牌點擊歷史人物卡部署到戰陣上 ${supportHtml ? '<br>支援區: ' + supportHtml : ''}</div>`;
         }
 
+        // 渲染對手陣地
         const opActive = document.getElementById('opActive');
         let opSupportHtml = opState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px;">🛡️ ${c.name}</span>`).join('');
         if (opState.active) {
@@ -234,9 +233,9 @@
                 <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
                     <div class="card" style="border:3px solid #ef4444;">
                         <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${opState.active.dynasty}] 對手主戰</div>
-                        <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${opState.active.name}</div>
-                        <div style="font-size:0.6em; color:#475569;">${opState.active.skill}</div>
-                        <div style="font-size:0.65em; background:#fee2e2; color:#991b1b; font-weight:bold; text-align:center;">部署中</div>
+                        <div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;">${opState.active.name}</div>
+                        <div style="font-size:0.65em; color:#475569;">${opState.active.skill}</div>
+                        <div style="font-size:0.7em; background:#fee2e2; color:#991b1b; font-weight:bold; text-align:center;">部署中</div>
                     </div>
                     ${opSupportHtml ? `<div style="font-size:0.85rem; color:#38bdf8;">支援區: ${opSupportHtml}</div>` : ''}
                 </div>`;
@@ -245,6 +244,7 @@
         }
     });
 
+    // 出牌函數
     function playCard(cardIndex, canPlay) {
         if (!canPlay || isModalOpen) return;
         playSound('click');
@@ -260,7 +260,7 @@
         optDiv.innerHTML = "";
         qData.opts.forEach((opt, idx) => {
             let isCorrect = (idx === qData.correctIndex);
-            optDiv.innerHTML += `<button class="modal-btn" onclick="submitSupportAnswer(${isCorrect})">${opt}</button>`;
+            optDiv.innerHTML += `<button class="modal-btn" onpointerdown="submitSupportAnswer(${isCorrect})">${opt}</button>`;
         });
         document.getElementById('questionModal').classList.remove('hidden');
     });
@@ -281,13 +281,13 @@
 
     socket.on('show_attack_question', ({ qData }) => {
         isModalOpen = true;
-        document.getElementById('modalTitle').innerText = "⚔️ 戰技激發 (答對60點 / 答錯20點)";
+        document.getElementById('modalTitle').innerText = "⚔️ 主戰人物戰技激發";
         document.getElementById('qText').innerText = qData.q;
         const optDiv = document.getElementById('qOptions');
         optDiv.innerHTML = "";
         qData.opts.forEach((opt, idx) => {
             let isCorrect = (idx === qData.correctIndex);
-            optDiv.innerHTML += `<button class="modal-btn" onclick="submitAttackAnswer(${isCorrect})">${opt}</button>`;
+            optDiv.innerHTML += `<button class="modal-btn" onpointerdown="submitAttackAnswer(${isCorrect})">${opt}</button>`;
         });
         document.getElementById('questionModal').classList.remove('hidden');
     });
@@ -298,14 +298,9 @@
         socket.emit('attack', { roomId: currentRoomId, answerCorrect: isCorrect });
     }
 
-    function forfeitTurnAction() {
+    function closeModal() {
         document.getElementById('questionModal').classList.add('hidden');
         isModalOpen = false;
-        
-        if (currentRoomId) {
-            socket.emit('forfeit_turn', { roomId: currentRoomId });
-        }
-        
         pendingSupportCardName = null;
     }
 
