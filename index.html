@@ -1,260 +1,274 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="zh-Hant">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2575.2">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; -webkit-text-stroke: #000000}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; -webkit-text-stroke: #000000; min-height: 14.0px}
-    span.s1 {font-kerning: none}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>《英魂決》房間式即時對戰空間</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root { --gold: #D4AF37; --bg: #0f172a; --panel: rgba(26, 43, 76, 0.95); }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: sans-serif; background: var(--bg); color: #f8fafc; margin: 0; 
+            min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .container { width: 100%; max-width: 1200px; height: 100vh; max-height: 950px; display: flex; flex-direction: column; padding: 10px; }
+        h1 { color: var(--gold); font-size: clamp(1.4rem, 2.5vw, 2rem); margin: 5px 0; text-align: center; }
+        .btn { background: linear-gradient(#d4af37, #aa771c); color: #111; border: 2px solid #ffe066; padding: 12px 24px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: clamp(0.95rem, 1.5vw, 1.1rem); margin: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+        .input-box { background: #1e293b; border: 2px solid var(--gold); color: white; padding: 12px; border-radius: 6px; font-size: 1.1rem; width: 200px; text-align: center; margin: 8px; outline: none; }
+        .hud { background: var(--panel); border: 2px solid var(--gold); padding: 10px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: clamp(0.95rem, 1.5vw, 1.15rem); font-weight: bold; }
+        .arena { display: grid; grid-template-rows: 1fr 1fr; gap: 10px; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 10px; flex-grow: 1; overflow: hidden; border: 1px solid #334155; }
+        .zone { display: flex; gap: 12px; justify-content: center; align-items: center; width: 100%; overflow-x: auto; padding: 5px; min-height: 180px; }
+        .card { 
+            background: #FFFDF0; color: #1e293b; border: 3px solid var(--gold); border-radius: 10px; 
+            width: clamp(110px, 16vw, 135px); height: clamp(150px, 22vw, 185px); padding: 8px; 
+            display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; flex-shrink: 0; box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+            user-select: none; transition: transform 0.15s;
+        }
+        .card:hover { transform: translateY(-5px); }
+        .log { background: #000; color: #38bdf8; font-family: monospace; padding: 10px; height: 75px; overflow-y: auto; text-align: left; border-radius: 6px; font-size: clamp(0.8rem, 1.2vw, 0.95rem); border: 1px solid #334155; }
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 15px; }
+        .modal-content { background: #1e293b; border: 3px solid var(--gold); padding: 25px; border-radius: 12px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        .modal-btn { background: #3b82f6; color: white; border: none; padding: 14px; margin: 8px 0; border-radius: 8px; width: 100%; cursor: pointer; text-align: left; font-weight: bold; font-size: clamp(0.95rem, 1.5vw, 1.05rem); }
+        .hidden { display: none !important; }
+    </style>
 </head>
 <body>
-<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
-<p class="p1"><span class="s1">&lt;html lang="zh-Hant"&gt;</span></p>
-<p class="p1"><span class="s1">&lt;head&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;title&gt;《英魂決》房間式即時對戰空間&lt;/title&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;script src="/socket.io/socket.io.js"&gt;&lt;/script&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;style&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>:root { --gold: #D4AF37; --bg: #0f172a; --panel: rgba(26, 43, 76, 0.95); }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>* { box-sizing: border-box; }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>body {<span class="Apple-converted-space"> </span></span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>font-family: sans-serif; background: var(--bg); color: #f8fafc; margin: 0;<span class="Apple-converted-space"> </span></span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.container { width: 100%; max-width: 1200px; height: 100vh; max-height: 950px; display: flex; flex-direction: column; padding: 10px; }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>h1 { color: var(--gold); font-size: clamp(1.4rem, 2.5vw, 2rem); margin: 5px 0; text-align: center; }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.btn { background: linear-gradient(#d4af37, #aa771c); color: #111; border: 2px solid #ffe066; padding: 12px 24px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: clamp(0.95rem, 1.5vw, 1.1rem); margin: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.input-box { background: #1e293b; border: 2px solid var(--gold); color: white; padding: 12px; border-radius: 6px; font-size: 1.1rem; width: 200px; text-align: center; margin: 8px; outline: none; }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.hud { background: var(--panel); border: 2px solid var(--gold); padding: 10px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: clamp(0.95rem, 1.5vw, 1.15rem); font-weight: bold; }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.arena { display: grid; grid-template-rows: 1fr 1fr; gap: 10px; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 10px; flex-grow: 1; overflow: hidden; border: 1px solid #334155; }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.zone { display: flex; gap: 12px; justify-content: center; align-items: center; width: 100%; overflow-x: auto; padding: 5px; min-height: 180px; }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.card {<span class="Apple-converted-space"> </span></span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>background: #FFFDF0; color: #1e293b; border: 3px solid var(--gold); border-radius: 10px;<span class="Apple-converted-space"> </span></span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>width: clamp(110px, 16vw, 135px); height: clamp(150px, 22vw, 185px); padding: 8px;<span class="Apple-converted-space"> </span></span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; flex-shrink: 0; box-shadow: 0 6px 12px rgba(0,0,0,0.5);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>user-select: none; transition: transform 0.15s;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.card:hover { transform: translateY(-5px); }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.log { background: #000; color: #38bdf8; font-family: monospace; padding: 10px; height: 75px; overflow-y: auto; text-align: left; border-radius: 6px; font-size: clamp(0.8rem, 1.2vw, 0.95rem); border: 1px solid #334155; }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 15px; }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.modal-content { background: #1e293b; border: 3px solid var(--gold); padding: 25px; border-radius: 12px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.modal-btn { background: #3b82f6; color: white; border: none; padding: 14px; margin: 8px 0; border-radius: 8px; width: 100%; cursor: pointer; text-align: left; font-weight: bold; font-size: clamp(0.95rem, 1.5vw, 1.05rem); }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.hidden { display: none !important; }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
-<p class="p1"><span class="s1">&lt;body&gt;</span></p>
-<p class="p1"><span class="s1">&lt;div class="container"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;h1&gt;《英魂決》房間式即時對戰空間&lt;/h1&gt;</span></p>
-<p class="p2"><span class="s1"><span class="Apple-converted-space">    </span></span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div id="lobby" style="margin: auto; text-align: center; background: var(--panel); padding: 35px; border: 2px solid var(--gold); border-radius: 15px;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;h3 style="color: var(--gold); margin-top:0; font-size: 1.5rem;"&gt;輸入房號開始對戰&lt;/h3&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;"&gt;雙方先選歷史人物上陣，使用輔助卡，答題後發動攻擊完結回合！&lt;/p&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;input type="text" id="roomInput" class="input-box" placeholder="例如: 8888"&gt;&lt;br&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;button class="btn" onclick="playSound(); createRoom();"&gt;🏠 建立房間&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;button class="btn" onclick="playSound(); joinRoom();"&gt;🔑 加入房間&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div id="gameArea" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1; gap: 8px; overflow: hidden;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="hud"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div&gt;對手 HP: &lt;span id="opHp" style="color:#ef4444;"&gt;300&lt;/span&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div id="turnIndicator"&gt;回合狀態&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div&gt;我的 HP: &lt;span id="myHp" style="color:#22c55e;"&gt;300&lt;/span&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="arena"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div style="color:var(--gold); font-size:0.85em; text-align:left;"&gt;對手陣地 (主戰人物與支援區)&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div class="zone" id="opActive"&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div style="color:var(--gold); font-size:0.85em; text-align:left;"&gt;我方陣地 (點擊主戰人物進行歷史考驗答題並攻擊)&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div class="zone" id="myActive"&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;"&gt;手牌區 (點擊卡牌：人物上陣 / 輔助卡支援)&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="zone" id="myHand" style="min-height: 160px; background: rgba(0,0,0,0.3); border-radius: 8px;"&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;button class="btn" onclick="playSound(); endTurn();" style="padding: 10px 18px;"&gt;結束回合&lt;/button&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>&lt;div class="log" id="logBox" style="flex-grow: 1;"&gt;[系統] 準備就緒。&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;div id="questionModal" class="modal hidden"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="modal-content"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;h3 style="color:var(--gold); margin-top:0;"&gt;📜 歷史考驗與戰技激發&lt;/h3&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;p id="qText" style="font-size: clamp(1rem, 1.5vw, 1.15rem); margin: 20px 0; line-height: 1.5;"&gt;&lt;/p&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div id="qOptions"&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;script&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const socket = io();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>let currentRoomId = null;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function playSound() {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>try {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const ctx = new (window.AudioContext || window.webkitAudioContext)();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const osc = ctx.createOscillator();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const gain = ctx.createGain();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>osc.connect(gain); gain.connect(ctx.destination);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>osc.frequency.setValueAtTime(600, ctx.currentTime);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>gain.gain.setValueAtTime(0.1, ctx.currentTime);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>osc.start(); osc.stop(ctx.currentTime + 0.08);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>} catch(e) {}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function createRoom() {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const roomId = document.getElementById('roomInput').value.trim();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (!roomId) { alert("請輸入房間號碼！"); return; }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>socket.emit('create_room', roomId);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function joinRoom() {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const roomId = document.getElementById('roomInput').value.trim();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (!roomId) { alert("請輸入房間號碼！"); return; }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>socket.emit('join_room', roomId);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>socket.on('room_created', (roomId) =&gt; {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>currentRoomId = roomId;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.getElementById('lobby').innerHTML = `&lt;h3 style='color:var(--gold);'&gt;🏠 房間 [${roomId}] 建立成功！&lt;/h3&gt;&lt;p style='color:#38bdf8;'&gt;等待對手加入中...&lt;/p&gt;`;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>socket.on('error_msg', (msg) =&gt; { alert(msg); });</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>socket.on('game_start', ({ roomId }) =&gt; {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>currentRoomId = roomId;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.getElementById('lobby').classList.add('hidden');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.getElementById('gameArea').classList.remove('hidden');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>appendLog(`🎉 成功進入房間 [${roomId}]，請先部署歷史人物或使用輔助卡！`);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>socket.on('game_state_update', ({ myState, opState, isMyTurn }) =&gt; {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.getElementById('myHp').innerText = myState.hp;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.getElementById('opHp').innerText = opState.hp;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const indicator = document.getElementById('turnIndicator');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (isMyTurn) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>indicator.innerText = "⭐ 您的回合 (可佈署卡牌或點擊英雄答題攻擊)";</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>indicator.style.color = "#4ade80";</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>} else {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>indicator.innerText = "⏳ 對手回合中...";</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>indicator.style.color = "#f87171";</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// 渲染手牌</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const handDiv = document.getElementById('myHand');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>handDiv.innerHTML = "";</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>myState.hand.forEach((card, idx) =&gt; {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let tagColor = card.type === '人物' ? '#78350f' : '#1e3a8a';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>handDiv.innerHTML += `</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div class="card" onclick="playCard(${idx})"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;div style="font-size:0.75em; font-weight:bold; color:${tagColor};"&gt;[${card.dynasty}] ${card.type}&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;"&gt;${card.name}&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;div style="font-size:0.65em; color:#475569; overflow:hidden; max-height:45px;"&gt;${card.skill}: ${card.desc}&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;div style="font-size:0.7em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;"&gt;點擊部署&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;/div&gt;`;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>});</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// 渲染我方主戰人物與支援區</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const myActive = document.getElementById('myActive');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let supportHtml = myState.supportArea.map(c =&gt; `&lt;span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px; margin-right:4px;"&gt;🛡️ ${c.name}&lt;/span&gt;`).join('');</span></p>
-<p class="p2"><span class="s1"><span class="Apple-converted-space">        </span></span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (myState.active) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>myActive.innerHTML = `</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:100%;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;div style="display:flex; gap:10px; align-items:center;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div class="card" style="border:3px solid #22c55e;" onclick="triggerAttack()"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;div style="font-size:0.75em; font-weight:bold; color:#78350f;"&gt;[${myState.active.dynasty}] 主戰人物&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;"&gt;${myState.active.name}&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;div style="font-size:0.65em; color:#475569;"&gt;${myState.active.skill}&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;div style="font-size:0.7em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;"&gt;⚔️ 點擊答題攻擊&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>${supportHtml ? `&lt;div style="font-size:0.85rem; color:#38bdf8;"&gt;支援區: ${supportHtml}&lt;/div&gt;` : ''}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;/div&gt;`;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>} else {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>myActive.innerHTML = `&lt;div style="color:#64748b; font-size:0.95rem;"&gt;請從手牌點擊歷史人物卡部署到戰陣上 ${supportHtml ? '&lt;br&gt;支援區: ' + supportHtml : ''}&lt;/div&gt;`;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// 渲染對手陣地</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const opActive = document.getElementById('opActive');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let opSupportHtml = opState.supportArea.map(c =&gt; `&lt;span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px;"&gt;🛡️ ${c.name}&lt;/span&gt;`).join('');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (opState.active) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>opActive.innerHTML = `</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;div style="display:flex; flex-direction:column; align-items:center; gap:5px;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;div class="card" style="border:3px solid #ef4444;"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div style="font-size:0.75em; font-weight:bold; color:#78350f;"&gt;[${opState.active.dynasty}] 對手主戰&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;"&gt;${opState.active.name}&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div style="font-size:0.65em; color:#475569;"&gt;${opState.active.skill}&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div style="font-size:0.7em; background:#fee2e2; color:#991b1b; font-weight:bold; text-align:center;"&gt;部署中&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>${opSupportHtml ? `&lt;div style="font-size:0.85rem; color:#38bdf8;"&gt;支援區: ${opSupportHtml}&lt;/div&gt;` : ''}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>&lt;/div&gt;`;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>} else {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>opActive.innerHTML = `&lt;div style="color:#64748b; font-size:0.95rem;"&gt;對手尚未部署歷史人物&lt;/div&gt;`;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function playCard(cardIndex) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>socket.emit('play_card', { roomId: currentRoomId, cardIndex });</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// 點擊主戰人物觸發歷史考驗題問</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function triggerAttack() {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const questions = [</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>{ q: "秦王政自認為「XX三皇，XX五帝」，於是把三「皇」五「帝」名稱合稱為「皇帝」。請填空：", ans: "功過三皇，德兼五帝", opts: ["A. 功過三皇，德兼五帝", "B. 德高三皇，功過五帝", "C. 德兼三皇，功過五帝"] },</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>{ q: "漢武帝採納主父偃的建議，頒行哪一項法令削弱諸侯王勢力？", ans: "推恩令", opts: ["A. 削藩令", "B. 推恩令", "C. 汉律令"] },</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>{ q: "唐太宗在位期間政治清明，史稱為什麼？", ans: "貞觀之治", opts: ["A. 開元之治", "B. 貞觀之治", "C. 文景之治"] }</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>];</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let q = questions[Math.floor(Math.random() * questions.length)];</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.getElementById('qText').innerText = q.q;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const optDiv = document.getElementById('qOptions');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>optDiv.innerHTML = "";</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>q.opts.forEach(opt =&gt; {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let isCorrect = opt.includes(q.ans) || opt.charAt(0) === 'A';</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>optDiv.innerHTML += `&lt;button class="modal-btn" onclick="submitAnswer(${isCorrect})"&gt;${opt}&lt;/button&gt;`;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>});</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.getElementById('questionModal').classList.remove('hidden');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function submitAnswer(isCorrect) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.getElementById('questionModal').classList.add('hidden');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>socket.emit('attack', { roomId: currentRoomId, answerCorrect: isCorrect });</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function endTurn() {<span class="Apple-converted-space"> </span></span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>socket.emit('end_turn', currentRoomId);<span class="Apple-converted-space"> </span></span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>socket.on('battle_log', (data) =&gt; { appendLog(data.msg); });</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>socket.on('game_over', ({ winner }) =&gt; {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (winner === socket.id) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>alert("🎉 恭喜您在《英魂決》對戰中獲得勝利！");</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>} else {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>alert("❌ 勝敗乃兵家常事，少俠請重新來過！");</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>location.reload();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function appendLog(text) {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const box = document.getElementById('logBox');</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>box.innerHTML += `&lt;div&gt;&gt; ${text}&lt;/div&gt;`;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>box.scrollTop = box.scrollHeight;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1">&lt;/script&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
+<div class="container">
+    <h1>《英魂決》房間式即時對戰空間</h1>
+    
+    <div id="lobby" style="margin: auto; text-align: center; background: var(--panel); padding: 35px; border: 2px solid var(--gold); border-radius: 15px;">
+        <h3 style="color: var(--gold); margin-top:0; font-size: 1.5rem;">輸入房號開始對戰</h3>
+        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">點選手牌答題部署人物或發動輔助卡，答題攻擊對手後結束回合！</p>
+        <input type="text" id="roomInput" class="input-box" placeholder="例如: 8888"><br>
+        <button class="btn" onclick="playSound(); createRoom();">🏠 建立房間</button>
+        <button class="btn" onclick="playSound(); joinRoom();">🔑 加入房間</button>
+    </div>
+
+    <div id="gameArea" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1; gap: 8px; overflow: hidden;">
+        <div class="hud">
+            <div>對手 HP: <span id="opHp" style="color:#ef4444;">300</span></div>
+            <div id="turnIndicator">回合狀態</div>
+            <div>我的 HP: <span id="myHp" style="color:#22c55e;">300</span></div>
+        </div>
+
+        <div class="arena">
+            <div>
+                <div style="color:var(--gold); font-size:0.85em; text-align:left;">對手陣地 (主戰人物與支援區)</div>
+                <div class="zone" id="opActive"></div>
+            </div>
+            <div>
+                <div style="color:var(--gold); font-size:0.85em; text-align:left;">我方陣地 (點擊主戰人物答題攻擊)</div>
+                <div class="zone" id="myActive"></div>
+            </div>
+        </div>
+
+        <div>
+            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (點擊卡牌進行歷史考驗答題部署)</div>
+            <div class="zone" id="myHand" style="min-height: 160px; background: rgba(0,0,0,0.3); border-radius: 8px;"></div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <button class="btn" onclick="playSound(); endTurn();" style="padding: 10px 18px;">結束回合</button>
+            <div class="log" id="logBox" style="flex-grow: 1;">[系統] 準備就緒。</div>
+        </div>
+    </div>
+</div>
+
+<div id="questionModal" class="modal hidden">
+    <div class="modal-content">
+        <h3 id="modalTitle" style="color:var(--gold); margin-top:0;">📜 歷史考驗與戰技激發</h3>
+        <p id="qText" style="font-size: clamp(1rem, 1.5vw, 1.15rem); margin: 20px 0; line-height: 1.5;"></p>
+        <div id="qOptions"></div>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    let currentRoomId = null;
+    let pendingCardIndex = null;
+    let isModalOpen = false; // 防連點保護鎖
+
+    function playSound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(600, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            osc.start(); osc.stop(ctx.currentTime + 0.08);
+        } catch(e) {}
+    }
+
+    function createRoom() {
+        const roomId = document.getElementById('roomInput').value.trim();
+        if (!roomId) { alert("請輸入房間號碼！"); return; }
+        socket.emit('create_room', roomId);
+    }
+
+    function joinRoom() {
+        const roomId = document.getElementById('roomInput').value.trim();
+        if (!roomId) { alert("請輸入房間號碼！"); return; }
+        socket.emit('join_room', roomId);
+    }
+
+    socket.on('room_created', (roomId) => {
+        currentRoomId = roomId;
+        document.getElementById('lobby').innerHTML = `<h3 style='color:var(--gold);'>🏠 房間 [${roomId}] 建立成功！</h3><p style='color:#38bdf8;'>等待對手加入中...</p>`;
+    });
+
+    socket.on('error_msg', (msg) => { alert(msg); isModalOpen = false; });
+
+    socket.on('game_start', ({ roomId }) => {
+        currentRoomId = roomId;
+        document.getElementById('lobby').classList.add('hidden');
+        document.getElementById('gameArea').classList.remove('hidden');
+        appendLog(`🎉 成功進入房間 [${roomId}]，請點選手牌進行歷史考驗答題以部署卡牌！`);
+    });
+
+    socket.on('game_state_update', ({ myState, opState, isMyTurn }) => {
+        document.getElementById('myHp').innerText = myState.hp;
+        document.getElementById('opHp').innerText = opState.hp;
+
+        const indicator = document.getElementById('turnIndicator');
+        if (isMyTurn) {
+            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊英雄答題攻擊" : "⭐ 請點選手牌答題部署，或直接攻擊";
+            indicator.innerText = actionText;
+            indicator.style.color = "#4ade80";
+        } else {
+            indicator.innerText = "⏳ 對手回合中...";
+            indicator.style.color = "#f87171";
+        }
+
+        // 渲染手牌
+        const handDiv = document.getElementById('myHand');
+        handDiv.innerHTML = "";
+        myState.hand.forEach((card, idx) => {
+            let tagColor = card.type === '人物' ? '#78350f' : '#1e3a8a';
+            let canPlay = isMyTurn && !myState.hasPlayedCard;
+            let opacity = canPlay ? '1' : '0.5';
+            
+            handDiv.innerHTML += `
+                <div class="card" style="opacity: ${opacity};" onclick="requestCardQuestion(${idx}, ${canPlay})">
+                    <div style="font-size:0.75em; font-weight:bold; color:${tagColor};">[${card.dynasty}] ${card.type}</div>
+                    <div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;">${card.name}</div>
+                    <div style="font-size:0.65em; color:#475569; overflow:hidden; max-height:45px;">${card.skill}: ${card.desc}</div>
+                    <div style="font-size:0.7em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">${canPlay ? '點擊出牌答題' : '等待中'}</div>
+                </div>`;
+        });
+
+        // 渲染我方主戰人物與支援區
+        const myActive = document.getElementById('myActive');
+        let supportHtml = myState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px; margin-right:4px;">🛡️ ${c.name}</span>`).join('');
+        
+        if (myState.active) {
+            myActive.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:100%;">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <div class="card" style="border:3px solid #22c55e;" onclick="triggerAttack(${isMyTurn})">
+                            <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${myState.active.dynasty}] 主戰人物</div>
+                            <div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;">${myState.active.name}</div>
+                            <div style="font-size:0.65em; color:#475569;">${myState.active.skill}</div>
+                            <div style="font-size:0.7em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">⚔️ 點擊答題攻擊</div>
+                        </div>
+                    </div>
+                    ${supportHtml ? `<div style="font-size:0.85rem; color:#38bdf8;">支援區: ${supportHtml}</div>` : ''}
+                </div>`;
+        } else {
+            myActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">請從手牌點擊歷史人物卡部署到戰陣上 ${supportHtml ? '<br>支援區: ' + supportHtml : ''}</div>`;
+        }
+
+        // 渲染對手陣地
+        const opActive = document.getElementById('opActive');
+        let opSupportHtml = opState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px;">🛡️ ${c.name}</span>`).join('');
+        if (opState.active) {
+            opActive.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                    <div class="card" style="border:3px solid #ef4444;">
+                        <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${opState.active.dynasty}] 對手主戰</div>
+                        <div style="font-size:0.95em; font-weight:bold; color:#78350f; text-align:center;">${opState.active.name}</div>
+                        <div style="font-size:0.65em; color:#475569;">${opState.active.skill}</div>
+                        <div style="font-size:0.7em; background:#fee2e2; color:#991b1b; font-weight:bold; text-align:center;">部署中</div>
+                    </div>
+                    ${opSupportHtml ? `<div style="font-size:0.85rem; color:#38bdf8;">支援區: ${opSupportHtml}</div>` : ''}
+                </div>`;
+        } else {
+            opActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">對手尚未部署歷史人物</div>`;
+        }
+    });
+
+    // 請求卡牌對應的歷史考驗題
+    function requestCardQuestion(cardIndex, canPlay) {
+        if (!canPlay || isModalOpen) return;
+        isModalOpen = true;
+        pendingCardIndex = cardIndex;
+        socket.emit('get_card_question', { roomId: currentRoomId, cardIndex });
+    }
+
+    socket.on('show_card_question', ({ qData }) => {
+        document.getElementById('modalTitle').innerText = `📜 ${qData.cardName} - 歷史考驗`;
+        document.getElementById('qText').innerText = qData.q;
+        const optDiv = document.getElementById('qOptions');
+        optDiv.innerHTML = "";
+        qData.opts.forEach((opt, idx) => {
+            let isCorrect = (idx === qData.correctIndex);
+            optDiv.innerHTML += `<button class="modal-btn" onclick="submitCardAnswer(${isCorrect})">${opt}</button>`;
+        });
+        document.getElementById('questionModal').classList.remove('hidden');
+    });
+
+    function submitCardAnswer(isCorrect) {
+        document.getElementById('questionModal').classList.add('hidden');
+        isModalOpen = false;
+        socket.emit('play_card_with_answer', { roomId: currentRoomId, cardIndex: pendingCardIndex, answerCorrect: isCorrect });
+    }
+
+    // 點擊主戰人物觸發攻擊題庫
+    function triggerAttack(isMyTurn) {
+        if (!isMyTurn || isModalOpen) return;
+        isModalOpen = true;
+        socket.emit('get_attack_question', { roomId: currentRoomId });
+    }
+
+    socket.on('show_attack_question', ({ qData }) => {
+        document.getElementById('modalTitle').innerText = "⚔️ 主戰人物戰技激發";
+        document.getElementById('qText').innerText = qData.q;
+        const optDiv = document.getElementById('qOptions');
+        optDiv.innerHTML = "";
+        qData.opts.forEach((opt, idx) => {
+            let isCorrect = (idx === qData.correctIndex);
+            optDiv.innerHTML += `<button class="modal-btn" onclick="submitAttackAnswer(${isCorrect})">${opt}</button>`;
+        });
+        document.getElementById('questionModal').classList.remove('hidden');
+    });
+
+    function submitAttackAnswer(isCorrect) {
+        document.getElementById('questionModal').classList.add('hidden');
+        isModalOpen = false;
+        socket.emit('attack', { roomId: currentRoomId, answerCorrect: isCorrect });
+    }
+
+    function endTurn() { 
+        if (isModalOpen) return;
+        socket.emit('end_turn', currentRoomId); 
+    }
+
+    socket.on('battle_log', (data) => { appendLog(data.msg); });
+    socket.on('game_over', ({ winner }) => {
+        if (winner === socket.id) {
+            alert("🎉 恭喜您在《英魂決》對戰中獲得勝利！");
+        } else {
+            alert("❌ 勝敗乃兵家常事，少俠請重新來過！");
+        }
+        location.reload();
+    });
+
+    function appendLog(text) {
+        const box = document.getElementById('logBox');
+        box.innerHTML += `<div>> ${text}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }
+</script>
 </body>
 </html>
