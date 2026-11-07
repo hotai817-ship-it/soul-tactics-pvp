@@ -2,442 +2,224 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歷史卡牌策略對戰：秦漢隋唐篇</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>《英魂決》線上即時對戰空間</title>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
-        :root {
-            --primary-color: #8B4513;
-            --secondary-color: #D2B48C;
-            --accent-color: #A0522D;
-            --bg-color: #FDF5E6;
-            --card-bg: #FFF8DC;
-            --text-color: #333333;
-        }
-        body {
-            font-family: "Microsoft JhengHei", Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: var(--primary-color);
-            margin-bottom: 5px;
-        }
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 20px;
-            font-size: 0.95em;
-        }
-        .status-bar {
-            display: flex;
-            justify-content: space-around;
-            background: var(--secondary-color);
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 1.1em;
-            margin-bottom: 20px;
-        }
-        .log-box {
-            background: #2b2b2b;
-            color: #7ECEE0;
-            padding: 15px;
-            border-radius: 8px;
-            height: 180px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 0.95em;
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-        .section-title {
-            color: var(--primary-color);
-            border-bottom: 2px solid var(--secondary-color);
-            padding-bottom: 5px;
-            margin-top: 20px;
-            margin-bottom: 10px;
-        }
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .card {
-            background: var(--card-bg);
-            border: 2px solid var(--accent-color);
-            border-radius: 8px;
-            padding: 12px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            position: relative;
-        }
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-        }
-        .card h3 {
-            margin: 0 0 8px 0;
-            color: var(--primary-color);
-            font-size: 1.1em;
-        }
-        .card p {
-            margin: 4px 0;
-            font-size: 0.9em;
-            color: #555;
-        }
-        .stats {
-            font-weight: bold;
-            color: #b22222;
-        }
-        .question-modal {
-            background: #fffacd;
-            border: 2px solid var(--primary-color);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .options-container {
+        :root { --gold: #D4AF37; --bg: #0f172a; --panel: rgba(26, 43, 76, 0.95); }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: sans-serif; 
+            background: var(--bg); 
+            color: #f8fafc; 
+            margin: 0; 
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); 
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            margin-top: 10px;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
         }
-        .option-btn {
-            background: white;
-            border: 1px solid var(--accent-color);
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            text-align: left;
-            transition: background 0.2s;
+        .container { 
+            width: 100%; 
+            max-width: 1200px; 
+            height: 100vh;
+            max-height: 950px;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
         }
-        .option-btn:hover {
-            background: var(--secondary-color);
+        h1 { color: var(--gold); font-size: clamp(1.4rem, 2.5vw, 2rem); margin: 5px 0; text-align: center; }
+        .btn { background: linear-gradient(#d4af37, #aa771c); color: #111; border: 2px solid #ffe066; padding: 10px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: clamp(0.9rem, 1.5vw, 1.1rem); }
+        .hud { background: var(--panel); border: 1px solid var(--gold); padding: 8px 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: clamp(0.9rem, 1.5vw, 1.1rem); font-weight: bold; }
+        .arena { 
+            display: grid; 
+            grid-template-rows: 1fr 1fr; 
+            gap: 10px; 
+            background: rgba(0,0,0,0.4); 
+            padding: 10px; 
+            border-radius: 10px; 
+            flex-grow: 1;
+            overflow: hidden;
         }
-        .btn-primary {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: bold;
-            display: block;
-            width: 100%;
-            margin-top: 10px;
+        .zone { display: flex; gap: 10px; justify-content: center; align-items: center; width: 100%; overflow-x: auto; padding: 5px; }
+        .card { 
+            background: #FFFDF0; 
+            color: #1e293b; 
+            border: 2px solid var(--gold); 
+            border-radius: 8px; 
+            width: clamp(100px, 15vw, 130px); 
+            height: clamp(140px, 22vw, 180px); 
+            padding: 6px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            cursor: pointer; 
+            flex-shrink: 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-        .btn-primary:hover {
-            background: #652c0a;
-        }
-        .hidden {
-            display: none !important;
+        .log { background: #000; color: #38bdf8; font-family: monospace; padding: 8px; height: 70px; overflow-y: auto; text-align: left; border-radius: 6px; font-size: clamp(0.8rem, 1.2vw, 0.95rem); }
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 15px; }
+        .modal-content { background: #1e293b; border: 3px solid var(--gold); padding: 20px; border-radius: 12px; max-width: 450px; width: 100%; }
+        .modal-btn { background: #3b82f6; color: white; border: none; padding: 10px; margin: 6px 0; border-radius: 6px; width: 100%; cursor: pointer; text-align: left; font-weight: bold; font-size: clamp(0.9rem, 1.5vw, 1rem); }
+        .hidden { display: none !important; }
+        
+        @media (max-width: 768px) {
+            .container { height: 100vh; max-height: none; padding: 5px; }
+            .arena { gap: 5px; padding: 5px; }
         }
     </style>
 </head>
 <body>
-
 <div class="container">
-    <h1>🏛️ 歷史卡牌策略對戰：秦漢隋唐篇</h1>
-    <div class="subtitle">結合歷史人物、豐富輔助卡與專業歷史問答的策略對戰遊戲</div>
-
-    <!-- 狀態列 -->
-    <div class="status-bar">
-        <div>❤️ 您的血量: <span id="playerHp">100</span></div>
-        <div>⚔️ 對手血量: <span id="aiHp">100</span></div>
-        <div>📜 當前階段: <span id="gameStage">準備開始</span></div>
+    <h1>《英魂決》線上即時對戰空間</h1>
+    
+    <div id="lobby" style="margin: auto; text-align: center;">
+        <button class="btn" onclick="playSound(); findGame();">進入對戰大廳（配對）</button>
     </div>
 
-    <!-- 遊戲日誌 -->
-    <div class="log-box" id="logBox">
-        [系統初始化] 歡迎來到歷史卡牌策略對戰！點擊下方按鈕開始遊戲。
+    <div id="gameArea" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1; gap: 8px; overflow: hidden;">
+        <div class="hud">
+            <div>對手 HP: <span id="opHp" style="color:#ef4444;">300</span></div>
+            <div id="turnIndicator">回合狀態</div>
+            <div>我的 HP: <span id="myHp" style="color:#22c55e;">300</span></div>
+        </div>
+
+        <div class="arena">
+            <div>
+                <div style="color:var(--gold); font-size:0.85em; text-align:left;">對手主戰英雄</div>
+                <div class="zone" id="opActive"></div>
+            </div>
+            <div>
+                <div style="color:var(--gold); font-size:0.85em; text-align:left;">我方主戰英雄 (點擊發動攻擊)</div>
+                <div class="zone" id="myActive"></div>
+            </div>
+        </div>
+
+        <div>
+            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (點擊卡牌部署)</div>
+            <div class="zone" id="myHand" style="min-height: 150px; background: rgba(0,0,0,0.3); border-radius: 8px;"></div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <button class="btn" onclick="playSound(); endTurn();" style="padding: 10px 16px;">結束回合</button>
+            <div class="log" id="logBox" style="flex-grow: 1;">[系統] 準備就緒。</div>
+        </div>
     </div>
+</div>
 
-    <!-- 問答互動區 -->
-    <div id="questionArea" class="question-modal hidden">
-        <h3 id="qCardName">【歷史問答挑戰】</h3>
-        <p id="qText">請回答歷史問題...</p>
-        <div class="options-container" id="optionsContainer"></div>
+<div id="questionModal" class="modal hidden">
+    <div class="modal-content">
+        <h3 style="color:var(--gold); margin-top:0;">📜 歷史考驗與戰技激發</h3>
+        <p id="qText" style="font-size: clamp(0.95rem, 1.5vw, 1.1rem); margin: 15px 0;"></p>
+        <div id="qOptions"></div>
     </div>
-
-    <!-- 玩家手牌區 -->
-    <div id="handArea">
-        <div class="section-title">🛡️ 您的歷史人物手牌（點擊選擇出戰）</div>
-        <div class="cards-grid" id="playerFigureGrid"></div>
-
-        <div class="section-title">🔮 您的輔助卡手牌（選填，可增加防禦策略）</div>
-        <div class="cards-grid" id="playerAuxGrid"></div>
-        <button id="skipAuxBtn" class="btn-primary hidden" onclick="skipAuxiliaryCard()">放棄使用輔助卡直接進入對戰</button>
-    </div>
-
-    <!-- 開始遊戲按鈕 -->
-    <button id="startBtn" class="btn-primary" onclick="startGame()">開始新遊戲</button>
 </div>
 
 <script>
-// ==========================================
-// 資料庫定義 (100位歷史人物 + 200件輔助卡)
-// ==========================================
-const HISTORICAL_FIGURES = [
-    {name: "秦始皇", type: "人物", desc: "中國歷史上首位皇帝，創立中央集權與郡縣制。", q: "秦始皇統一六國後，在中央設置的輔佐官職『三公』不包括以下哪一項？", opts: ["A. 丞相", "B. 太尉", "C. 廷尉", "D. 御史大夫"], ans: "C", power: 95, defense: 90},
-    {name: "漢高祖劉邦", type: "人物", desc: "楚漢相爭勝利者，建立西漢王朝。", q: "漢高祖劉邦擊敗哪位西漢勁敵後最終建立漢朝？", opts: ["A. 項羽", "B. 韓信", "C. 陳勝", "D. 吳廣"], ans: "A", power: 88, defense: 85},
-    {name: "漢武帝劉徹", type: "人物", desc: "雄才大略，罷黜百家，獨尊儒術，開拓西域。", q: "漢武帝為加強中央集權，採納哪位大臣的建議「罷黜百家，獨尊儒術」？", opts: ["A. 張湯", "B. 董仲舒", "C. 主父偃", "D. 桑弘羊"], ans: "B", power: 96, defense: 92},
-    {name: "張騫", type: "人物", desc: "奉命出使西域，開闢著名的「絲綢之路」。", q: "張騫第一次出使西域的主要目的是什麼？", opts: ["A. 開展絲綢之路貿易", "B. 聯絡大月氏夾擊匈奴", "C. 宣揚漢朝聲威", "D. 尋求汗血寶馬"], ans: "B", power: 82, defense: 75},
-    {name: "衛青", type: "人物", desc: "西漢名將，多次北伐匈奴，立下汗馬功勞。", q: "衛青與哪位年輕名將多次率軍深入漠北重創匈奴？", opts: ["A. 李廣", "B. 霍去病", "C. 蒙恬", "D. 趙充國"], ans: "B", power: 91, defense: 88},
-    {name: "霍去病", type: "人物", desc: "西漢傑出將領，封狼居胥，大破匈奴。", q: "霍去病率軍深入河西走廊，取得大勝後被封在哪一座山？", opts: ["A. 陰山", "B. 祁連山", "C. 燕山", "D. 太行山"], ans: "B", power: 94, defense: 86},
-    {name: "司馬遷", type: "人物", desc: "西漢偉大史學家與文學家，著有紀傳體通史《史記》。", q: "《史記》被魯迅譽為「史家之絕唱，無韻之離騷」，請問它屬於哪一種體例的史書？", opts: ["A. 編年體", "B. 紀傳體", "C. 紀事本末體", "D. 國別體"], ans: "B", power: 85, defense: 80},
-    {name: "光武帝劉秀", type: "人物", desc: "東漢開國皇帝，平定群雄，開創「光武中興」。", q: "東漢建立於公元25年，定都於哪裡？", opts: ["A. 長安", "B. 洛陽", "C. 成都", "D. 許昌"], ans: "B", power: 90, defense: 89},
-    {name: "曹操", type: "人物", desc: "東漢末年傑出的政治家、軍事家、文學家，奠定曹魏基礎。", q: "東漢末年，曹操迎獻帝於哪一個地方，從此「挾天子以令諸侯」？", opts: ["A. 許昌", "B. 洛陽", "C. 長安", "D. 鄴城"], ans: "A", power: 93, defense: 91},
-    {name: "諸葛亮", type: "人物", desc: "三國時期蜀漢丞相，傑出的政治家與軍事家，忠貞智謀之化身。", q: "諸葛亮在隆中對中為劉備規劃了佔據哪一個地區作為爭霸基地的戰略？", opts: ["A. 江東", "B. 益州（荊益）", "C. 中原", "D. 河北"], ans: "B", power: 95, defense: 94},
-    {name: "隋文帝楊堅", type: "人物", desc: "隋朝開國皇帝，結束南北朝分裂，開創「開皇之治」。", q: "隋文帝在地方行政制度上作出了哪一項重大改革以精簡架構？", opts: ["A. 廢郡設州縣二級制", "B. 實行行省制", "C. 恢復分封制", "D. 設立節度使"], ans: "A", power: 94, defense: 92},
-    {name: "唐太宗李世民", type: "人物", desc: "唐朝第二代皇帝，納諫如流，開創「貞觀之治」。", q: "唐太宗在中央政制中設置了哪一個機構讓三省長官共同議政以提高效率？", opts: ["A. 門下省", "B. 中書省", "C. 政事堂", "D. 樞密院"], ans: "C", power: 98, defense: 96},
-    {name: "武則天", type: "人物", desc: "中國歷史上正統的女皇帝，改國號為周，承前啟後。", q: "武則天稱帝後建立的朝代國號是什麼？", opts: ["A. 齊", "B. 周", "C. 梁", "D. 漢"], ans: "B", power: 92, defense: 90}
-];
+    const socket = io();
+    let currentRoomId = null;
 
-// 動態補足至100位人物卡
-const extraNames = ["李斯", "商鞅", "蒙恬", "項羽", "蕭何", "韓信", "張良", "晁錯", "主父偃", "董仲舒", "公孫弘", "桑弘羊", "劉徹", "王政君", "劉秀", "鄧禹", "馬援", "班超", "竇憲", "鄭眾", "張角", "曹丕", "劉備", "孫權", "周瑜", "司馬懿", "司馬炎", "苻堅", "謝安", "劉裕", "北魏孝文帝", "楊素", "高熲", "杜如晦", "房玄齡", "李靖", "長孫無忌", "狄仁傑", "姚崇", "宋璟", "安祿山", "史思明", "郭子儀", "李光弼", "顏真卿", "韓愈", "柳宗元", "白居易", "李白", "杜甫", "王維", "杜牧", "李商隱", "唐高祖", "唐高宗", "唐中宗", "唐睿宗", "唐肅宗", "唐代宗", "唐德宗", "唐順宗", "唐憲宗", "唐穆宗", "唐敬宗", "唐文宗", "唐武宗", "唐宣宗", "唐懿宗", "唐僖宗", "唐昭宗", "李存勗", "朱溫", "王昭君", "蔡文姬", "花木蘭", "楊貴妃", "上官婉兒", "太平公主", "文成公主", "鬆贊干布"];
-extraNames.forEach(name => {
-    HISTORICAL_FIGURES.push({
-        name: name, type: "人物", desc: `活躍於秦漢至隋唐時期的歷史代表人物：${name}。`,
-        q: `關於秦漢隋唐歷史中的${name}，其主要歷史地位或成就體現在哪一方面？`,
-        opts: ["A. 政治改革與軍事統帥", "B. 文學藝術或思想創作", "C. 對外經略與外交開拓", "D. 以上皆是或核心政務"],
-        ans: "D", power: Math.floor(Math.random() * 22) + 75, defense: Math.floor(Math.random() * 25) + 70
-    });
-});
-
-const AUXILIARY_CARDS = [
-    {name: "商鞅變法", type: "輔助", desc: "[史事] 秦孝公任用商鞅進行變法，使秦國國富兵強。", q: "商鞅變法中哪一項措施直接打擊了世族特權？", opts: ["A. 獎勵軍功", "B. 統一度量衡", "C. 推行縣制", "D. 建立什伍"], ans: "A", power: 15, defense: 25},
-    {name: "約法三章", type: "輔助", desc: "[成語] 劉邦進入關中後與百姓約定的法律條文。", q: "約法三章的核心精神是廢除秦朝苛法，殺人者死，傷人及盜，抵罪與什麼有關？", opts: ["A. 約法省禁", "B. 嚴刑峻法", "C. 什伍連坐", "D. 輕罪重罰"], ans: "A", power: 10, defense: 20},
-    {name: "水能載舟亦能覆舟", type: "輔助", desc: "[名句] 唐太宗吸取隋亡教訓，強調君民關係的名言。", q: "「水能載舟，亦能覆舟」這一思想最早源自哪一位先秦思想家？", opts: ["A. 荀子", "B. 孔子", "C. 孟子", "D. 老子"], ans: "A", power: 20, defense: 30},
-    {name: "長安", type: "輔助", desc: "[地點] 西漢與隋唐時期的帝國首都，國際化大都會。", q: "隋唐長安城的設計規劃嚴整，其宮城位於城市的哪一個方位？", opts: ["A. 北部中央", "B. 南部中央", "C. 東部", "D. 西部"], ans: "A", power: 20, defense: 30},
-    {name: "萬里長城", type: "輔助", desc: "[建築] 自秦代連接並增修的防禦北方游牧民族的偉大工事。", q: "秦始皇命哪一位將軍率領三十萬大軍北擊匈奴並修築萬里長城？", opts: ["A. 蒙恬", "B. 王翦", "C. 李信", "D. 韓信"], ans: "A", power: 25, defense: 40}
-];
-
-// 動態補足至200件輔助卡
-for(let i=6; i<=200; i++) {
-    AUXILIARY_CARDS.push({
-        name: `策略輔助卡_${i}`, type: "輔助", desc: `[歷史策略] 秦漢至隋唐时期的重要策略與物資支援。`,
-        q: `在秦漢隋唐歷史發展中，此項策略或文物的主要作用為何？`,
-        opts: ["A. 鞏固中央集權與經濟穩定", "B. 加強對外軍事防禦", "C. 促進文化交流與思想統一", "D. 以上皆是"],
-        ans: "D", power: Math.floor(Math.random() * 15) + 10, defense: Math.floor(Math.random() * 20) + 15
-    });
-}
-
-// ==========================================
-// 遊戲狀態變數
-// ==========================================
-let gameState = {
-    playerHp: 100,
-    aiHp: 100,
-    playerFigureHand: [],
-    playerAuxHand: [],
-    aiFigureHand: [],
-    aiAuxHand: [],
-    selectedFigure: null,
-    pendingFigureCard: null,
-    inQuestion: false
-};
-
-function logMessage(msg) {
-    const box = document.getElementById('logBox');
-    box.innerHTML += `<div>${msg}</div>`;
-    box.scrollTop = box.scrollHeight;
-}
-
-function startGame() {
-    gameState.playerHp = 100;
-    gameState.aiHp = 100;
-    document.getElementById('startBtn').classList.add('hidden');
-    document.getElementById('logBox.innerHTML = ""');
-    logMessage("🌟 遊戲正式開始！抽牌階段中...");
-    
-    // 初始抽牌
-    gameState.playerFigureHand = getRandomItems(HISTORICAL_FIGURES, 3);
-    gameState.playerAuxHand = getRandomItems(AUXILIARY_CARDS, 5);
-    gameState.aiFigureHand = getRandomItems(HISTORICAL_FIGURES, 3);
-    gameState.aiAuxHand = getRandomItems(AUXILIARY_CARDS, 5);
-
-    updateUI();
-    startTurn();
-}
-
-function getRandomItems(arr, count) {
-    let shuffled = [...arr].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
-}
-
-function startTurn() {
-    document.getElementById('gameStage').innerText = "玩家出牌階段";
-    // 摸牌
-    let newFig = HISTORICAL_FIGURES[Math.floor(Math.random() * HISTORICAL_FIGURES.length)];
-    let newAux = AUXILIARY_CARDS[Math.floor(Math.random() * AUXILIARY_CARDS.length)];
-    gameState.playerFigureHand.push(newFig);
-    gameState.playerAuxHand.push(newAux);
-    logMessage(`💡 摸牌階段：獲得人物卡【${newFig.name}】與輔助卡【${newAux.name}】`);
-    updateUI();
-}
-
-function updateUI() {
-    document.getElementById('playerHp').innerText = gameState.playerHp;
-    document.getElementById('aiHp').innerText = gameState.aiHp;
-
-    // 渲染人物手牌
-    const figGrid = document.getElementById('playerFigureGrid');
-    figGrid.innerHTML = "";
-    gameState.playerFigureHand.forEach((card, index) => {
-        figGrid.innerHTML += `
-            <div class="card" onclick="selectFigureCard(${index})">
-                <h3>${card.name}</h3>
-                <p>${card.desc}</p>
-                <p class="stats">攻擊: ${card.power} | 防禦: ${card.defense}</p>
-            </div>
-        `;
-    });
-
-    // 渲染輔助卡手牌
-    const auxGrid = document.getElementById('playerAuxGrid');
-    auxGrid.innerHTML = "";
-    gameState.playerAuxHand.forEach((card, index) => {
-        auxGrid.innerHTML += `
-            <div class="card" onclick="selectAuxCard(${index})">
-                <h3>${card.name}</h3>
-                <p>${card.desc}</p>
-                <p class="stats">策略加成: ${card.defense}</p>
-            </div>
-        `;
-    });
-}
-
-function selectFigureCard(index) {
-    if (gameState.inQuestion) return;
-    gameState.pendingFigureCard = gameState.playerFigureHand.splice(index, 1)[0];
-    updateUI();
-    triggerQuestion(gameState.pendingFigureCard, (success) => {
-        let effPower = success ? gameState.pendingFigureCard.power : Math.floor(gameState.pendingFigureCard.power / 2);
-        let effDefense = success ? gameState.pendingFigureCard.defense : Math.floor(gameState.pendingFigureCard.defense / 2);
-        
-        // 進入輔助卡選擇或直接對戰
-        logMessage(`✅ 人物卡【${gameState.pendingFigureCard.name}】準備就緒 (實效攻擊: ${effPower}, 防禦: ${effDefense})`);
-        document.getElementById('skipAuxBtn').classList.remove('hidden');
-        gameState.currentEffPower = effPower;
-        gameState.currentEffDefense = effDefense;
-    });
-}
-
-function selectAuxCard(index) {
-    if (!gameState.currentEffPower) {
-        alert("請先選擇要出戰的【歷史人物卡】！");
-        return;
+    function playSound(type = 'click') {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            if (type === 'click') {
+                osc.frequency.setValueAtTime(600, ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                osc.start(); osc.stop(ctx.currentTime + 0.08);
+            }
+        } catch(e) {}
     }
-    let auxCard = gameState.playerAuxHand.splice(index, 1)[0];
-    updateUI();
-    document.getElementById('skipAuxBtn').classList.add('hidden');
-    
-    triggerQuestion(auxCard, (success) => {
-        if(success) {
-            logMessage(`✅ 輔助卡【${auxCard.name}】答對！防禦力額外增加 ${auxCard.defense}`);
-            gameState.currentEffDefense += auxCard.defense;
-        } else {
-            logMessage(`❌ 輔助卡【${auxCard.name}】答錯，無防禦加成。`);
-        }
-        executeBattle();
+
+    function findGame() { socket.emit('find_game'); }
+
+    socket.on('game_start', ({ roomId }) => {
+        currentRoomId = roomId;
+        document.getElementById('lobby').classList.add('hidden');
+        document.getElementById('gameArea').classList.remove('hidden');
+        appendLog("對局開始！");
     });
-}
 
-function skipAuxiliaryCard() {
-    document.getElementById('skipAuxBtn').classList.add('hidden');
-    logMessage("⏩ 您選擇不使用輔助卡，直接進入戰鬥結算。");
-    executeBattle();
-}
+    socket.on('game_state_update', ({ myState, opState, isMyTurn }) => {
+        document.getElementById('myHp').innerText = myState.hp;
+        document.getElementById('opHp').innerText = opState.hp;
 
-function triggerQuestion(card, callback) {
-    gameState.inQuestion = true;
-    document.getElementById('questionArea').classList.remove('hidden');
-    document.getElementById('qCardName').innerText = `【歷史問答挑戰】卡牌：${card.name}`;
-    document.getElementById('qText').innerText = card.q;
-    
-    const optContainer = document.getElementById('optionsContainer');
-    optContainer.innerHTML = "";
-    card.opts.forEach(opt => {
-        let optLetter = opt.charAt(0);
-        optContainer.innerHTML += `<button class="option-btn" onclick="answerQuestion('${optLetter}', '${card.ans}', ${callback})">${opt}</button>`;
+        const indicator = document.getElementById('turnIndicator');
+        indicator.innerText = isMyTurn ? "⭐ 您的回合" : "⏳ 對手回合";
+        indicator.style.color = isMyTurn ? "#4ade80" : "#f87171";
+
+        const handDiv = document.getElementById('myHand');
+        handDiv.innerHTML = "";
+        myState.hand.forEach((card, idx) => {
+            handDiv.innerHTML += `
+                <div class="card" onclick="playSound(); playCard(${idx})">
+                    <div style="font-size:0.7em; font-weight:bold;">[${card.dynasty}]</div>
+                    <div style="font-size:0.9em; font-weight:bold; color:#78350f;">${card.name}</div>
+                    <div style="font-size:0.6em; color:#475569; overflow:hidden; max-height:35px;">${card.skill}</div>
+                    <div style="font-size:0.65em; background:#fef3c7; font-weight:bold; color:#b45309;">HP: ${card.hp}</div>
+                </div>`;
+        });
+
+        const myActive = document.getElementById('myActive');
+        myActive.innerHTML = myState.active ? `
+            <div class="card" style="border:3px solid #22c55e;" onclick="playSound(); triggerAttack();">
+                <div style="font-size:0.7em; font-weight:bold;">主戰英雄</div>
+                <div style="font-size:0.9em; font-weight:bold; color:#78350f;">${myState.active.name}</div>
+                <div style="font-size:0.6em; color:#475569;">${myState.active.skill}</div>
+                <div style="font-size:0.65em; background:#dcfce7; color:#15803d; font-weight:bold;">⚔️ 點擊攻擊</div>
+            </div>` : `<div style="color:#64748b; font-size:0.9rem;">請點選手牌部署主戰英雄</div>`;
+
+        const opActive = document.getElementById('opActive');
+        opActive.innerHTML = opState.active ? `
+            <div class="card" style="border:3px solid #ef4444;">
+                <div style="font-size:0.7em; font-weight:bold;">對手主戰</div>
+                <div style="font-size:0.9em; font-weight:bold; color:#78350f;">${opState.active.name}</div>
+                <div style="font-size:0.6em; color:#475569;">${opState.active.skill}</div>
+                <div style="font-size:0.65em; background:#fee2e2; color:#991b1b; font-weight:bold;">HP: ${opState.active.hp}</div>
+            </div>` : `<div style="color:#64748b; font-size:0.9rem;">對手尚未部署</div>`;
     });
-}
 
-window.answerQuestion = function(chosen, correct, callback) {
-    document.getElementById('questionArea').classList.add('hidden');
-    gameState.inQuestion = false;
-    if(chosen === correct) {
-        logMessage(`✅ 回答正確！`);
-        callback(true);
-    } else {
-        logMessage(`❌ 回答錯誤！正確答案是 ${correct}。`);
-        callback(false);
+    function playCard(cardIndex) { socket.emit('play_card', { roomId: currentRoomId, cardIndex }); }
+
+    function triggerAttack() {
+        const questions = [
+            { q: "秦王政自認為「XX三皇，XX五帝」，合稱為「皇帝」：", ans: "功過三皇，德兼五帝", opts: ["A. 功過三皇，德兼五帝", "B. 德高三皇，功過五帝"] },
+            { q: "漢武帝頒行哪一項法令削弱諸侯王勢力？", ans: "推恩令", opts: ["A. 削藩令", "B. 推恩令"] }
+        ];
+        let q = questions[Math.floor(Math.random() * questions.length)];
+        document.getElementById('qText').innerText = q.q;
+        const optDiv = document.getElementById('qOptions');
+        optDiv.innerHTML = "";
+        q.opts.forEach(opt => {
+            let isCorrect = opt.includes(q.ans) || opt.charAt(0) === 'A';
+            optDiv.innerHTML += `<button class="modal-btn" onclick="playSound(); submitAnswer(${isCorrect})">${opt}</button>`;
+        });
+        document.getElementById('questionModal').classList.remove('hidden');
     }
-}
 
-function executeBattle() {
-    // AI 出牌
-    let aiFig = gameState.aiFigureHand.pop();
-    let aiAux = gameState.aiAuxHand.length > 0 ? gameState.aiAuxHand.pop() : null;
-    let aiDef = aiAux ? aiFig.defense + aiAux.defense : aiFig.defense;
-
-    logMessage(`⚔️【對戰結算】`);
-    logMessage(`您派出了【${gameState.pendingFigureCard.name}】(攻擊: ${gameState.currentEffPower}, 防禦: ${gameState.currentEffDefense})`);
-    logMessage(`對手派出了【${aiFig.name}】(攻擊: ${aiFig.power}, 防禦: ${aiDef})`);
-
-    let pDamageToAi = Math.max(5, gameState.currentEffPower - Math.floor(aiDef / 2));
-    let aiDamageToP = Math.max(5, aiFig.power - Math.floor(gameState.currentEffDefense / 2));
-
-    gameState.aiHp -= pDamageToAi;
-    gameState.playerHp -= aiDamageToP;
-
-    logMessage(`💥 您對對手造成了 ${pDamageToAi} 點傷害！`);
-    logMessage(`💥 對手對您造成了 ${aiDamageToP} 點傷害！`);
-
-    // 補充 AI 手牌
-    gameState.aiFigureHand.push(HISTORICAL_FIGURES[Math.floor(Math.random() * HISTORICAL_FIGURES.length)]);
-    gameState.aiAuxHand.push(AUXILIARY_CARDS[Math.floor(Math.random() * AUXILIARY_CARDS.length)]);
-
-    gameState.pendingFigureCard = null;
-    gameState.currentEffPower = null;
-    gameState.currentEffDefense = null;
-
-    updateUI();
-
-    // 檢查勝負
-    if (gameState.playerHp <= 0 && gameState.aiHp <= 0) {
-        logMessage("🤝 雙方平手！");
-        endGame();
-    } else if (gameState.playerHp <= 0) {
-        logMessage("❌ 您的血量歸零，戰敗落幕！");
-        endGame();
-    } else if (gameState.aiHp <= 0) {
-        logMessage("🎉 恭喜您！擊敗對手，贏得最終勝利！");
-        endGame();
-    } else {
-        startTurn();
+    function submitAnswer(isCorrect) {
+        document.getElementById('questionModal').classList.add('hidden');
+        socket.emit('attack', { roomId: currentRoomId, answerCorrect: isCorrect });
     }
-}
 
-function endGame() {
-    document.getElementById('gameStage').innerText = "遊戲結束";
-    document.getElementById('startBtn').innerText = "重新開始遊戲";
-    document.getElementById('startBtn').classList.remove('hidden');
-}
+    function endTurn() { socket.emit('end_turn', currentRoomId); }
+
+    socket.on('battle_log', (data) => { appendLog(data.msg); });
+    socket.on('game_over', ({ winner }) => {
+        alert(winner === socket.id ? "🎉 恭喜您獲得勝利！" : "❌ 可惜，勝敗乃兵家常事！");
+        location.reload();
+    });
+
+    function appendLog(text) {
+        const box = document.getElementById('logBox');
+        box.innerHTML += `<div>> ${text}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }
 </script>
-
 </body>
 </html>
