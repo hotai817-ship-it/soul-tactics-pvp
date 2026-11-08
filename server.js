@@ -32,62 +32,60 @@ const MONSTER_DB = [
     { hp: 81, pts: 40, name: "烈焰魔龍", emoji: "🐉" }
 ];
 
-// ==========================================
-// 🧠 智能抽牌系統 (確保手牌能對應幻獸)
-// ==========================================
-
-// 1. 取得目前場上幻獸的所有合法因數 (1~9)
-function getValidFactorsForField(fieldMonsters) {
-    let factors = [];
-    fieldMonsters.forEach(monster => {
-        for (let i = 1; i <= 9; i++) {
-            if (monster.hp % i === 0 && monster.hp / i <= 9) {
-                factors.push(i);
-            }
-        }
-    });
-    return factors;
-}
-
-// 2. 智能抽卡：80% 機率抽出有用的因數，20% 隨機
-function drawSmartCard(fieldMonsters) {
-    const validFactors = getValidFactorsForField(fieldMonsters);
-    // 如果場上還有幻獸，且落入 80% 的機率
-    if (validFactors.length > 0 && Math.random() < 0.8) {
-        return validFactors[Math.floor(Math.random() * validFactors.length)];
-    }
-    // 否則給予隨機 1~9 卡片
+// 隨機抽取 1~9 的卡牌
+function drawNumberCard() {
     return Math.floor(Math.random() * 9) + 1;
 }
 
-// 3. 生成起手牌：保證初始 5 張牌中，絕對有一組可以直接擊敗場上的某隻幻獸
-function generateInitialHand(fieldMonsters) {
-    let hand = [];
-    if (fieldMonsters.length > 0) {
-        // 隨機鎖定場上一隻幻獸
-        const target = fieldMonsters[Math.floor(Math.random() * fieldMonsters.length)];
-        let possiblePairs = [];
-        for (let i = 1; i <= 9; i++) {
-            if (target.hp % i === 0 && target.hp / i <= 9) {
-                possiblePairs.push([i, target.hp / i]);
+// ==========================================
+// 🛡️ 絕對保底系統：確保每回合手牌中「必定有解」
+// ==========================================
+function checkAndFixHands(room) {
+    if (!room || room.state.fieldMonsters.length === 0) return;
+
+    // 掃描每一位玩家的手牌
+    room.players.forEach(pid => {
+        let pData = room.state.playerData[pid];
+        if (!pData || pData.hand.length < 2) return;
+
+        let hasValidPair = false;
+        // 檢查 5 張手牌中，是否有任兩張相乘等於場上幻獸的 HP
+        for (let i = 0; i < pData.hand.length; i++) {
+            for (let j = i + 1; j < pData.hand.length; j++) {
+                const product = pData.hand[i] * pData.hand[j];
+                if (room.state.fieldMonsters.some(m => m.hp === product)) {
+                    hasValidPair = true;
+                    break;
+                }
+            }
+            if (hasValidPair) break;
+        }
+
+        // 如果手牌真的是「死牌」(完全無法打敗任何一隻)，系統強制介入修正！
+        if (!hasValidPair) {
+            // 隨機鎖定場上的一隻幻獸作為救援目標
+            const target = room.state.fieldMonsters[Math.floor(Math.random() * room.state.fieldMonsters.length)];
+            
+            // 找出能打敗牠的所有因數配對
+            let possiblePairs = [];
+            for (let i = 1; i <= 9; i++) {
+                if (target.hp % i === 0 && target.hp / i <= 9) {
+                    possiblePairs.push([i, target.hp / i]);
+                }
+            }
+
+            if (possiblePairs.length > 0) {
+                // 隨機選一組配對
+                const pair = possiblePairs[Math.floor(Math.random() * possiblePairs.length)];
+                
+                // 從玩家的 5 張牌中隨機挑選 2 個位置，偷偷替換成必殺牌
+                let indices = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5).slice(0, 2);
+                pData.hand[indices[0]] = pair[0];
+                pData.hand[indices[1]] = pair[1];
             }
         }
-        // 塞入一組必定能解題的配對
-        if (possiblePairs.length > 0) {
-            const pair = possiblePairs[Math.floor(Math.random() * possiblePairs.length)];
-            hand.push(pair[0], pair[1]);
-        }
-    }
-    
-    // 剩下的 3 張牌使用智能補牌
-    while (hand.length < 5) {
-        hand.push(drawSmartCard(fieldMonsters));
-    }
-    
-    // 洗牌，讓保底牌位置隨機
-    return hand.sort(() => Math.random() - 0.5);
+    });
 }
-
 // ==========================================
 
 let rooms = {};
@@ -105,20 +103,22 @@ io.on('connection', (socket) => {
         }
         
         let shuffledMonsters = [...MONSTER_DB].sort(() => Math.random() - 0.5);
-        let initialField = shuffledMonsters.splice(0, 3);
         
         rooms[roomId] = {
             players: [socket.id],
             state: {
                 turn: socket.id,
-                fieldMonsters: initialField,
+                fieldMonsters: shuffledMonsters.splice(0, 3),
                 monsterDeck: shuffledMonsters,
                 playerData: {
-                    // 使用智能系統生成起手牌
-                    [socket.id]: { score: 0, hand: generateInitialHand(initialField) }
+                    [socket.id]: { score: 0, hand: Array.from({length: 5}, drawNumberCard) }
                 }
             }
         };
+        
+        // 建房後立刻校正手牌，確保有解
+        checkAndFixHands(rooms[roomId]);
+        
         socket.join(roomId);
         socket.emit('room_created', roomId);
     });
@@ -137,10 +137,12 @@ io.on('connection', (socket) => {
         if (room.players.includes(socket.id)) return;
 
         room.players.push(socket.id);
-        // 使用智能系統生成第二位玩家的起手牌
-        room.state.playerData[socket.id] = { score: 0, hand: generateInitialHand(room.state.fieldMonsters) };
+        room.state.playerData[socket.id] = { score: 0, hand: Array.from({length: 5}, drawNumberCard) };
+        
+        // 玩家加入後立刻校正雙方手牌，確保起手皆有解
+        checkAndFixHands(room);
+        
         socket.join(roomId);
-
         io.to(roomId).emit('game_start', { roomId });
         updateGameState(roomId);
     });
@@ -161,31 +163,29 @@ io.on('connection', (socket) => {
 
         // 乘法判定
         if (num1 * num2 === targetMonster.hp) {
+            // 討伐成功
             pData.score += targetMonster.pts;
             io.to(roomId).emit('play_sound', { type: 'success' });
             io.to(roomId).emit('battle_log', { msg: `✨ 討伐成功！${num1} × ${num2} = ${targetMonster.hp}，獲得 ${targetMonster.pts} 分！` });
 
-            // 移除出過的兩張手牌
+            // 移除手牌並補新牌
             cardIndices.sort((a, b) => b - a).forEach(idx => pData.hand.splice(idx, 1));
+            pData.hand.push(drawNumberCard(), drawNumberCard());
             
-            // 移除並替換幻獸 (先替換幻獸，才能讓後續抽牌對應到新幻獸)
+            // 替換場上的幻獸
             room.state.fieldMonsters.splice(monsterIndex, 1);
             if (room.state.monsterDeck.length > 0) {
                 room.state.fieldMonsters.push(room.state.monsterDeck.shift());
             }
 
-            // 根據「更新後的場上幻獸」智能補充兩張牌
-            pData.hand.push(
-                drawSmartCard(room.state.fieldMonsters), 
-                drawSmartCard(room.state.fieldMonsters)
-            );
-
+            // 【重要】場上幻獸更新了，再次檢查並校正雙方手牌，避免對手突然變死牌！
+            checkAndFixHands(room);
             checkWinCondition(room, roomId);
         } else {
             // 討伐失敗
             pData.score = Math.max(0, pData.score - 5);
             io.to(roomId).emit('play_sound', { type: 'fail' });
-            io.to(roomId).emit('battle_log', { msg: `❌ 討伐失敗！${num1} × ${num2} 不等於 ${targetMonster.hp}，被幻獸反擊扣 5 分！` });
+            io.to(roomId).emit('battle_log', { msg: `❌ 討伐失敗！${num1} × ${num2} 不等於 ${targetMonster.hp}，扣 5 分！` });
         }
         
         switchTurn(room, roomId);
@@ -199,13 +199,15 @@ io.on('connection', (socket) => {
         const pData = room.state.playerData[socket.id];
         if (!pData || typeof cardIndex !== 'number') return;
 
+        // 丟棄一張，抽一張新的
         pData.hand.splice(cardIndex, 1)[0];
+        pData.hand.push(drawNumberCard());
         
-        // 棄牌後，必定使用智能補牌補充一張
-        pData.hand.push(drawSmartCard(room.state.fieldMonsters));
+        // 棄牌後同樣觸發手牌檢查
+        checkAndFixHands(room);
         
         io.to(roomId).emit('play_sound', { type: 'draw' });
-        io.to(roomId).emit('battle_log', { msg: `🔄 玩家棄牌並重新補給，回合結束。` });
+        io.to(roomId).emit('battle_log', { msg: `🔄 玩家棄牌重抽，回合結束。` });
         
         switchTurn(room, roomId);
     });
@@ -216,7 +218,7 @@ io.on('connection', (socket) => {
             if (room && room.players.includes(socket.id)) {
                 io.to(roomId).emit('battle_log', { msg: `⚠️ 對手已斷線，遊戲結束。` });
                 const winnerId = room.players.find(id => id !== socket.id) || socket.id;
-                io.to(roomId).emit('game_over', { msg: '對手離開了，你獲得了勝利！' });
+                io.to(roomId).emit('game_over', { msg: '對手逃跑了，你獲得了勝利！' });
                 delete rooms[roomId];
             }
         }
@@ -276,5 +278,5 @@ function updateGameState(roomId) {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`《九九幻獸島》伺服器已在 port ${PORT} 啟動！`);
+    console.log(`《九九幻獸島》伺服器已啟動於 Port ${PORT}！`);
 });
