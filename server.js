@@ -102,7 +102,8 @@ io.on('connection', (socket) => {
         roomId = roomId.trim();
         if (rooms[roomId]) return socket.emit('error_msg', '房間已存在，請直接加入！');
         
-        let shuffledMonsters = [...MONSTER_DB].sort(() => Math.random() - 0.5);
+        // 【變更】為了讓 300 分的目標可以達成，將幻獸牌庫數量直接加倍
+        let shuffledMonsters = [...MONSTER_DB, ...MONSTER_DB].sort(() => Math.random() - 0.5);
         
         rooms[roomId] = {
             players: [socket.id],
@@ -219,7 +220,8 @@ function checkWinCondition(room, roomId) {
     let winnerId = null;
 
     room.players.forEach(pid => {
-        if (room.state.playerData[pid].score >= 100) {
+        // 【變更】獲勝目標改為 300 分
+        if (room.state.playerData[pid].score >= 300) {
             isGameOver = true;
             winnerId = pid;
         }
@@ -239,7 +241,8 @@ function checkWinCondition(room, roomId) {
         if (winnerId === 'draw') {
             io.to(roomId).emit('game_over', { msg: '平手！你們都是優秀的幻獸大師！' });
         } else {
-            io.to(roomId).emit('game_over', { msg: '達到 100 分或幻獸淨空，遊戲結束！', winner: winnerId });
+            // 【變更】結算文字顯示 300 分
+            io.to(roomId).emit('game_over', { msg: '達到 300 分或幻獸淨空，遊戲結束！', winner: winnerId });
         }
         delete rooms[roomId];
     }
