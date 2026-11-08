@@ -61,7 +61,7 @@
     <!-- 大廳 -->
     <div id="lobby" style="margin: auto; text-align: center; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
         <h3 style="color: var(--primary); margin-top:0;">尋找因數的極限對決！(限時15秒)</h3>
-        <p>找出兩張手牌相乘等於幻獸 HP，將其擊敗！</p>
+        <p>找出兩張手牌相乘等於幻獸 HP，將其擊敗！<br><span style="color:#ef4444; font-size:0.9rem;">(系統保底每回合絕對有解，盡情戰鬥吧！)</span></p>
         <input type="text" id="roomInput" class="input-box" placeholder="輸入房號 (例: 99)"><br><br>
         <button class="btn" onclick="playSound('click'); createRoom();">開創島嶼 (建立房間)</button>
         <button class="btn" style="background:#3b82f6; box-shadow:0 4px 0 #1d4ed8;" onclick="playSound('click'); joinRoom();">登陸島嶼 (加入房間)</button>
@@ -105,7 +105,7 @@
     let selectedMonsterIndex = null;
     let isMyTurnCurrent = false;
     
-    let countdownInterval = null; // 計時器 ID
+    let countdownInterval = null;
 
     // 音效引擎
     let audioCtx = null;
@@ -174,7 +174,7 @@
         appendLog(`🎉 對戰開始！每回合限時 15 秒！`);
     });
 
-    // 每當回合切換、收到最新狀態時，重置前端的 15 秒倒數 UI
+    // 每當更新狀態，重置前端 15 秒倒數
     socket.on('game_state_update', ({ myState, opState, fieldMonsters, monstersLeft, isMyTurn }) => {
         isMyTurnCurrent = isMyTurn;
         document.getElementById('myScore').innerText = myState.score;
@@ -192,7 +192,6 @@
             indicator.style.fontWeight = "normal";
         }
 
-        // --- 重置與啟動前端計時器 ---
         clearInterval(countdownInterval);
         let timeLeft = 15;
         const timerBox = document.getElementById('timerBox');
@@ -208,11 +207,10 @@
                 clearInterval(countdownInterval);
             }
             if (timeLeft <= 3 && isMyTurn) {
-                timerBox.classList.add('timer-alert'); // 剩 3 秒發出紅光警告
+                timerBox.classList.add('timer-alert'); // 剩 3 秒紅光警告
             }
             timerText.innerText = timeLeft;
         }, 1000);
-        // --------------------------------
 
         selectedHandIndices = [];
         selectedMonsterIndex = null;
@@ -308,7 +306,7 @@
 
     socket.on('battle_log', (data) => { appendLog(data.msg); });
     socket.on('game_over', ({ msg, winner }) => {
-        clearInterval(countdownInterval); // 遊戲結束停止計時器
+        clearInterval(countdownInterval);
         if (winner) {
             if (winner === socket.id) alert("🏆 恭喜你達到目標，成為首席幻獸大師！\n" + msg);
             else alert("😢 對手先達到目標了，請再接再厲！\n" + msg);
