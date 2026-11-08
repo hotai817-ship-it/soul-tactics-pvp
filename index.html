@@ -2,325 +2,335 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>《九九幻獸島》即時對戰</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亞特蘭提斯：六維度密室 (精英數學特訓)</title>
+    <!-- 引入 Socket.io -->
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        :root { --primary: #3b82f6; --bg: #f0fdfa; --text: #0f172a; --card-bg: #ffffff; }
-        * { box-sizing: border-box; font-family: 'Comic Sans MS', 'PingFang TC', sans-serif; }
-        body { 
-            background: var(--bg); color: var(--text); margin: 0; 
+        :root {
+            --bg-color: #001f3f; --panel-bg: rgba(0, 45, 90, 0.85); --primary: #00e5ff;
+            --accent: #ffaa00; --danger: #ff3366; --success: #00ff88; --text: #e0f7fa;
+        }
+        * { box-sizing: border-box; font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; }
+        body {
+            margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text);
+            background-image: radial-gradient(circle at center, #003366 0%, #001122 100%);
             min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            -webkit-user-select: none; user-select: none; overflow: hidden;
+            overflow: hidden; user-select: none;
         }
-        .container { width: 100%; max-width: 900px; height: 100vh; display: flex; flex-direction: column; padding: 10px; }
-        h1 { color: #0284c7; text-align: center; margin: 5px 0; font-size: clamp(1.5rem, 3vw, 2.2rem); text-shadow: 2px 2px 0px #bae6fd; }
-        
-        .btn { background: #f59e0b; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 20px; cursor: pointer; font-size: 1.1rem; margin: 5px; box-shadow: 0 4px 0 #b45309; transition: transform 0.1s; }
-        .btn:active { transform: translateY(4px); box-shadow: none; }
-        .btn:disabled { background: #94a3b8; box-shadow: 0 4px 0 #64748b; cursor: not-allowed; }
-        
-        .input-box { border: 2px solid #0284c7; padding: 12px; border-radius: 12px; font-size: 1.1rem; width: 200px; text-align: center; outline: none; }
-        
-        .hud { background: #e0f2fe; border: 3px solid #7dd3fc; padding: 10px 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: bold; margin-bottom: 10px;}
-        
-        .timer-box { font-size: 1.3rem; font-weight: 900; background: #1e293b; color: white; padding: 4px 12px; border-radius: 20px; border: 2px solid #cbd5e1; }
-        .timer-alert { color: #ef4444; border-color: #ef4444; animation: blink 0.5s infinite alternate; }
-        @keyframes blink { from { opacity: 1; } to { opacity: 0.6; } }
-
-        .arena { flex-grow: 1; display: flex; flex-direction: column; justify-content: space-around; background: #cffafe; border-radius: 15px; padding: 10px; border: 3px dashed #38bdf8; }
-        .zone { display: flex; gap: 10px; justify-content: center; align-items: center; overflow-x: auto; min-height: 140px; }
-        
-        .monster-card {
-            background: #fef08a; border: 4px solid #eab308; border-radius: 12px; width: 100px; height: 130px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.2s; position: relative;
+        .container {
+            width: 100%; max-width: 800px; background: var(--panel-bg);
+            border: 2px solid var(--primary); border-radius: 15px; padding: 30px;
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.2); text-align: center; position: relative;
         }
-        .monster-card.selected { border-color: #ef4444; box-shadow: 0 0 15px #ef4444; transform: scale(1.1); }
-        .monster-hp { font-size: 2.2rem; font-weight: 900; color: #b91c1c; }
-        .monster-pts { position: absolute; top: -10px; right: -10px; background: #3b82f6; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; border: 2px solid white; }
+        h1 { color: var(--primary); text-shadow: 0 0 10px var(--primary); margin-top: 0; font-size: 2.2rem;}
+        h2 { color: var(--accent); margin-bottom: 10px; }
         
-        .number-card {
-            background: white; border: 3px solid #94a3b8; border-radius: 12px; width: 70px; height: 100px;
-            display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 900; color: #1e293b;
-            cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.2s;
+        .login-box { background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; border: 1px solid var(--primary); margin-bottom: 20px; }
+        
+        .hud {
+            display: flex; justify-content: space-between; margin-bottom: 20px;
+            padding: 10px 20px; background: rgba(0,0,0,0.5); border-radius: 10px;
+            border: 1px solid var(--primary); font-size: 1.2rem; font-weight: bold;
         }
-        .number-card.selected { border-color: #22c55e; background: #dcfce7; color: #15803d; transform: translateY(-10px); }
+        .timer { color: var(--danger); text-shadow: 0 0 5px var(--danger); font-family: monospace; font-size: 1.5rem;}
         
-        .action-bar { display: flex; justify-content: center; gap: 15px; margin-top: 10px; }
+        .story-text { font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px; color: #b2ebf2; }
+        .question-box { background: rgba(0, 0, 0, 0.6); padding: 20px; border-radius: 10px; border-left: 5px solid var(--accent); font-size: 1.3rem; margin-bottom: 25px; text-align: left; }
         
-        .log { background: white; color: #334155; padding: 10px; height: 80px; overflow-y: auto; text-align: left; border-radius: 10px; border: 2px solid #cbd5e1; font-size: 0.95rem; margin-top: 10px;}
+        .input-group { margin: 20px 0; display: flex; justify-content: center; gap: 10px; }
+        input[type="number"], input[type="text"] {
+            padding: 12px; font-size: 1.2rem; width: 150px; text-align: center;
+            border: 2px solid var(--primary); border-radius: 8px; background: #001122; color: var(--primary);
+            outline: none; font-weight: bold;
+        }
+        input:focus { box-shadow: 0 0 15px var(--primary); }
+        
+        .btn {
+            background: linear-gradient(135deg, #0088cc, #005599); border: 2px solid var(--primary);
+            color: white; padding: 12px 25px; font-size: 1.2rem; border-radius: 8px;
+            cursor: pointer; font-weight: bold; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .btn:hover { background: linear-gradient(135deg, #00aaff, #0077cc); transform: translateY(-2px); box-shadow: 0 0 15px var(--primary); }
+        .btn:disabled { background: #555; border-color: #777; cursor: not-allowed; box-shadow: none; transform: none; color: #aaa;}
+        
+        .options-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+        .opt-btn { background: #002244; border: 2px solid #0088cc; padding: 15px; font-size: 1.5rem; border-radius: 10px; color: white; cursor: pointer; transition: 0.2s; }
+        .opt-btn:hover { background: #004488; border-color: var(--primary); }
         
         .hidden { display: none !important; }
+        .feedback { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 4rem; font-weight: bold; pointer-events: none; opacity: 0; z-index: 10; text-shadow: 0 0 20px black; }
+        
+        @keyframes flashCorrect { 0% { opacity:1; color: var(--success); transform: translate(-50%, -50%) scale(0.5); } 50% { opacity:1; transform: translate(-50%, -50%) scale(1.2); } 100% { opacity:0; transform: translate(-50%, -50%) scale(1.5); } }
+        @keyframes flashWrong { 0% { opacity:1; color: var(--danger); transform: translate(-50%, -50%) rotate(-10deg); } 20% { transform: translate(-50%, -50%) rotate(10deg); } 40% { transform: translate(-50%, -50%) rotate(-10deg); } 100% { opacity:0; } }
+        .anim-correct { animation: flashCorrect 1s forwards; }
+        .anim-wrong { animation: flashWrong 0.8s forwards; }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>🌟《九九幻獸島》🌟</h1>
+
+<div class="feedback" id="feedbackMsg"></div>
+
+<!-- 首頁與登入 -->
+<div class="container" id="screenStart">
+    <h1>🔱 亞特蘭提斯：六維度密室</h1>
+    <h2>精英小學六年級 數學極限特訓</h2>
     
-    <!-- 大廳 -->
-    <div id="lobby" style="margin: auto; text-align: center; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-        <h3 style="color: var(--primary); margin-top:0;">尋找因數的極限對決！(限時15秒)</h3>
-        <p>找出兩張手牌相乘等於幻獸 HP，將其擊敗！<br><span style="color:#ef4444; font-size:0.9rem;">(系統保底每回合絕對有解，盡情戰鬥吧！)</span></p>
-        <input type="text" id="roomInput" class="input-box" placeholder="輸入房號 (例: 99)"><br><br>
-        <button class="btn" onclick="playSound('click'); createRoom();">開創島嶼 (建立房間)</button>
-        <button class="btn" style="background:#3b82f6; box-shadow:0 4px 0 #1d4ed8;" onclick="playSound('click'); joinRoom();">登陸島嶼 (加入房間)</button>
+    <div class="login-box">
+        <div style="margin-bottom:15px; color:var(--accent);">請輸入班別與學號啟動潛水艙</div>
+        <div class="input-group" style="margin-top:0;">
+            <input type="text" id="classInput" placeholder="班別 (例:6A)" oninput="verifyStudent()">
+            <input type="text" id="noInput" placeholder="學號 (例:01)" oninput="verifyStudent()">
+        </div>
+        <div id="studentNameDisplay" style="color:var(--danger); font-weight:bold; height:24px;">身分尚未驗證</div>
     </div>
 
-    <!-- 遊戲區 -->
-    <div id="gameArea" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1; overflow: hidden;">
-        <div class="hud">
-            <div>對手: <span id="opScore" style="color:#ef4444; font-size:1.3rem;">0</span></div>
-            <div style="display:flex; flex-direction:column; align-items:center;">
-                <div id="turnIndicator" style="color:#f59e0b; font-size:1.1rem; margin-bottom: 2px;">等待開始</div>
-                <div class="timer-box" id="timerBox">⏱️ <span id="timerText">15</span> 秒</div>
-            </div>
-            <div>我的: <span id="myScore" style="color:#22c55e; font-size:1.3rem;">0</span></div>
-        </div>
+    <button class="btn" id="startBtn" onclick="startGame()" disabled>▶ 啟動潛水艙 (開始遊戲)</button>
+    <br><br>
+    <a href="/dashboard" target="_blank" class="btn" style="background:#059669; border-color:#10b981; font-size:1rem; text-decoration:none; display:inline-block;">📊 查看排行榜</a>
+</div>
 
-        <div class="arena">
-            <div>
-                <div style="text-align:center; font-weight:bold; margin-bottom:5px; color:#0369a1;">野生幻獸區 (點擊鎖定) - 剩餘: <span id="deckCount">0</span> 隻</div>
-                <div class="zone" id="fieldArea"></div>
-            </div>
-            <div>
-                <div style="text-align:center; font-weight:bold; margin-bottom:5px; color:#166534;">你的數字卡 (請選擇 2 張)</div>
-                <div class="zone" id="handArea"></div>
-            </div>
-        </div>
-
-        <div class="action-bar">
-            <button class="btn" id="btnAttack" onclick="executeAttack()" style="background:#ef4444; box-shadow:0 4px 0 #b91c1c;">⚔️ 發動討伐！</button>
-            <button class="btn" id="btnDiscard" onclick="executeDiscard()" style="background:#8b5cf6; box-shadow:0 4px 0 #6d28d9;">♻️ 棄牌重抽</button>
-        </div>
-
-        <!-- 【變更】修改下方提示文字為 300 分 -->
-        <div class="log" id="logBox">歡迎來到九九幻獸島！最先獲得 300 分的人獲勝！</div>
+<!-- 遊戲區 -->
+<div class="container hidden" id="screenGame">
+    <div class="hud">
+        <div id="levelIndicator">維度層: 1 / 4</div>
+        <div>探險家: <span id="playerNameHUD" style="color:var(--accent);"></span></div>
+        <div class="timer">⏳ <span id="timeDisplay">10:00</span></div>
     </div>
+    <h2 id="levelTitle">關卡名稱</h2>
+    <p class="story-text" id="levelStory">關卡劇情描述</p>
+    <div class="question-box" id="questionText">問題會顯示在這裡</div>
+    <div id="answerArea"></div>
+</div>
+
+<!-- 結算畫面 -->
+<div class="container hidden" id="screenEnd">
+    <h1 id="endTitle">遊戲結束</h1>
+    <p class="story-text" id="endDesc"></p>
+    <button class="btn" onclick="location.reload()">🔄 回到首頁</button>
 </div>
 
 <script>
     const socket = io();
-    let currentRoomId = null;
-    let selectedHandIndices = [];
-    let selectedMonsterIndex = null;
-    let isMyTurnCurrent = false;
-    
-    let countdownInterval = null;
+    let currentIdentity = null;
+    let currentLevel = 0;
+    let timeRemaining = 600; // 10分鐘
+    let timerInterval = null;
+    let currentAnswer = null;
 
-    // 音效引擎
-    let audioCtx = null;
+    // --- 學生驗證機制 ---
+    function verifyStudent() {
+        const cls = document.getElementById('classInput').value.trim().toUpperCase();
+        const num = document.getElementById('noInput').value.trim();
+        if (cls && num) {
+            socket.emit('verify_student', { className: cls, studentNo: num });
+        } else {
+            document.getElementById('studentNameDisplay').style.color = 'var(--danger)';
+            document.getElementById('studentNameDisplay').innerText = "身分尚未驗證";
+            document.getElementById('startBtn').disabled = true;
+            currentIdentity = null;
+        }
+    }
+
+    socket.on('student_verified', ({ name }) => {
+        const cls = document.getElementById('classInput').value.trim().toUpperCase();
+        const num = document.getElementById('noInput').value.trim();
+        currentIdentity = { className: cls, studentNo: num, name: name };
+        document.getElementById('studentNameDisplay').style.color = 'var(--success)';
+        document.getElementById('studentNameDisplay').innerText = `✅ 驗證成功：歡迎 ${name} 探險家！`;
+        document.getElementById('startBtn').disabled = false;
+    });
+
+    socket.on('student_not_found', () => {
+        document.getElementById('studentNameDisplay').style.color = 'var(--danger)';
+        document.getElementById('studentNameDisplay').innerText = `❌ 查無此學生資料`;
+        document.getElementById('startBtn').disabled = true;
+        currentIdentity = null;
+    });
+
+    // --- 音效引擎 ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = new AudioContext();
+
     function playSound(type) {
-        try {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-
-            if (type === 'success') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(1200, audioCtx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-            } else if (type === 'fail') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.3);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-            } else if (type === 'draw') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-            } else { 
-                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.05);
-            }
-        } catch (e) { console.error(e); }
-    }
-
-    socket.on('play_sound', (data) => playSound(data.type));
-
-    function createRoom() {
-        const roomId = document.getElementById('roomInput').value.trim();
-        if (!roomId) return alert("請輸入房號！");
-        socket.emit('create_room', roomId);
-    }
-
-    function joinRoom() {
-        const roomId = document.getElementById('roomInput').value.trim();
-        if (!roomId) return alert("請輸入房號！");
-        socket.emit('join_room', roomId);
-    }
-
-    socket.on('room_created', (roomId) => {
-        currentRoomId = roomId;
-        document.getElementById('lobby').innerHTML = `<h3 style='color:#3b82f6;'>🏠 房間 [${roomId}] 已建立！</h3><p>等待另一位大師加入...</p>`;
-    });
-
-    socket.on('error_msg', (msg) => alert(msg));
-
-    socket.on('game_start', ({ roomId }) => {
-        currentRoomId = roomId;
-        document.getElementById('lobby').classList.add('hidden');
-        document.getElementById('gameArea').classList.remove('hidden');
-        appendLog(`🎉 對戰開始！每回合限時 15 秒！`);
-    });
-
-    // 每當更新狀態，重置前端 15 秒倒數
-    socket.on('game_state_update', ({ myState, opState, fieldMonsters, monstersLeft, isMyTurn }) => {
-        isMyTurnCurrent = isMyTurn;
-        document.getElementById('myScore').innerText = myState.score;
-        document.getElementById('opScore').innerText = opState.score;
-        document.getElementById('deckCount').innerText = monstersLeft;
-
-        const indicator = document.getElementById('turnIndicator');
-        if (isMyTurn) {
-            indicator.innerText = "⭐ 你的回合 ⭐";
-            indicator.style.color = "#16a34a";
-            indicator.style.fontWeight = "bold";
-        } else {
-            indicator.innerText = "⏳ 對手思考中...";
-            indicator.style.color = "#ef4444";
-            indicator.style.fontWeight = "normal";
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type === 'correct') {
+            osc.type = 'sine'; osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+        } else if (type === 'wrong') {
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'victory') {
+            osc.type = 'square'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.2);
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.4);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
+            osc.start(); osc.stop(audioCtx.currentTime + 1);
         }
+    }
 
-        clearInterval(countdownInterval);
-        let timeLeft = 15;
-        const timerBox = document.getElementById('timerBox');
-        const timerText = document.getElementById('timerText');
+    function showFeedback(isCorrect) {
+        const fb = document.getElementById('feedbackMsg');
+        fb.classList.remove('anim-correct', 'anim-wrong');
+        void fb.offsetWidth; 
+        if (isCorrect) {
+            fb.innerText = "⭕ 正確！"; fb.classList.add('anim-correct'); playSound('correct');
+        } else {
+            fb.innerText = "❌ 錯誤！-15秒"; fb.classList.add('anim-wrong'); playSound('wrong');
+            timeRemaining = Math.max(0, timeRemaining - 15);
+            updateTimerDisplay();
+        }
+    }
+
+    // --- 關卡生成 ---
+    function generateLevel1() {
+        const sets = [
+            { target: "37.5%", ans: "3/8", wrong: ["0.375%", "3.75", "1/3"] },
+            { target: "0.625", ans: "5/8", wrong: ["6.25%", "3/5", "62.5"] },
+            { target: "80%", ans: "4/5", wrong: ["0.08", "8/100", "4/50"] }
+        ];
+        const q = sets[Math.floor(Math.random() * sets.length)];
+        let options = [q.ans, ...q.wrong].sort(() => Math.random() - 0.5);
         
-        timerBox.classList.remove('timer-alert');
-        timerText.innerText = timeLeft;
+        document.getElementById('levelTitle').innerText = "第一關：真理天平";
+        document.getElementById('levelStory').innerHTML = "天平的左側放著刻有 <b style='color:#00ff88;font-size:1.5rem;'> " + q.target + " </b> 的砝碼。";
+        document.getElementById('questionText').innerText = "請選擇與其值完全相等的選項：";
+        
+        let html = `<div class="options-grid">`;
+        options.forEach(opt => { html += `<button class="opt-btn" onclick="checkMultipleChoice('${opt}', '${q.ans}')">${opt}</button>`; });
+        html += `</div>`;
+        document.getElementById('answerArea').innerHTML = html;
+    }
 
-        countdownInterval = setInterval(() => {
-            timeLeft--;
-            if (timeLeft <= 0) {
-                timeLeft = 0;
-                clearInterval(countdownInterval);
-            }
-            if (timeLeft <= 3 && isMyTurn) {
-                timerBox.classList.add('timer-alert'); // 剩 3 秒紅光警告
-            }
-            timerText.innerText = timeLeft;
+    function generateLevel2() {
+        const area = [200, 300, 400][Math.floor(Math.random() * 3)];
+        const initH = [10, 15, 20][Math.floor(Math.random() * 3)];
+        const diff = Math.floor(Math.random() * 5) + 3;
+        const targetH = initH + diff;
+        currentAnswer = area * diff;
+
+        document.getElementById('levelTitle').innerText = "第二關：阿基米德的密室";
+        document.getElementById('levelStory').innerHTML = `長方體玻璃缸底面積為 <b>${area} cm²</b>，目前水深 <b>${initH} cm</b>。過關鑰匙卡在缸壁高 <b>${targetH} cm</b> 的孔洞中。`;
+        document.getElementById('questionText').innerHTML = "你需要投入總體積多少 <b>cm³</b> 的鐵塊，才能讓水位剛好上升到孔洞？";
+        
+        document.getElementById('answerArea').innerHTML = `
+            <div class="input-group">
+                <input type="number" id="numInput" placeholder="體積 (cm³)">
+                <button class="btn" onclick="checkInputAnswer()">解開機關</button>
+            </div>
+        `;
+    }
+
+    function generateLevel3() {
+        const price = [800, 1200, 1500][Math.floor(Math.random() * 3)];
+        const d1 = [80, 90][Math.floor(Math.random() * 2)];
+        const d2 = [80, 90][Math.floor(Math.random() * 2)];
+        currentAnswer = price * (d1 / 100) * (d2 / 100);
+
+        document.getElementById('levelTitle').innerText = "第三關：貪婪商會";
+        document.getElementById('levelStory').innerHTML = `深海潛水服定價 <b>$${price}</b>。商人說：「今天全店大減價 <b>${d1}折</b>，憑公會卡結帳金額再打 <b>${d2}折</b>！」`;
+        document.getElementById('questionText').innerHTML = "請計算最終實際需要支付的售價是多少？";
+        
+        document.getElementById('answerArea').innerHTML = `
+            <div class="input-group"><span style="font-size:1.5rem; line-height:50px;">$</span>
+                <input type="number" id="numInput" placeholder="輸入售價"><button class="btn" onclick="checkInputAnswer()">支付金幣</button>
+            </div>
+        `;
+    }
+
+    function generateLevel4() {
+        const area = 250; 
+        const initL = 2; // 2000 cm3
+        const leakFracStr = "3/5"; const leakL = 0.6; // 600 cm3
+        const stoneV = 500; // cm3
+        currentAnswer = 7.6; // (2000 - 600 + 500) / 250 = 7.6
+
+        document.getElementById('levelTitle').innerText = "終極關卡：六神機甲 (Boss戰)";
+        document.getElementById('levelStory').innerHTML = `機甲護盾水箱底面積 <b>${area} cm²</b>，原裝 <b>${initL} L</b> 水。漏失 <b>${leakFracStr} L</b> 後洞口癒合。機甲又投入體積 <b>${stoneV} cm³</b> 的核心礦石！`;
+        document.getElementById('questionText').innerHTML = "現在護盾水箱裡的水位高度是多少 <b>cm</b>？（請輸入小數）";
+        
+        document.getElementById('answerArea').innerHTML = `
+            <div class="input-group">
+                <input type="number" step="0.1" id="numInput" placeholder="高度 (cm)">
+                <button class="btn" onclick="checkInputAnswer()" style="background:#ff3366; border-color:#fff;">🗡️ 擊破護盾！</button>
+            </div>
+        `;
+    }
+
+    const levels = [generateLevel1, generateLevel2, generateLevel3, generateLevel4];
+
+    function startGame() {
+        if (!currentIdentity) return;
+        document.getElementById('screenStart').classList.add('hidden');
+        document.getElementById('screenGame').classList.remove('hidden');
+        document.getElementById('playerNameHUD').innerText = currentIdentity.name;
+        
+        currentLevel = 0; timeRemaining = 600;
+        
+        timerInterval = setInterval(() => {
+            timeRemaining--; updateTimerDisplay();
+            if (timeRemaining <= 0) gameOver(false, "潛水艙氧氣耗盡，挑戰失敗。");
         }, 1000);
-
-        selectedHandIndices = [];
-        selectedMonsterIndex = null;
-        updateActionButtons();
-
-        const fieldArea = document.getElementById('fieldArea');
-        fieldArea.innerHTML = "";
-        fieldMonsters.forEach((monster, idx) => {
-            fieldArea.innerHTML += `
-                <div class="monster-card" id="monster-${idx}" onclick="toggleMonster(${idx})">
-                    <div class="monster-pts">${monster.pts}</div>
-                    <div style="font-size: 2rem;">${monster.emoji}</div>
-                    <div class="monster-hp">${monster.hp}</div>
-                    <div style="font-size: 0.8rem; font-weight:bold;">${monster.name}</div>
-                </div>`;
-        });
-
-        const handArea = document.getElementById('handArea');
-        handArea.innerHTML = "";
-        myState.hand.forEach((num, idx) => {
-            handArea.innerHTML += `
-                <div class="number-card" id="card-${idx}" onclick="toggleCard(${idx})">
-                    ${num}
-                </div>`;
-        });
-    });
-
-    function toggleMonster(idx) {
-        if (!isMyTurnCurrent) return;
-        playSound('click');
-        if (selectedMonsterIndex === idx) {
-            selectedMonsterIndex = null;
-            document.getElementById(`monster-${idx}`).classList.remove('selected');
-        } else {
-            if (selectedMonsterIndex !== null) {
-                document.getElementById(`monster-${selectedMonsterIndex}`).classList.remove('selected');
-            }
-            selectedMonsterIndex = idx;
-            document.getElementById(`monster-${idx}`).classList.add('selected');
-        }
-        updateActionButtons();
-    }
-
-    function toggleCard(idx) {
-        if (!isMyTurnCurrent) return;
-        playSound('click');
-        const cardEl = document.getElementById(`card-${idx}`);
         
-        if (selectedHandIndices.includes(idx)) {
-            selectedHandIndices = selectedHandIndices.filter(i => i !== idx);
-            cardEl.classList.remove('selected');
-        } else {
-            if (selectedHandIndices.length >= 2) {
-                let firstIdx = selectedHandIndices.shift();
-                document.getElementById(`card-${firstIdx}`).classList.remove('selected');
-            }
-            selectedHandIndices.push(idx);
-            cardEl.classList.add('selected');
-        }
-        updateActionButtons();
+        loadLevel();
     }
 
-    function updateActionButtons() {
-        const btnAttack = document.getElementById('btnAttack');
-        const btnDiscard = document.getElementById('btnDiscard');
+    function updateTimerDisplay() {
+        let m = Math.floor(timeRemaining / 60); let s = timeRemaining % 60;
+        document.getElementById('timeDisplay').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    function loadLevel() {
+        document.getElementById('levelIndicator').innerText = `維度層: ${currentLevel + 1} / ${levels.length}`;
+        levels[currentLevel](); 
+    }
+
+    function checkMultipleChoice(selected, correct) {
+        if (selected === correct) { showFeedback(true); nextLevel(); } 
+        else showFeedback(false);
+    }
+
+    function checkInputAnswer() {
+        const inputVal = parseFloat(document.getElementById('numInput').value);
+        if (isNaN(inputVal)) return;
+        if (Math.abs(inputVal - currentAnswer) < 0.01) { showFeedback(true); nextLevel(); } 
+        else showFeedback(false);
+    }
+
+    function nextLevel() {
+        currentLevel++;
+        if (currentLevel >= levels.length) {
+            gameOver(true, `太神了！你完美運用了六年級數學，成功逃離亞特蘭提斯！<br><br>你的成績已上傳至排行榜。<br>最佳剩餘時間：<span style="color:var(--success); font-size:1.5rem; font-weight:bold;">${document.getElementById('timeDisplay').innerText}</span>`);
+        } else { setTimeout(loadLevel, 1000); }
+    }
+
+    function gameOver(isWin, desc) {
+        clearInterval(timerInterval);
+        document.getElementById('screenGame').classList.add('hidden');
+        document.getElementById('screenEnd').classList.remove('hidden');
         
-        if (selectedHandIndices.length === 2 && selectedMonsterIndex !== null) {
-            btnAttack.disabled = false;
+        const endTitle = document.getElementById('endTitle');
+        if (isWin) {
+            playSound('victory');
+            endTitle.innerText = "🎉 挑戰成功！精算大師 🎉";
+            endTitle.style.color = "var(--success)";
+            endTitle.style.textShadow = "0 0 15px var(--success)";
+            
+            // 將成績傳送給後端儲存
+            socket.emit('submit_record', { identity: currentIdentity, timeRemaining: timeRemaining });
         } else {
-            btnAttack.disabled = true;
+            endTitle.innerText = "💀 挑戰失敗";
+            endTitle.style.color = "var(--danger)";
+            endTitle.style.textShadow = "0 0 15px var(--danger)";
         }
-
-        if (selectedHandIndices.length === 1 && selectedMonsterIndex === null) {
-            btnDiscard.disabled = false;
-            btnDiscard.innerText = "♻️ 棄牌重抽";
-        } else {
-            btnDiscard.disabled = true;
-            btnDiscard.innerText = "♻️ 棄牌重抽";
-        }
-    }
-
-    function executeAttack() {
-        if (selectedHandIndices.length !== 2 || selectedMonsterIndex === null) return;
-        playSound('click');
-        socket.emit('attack', { roomId: currentRoomId, cardIndices: selectedHandIndices, monsterIndex: selectedMonsterIndex });
-    }
-
-    function executeDiscard() {
-        if (selectedHandIndices.length !== 1) return;
-        playSound('click');
-        socket.emit('discard', { roomId: currentRoomId, cardIndex: selectedHandIndices[0] });
-    }
-
-    socket.on('battle_log', (data) => { appendLog(data.msg); });
-    socket.on('game_over', ({ msg, winner }) => {
-        clearInterval(countdownInterval);
-        if (winner) {
-            if (winner === socket.id) alert("🏆 恭喜你達到目標，成為首席幻獸大師！\n" + msg);
-            else alert("😢 對手先達到目標了，請再接再厲！\n" + msg);
-        } else {
-            alert("ℹ️ 遊戲結束：\n" + msg);
-        }
-        location.reload();
-    });
-
-    function appendLog(text) {
-        const box = document.getElementById('logBox');
-        box.innerHTML += `<div>> ${text}</div>`;
-        box.scrollTop = box.scrollHeight;
+        document.getElementById('endDesc').innerHTML = desc;
     }
 </script>
 </body>
