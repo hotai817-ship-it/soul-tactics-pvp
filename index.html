@@ -24,10 +24,13 @@
         
         .hud { background: #e0f2fe; border: 3px solid #7dd3fc; padding: 10px 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: bold; margin-bottom: 10px;}
         
+        .timer-box { font-size: 1.3rem; font-weight: 900; background: #1e293b; color: white; padding: 4px 12px; border-radius: 20px; border: 2px solid #cbd5e1; }
+        .timer-alert { color: #ef4444; border-color: #ef4444; animation: blink 0.5s infinite alternate; }
+        @keyframes blink { from { opacity: 1; } to { opacity: 0.6; } }
+
         .arena { flex-grow: 1; display: flex; flex-direction: column; justify-content: space-around; background: #cffafe; border-radius: 15px; padding: 10px; border: 3px dashed #38bdf8; }
         .zone { display: flex; gap: 10px; justify-content: center; align-items: center; overflow-x: auto; min-height: 140px; }
         
-        /* 幻獸卡牌樣式 */
         .monster-card {
             background: #fef08a; border: 4px solid #eab308; border-radius: 12px; width: 100px; height: 130px;
             display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
@@ -37,7 +40,6 @@
         .monster-hp { font-size: 2.2rem; font-weight: 900; color: #b91c1c; }
         .monster-pts { position: absolute; top: -10px; right: -10px; background: #3b82f6; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; border: 2px solid white; }
         
-        /* 數字手牌樣式 */
         .number-card {
             background: white; border: 3px solid #94a3b8; border-radius: 12px; width: 70px; height: 100px;
             display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 900; color: #1e293b;
@@ -58,7 +60,7 @@
     
     <!-- 大廳 -->
     <div id="lobby" style="margin: auto; text-align: center; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-        <h3 style="color: var(--primary); margin-top:0;">尋找因數的對決！</h3>
+        <h3 style="color: var(--primary); margin-top:0;">尋找因數的極限對決！(限時15秒)</h3>
         <p>找出兩張手牌相乘等於幻獸 HP，將其擊敗！</p>
         <input type="text" id="roomInput" class="input-box" placeholder="輸入房號 (例: 99)"><br><br>
         <button class="btn" onclick="playSound('click'); createRoom();">開創島嶼 (建立房間)</button>
@@ -68,19 +70,19 @@
     <!-- 遊戲區 -->
     <div id="gameArea" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1; overflow: hidden;">
         <div class="hud">
-            <div>對手分數: <span id="opScore" style="color:#ef4444; font-size:1.3rem;">0</span></div>
-            <div id="turnIndicator" style="color:#f59e0b; font-size:1.3rem;">回合狀態</div>
-            <div>我的分數: <span id="myScore" style="color:#22c55e; font-size:1.3rem;">0</span></div>
+            <div>對手: <span id="opScore" style="color:#ef4444; font-size:1.3rem;">0</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center;">
+                <div id="turnIndicator" style="color:#f59e0b; font-size:1.1rem; margin-bottom: 2px;">等待開始</div>
+                <div class="timer-box" id="timerBox">⏱️ <span id="timerText">15</span> 秒</div>
+            </div>
+            <div>我的: <span id="myScore" style="color:#22c55e; font-size:1.3rem;">0</span></div>
         </div>
 
         <div class="arena">
-            <!-- 幻獸區 -->
             <div>
-                <div style="text-align:center; font-weight:bold; margin-bottom:5px; color:#0369a1;">野生幻獸區 (點擊鎖定目標) - 剩餘: <span id="deckCount">0</span> 隻</div>
+                <div style="text-align:center; font-weight:bold; margin-bottom:5px; color:#0369a1;">野生幻獸區 (點擊鎖定) - 剩餘: <span id="deckCount">0</span> 隻</div>
                 <div class="zone" id="fieldArea"></div>
             </div>
-            
-            <!-- 手牌區 -->
             <div>
                 <div style="text-align:center; font-weight:bold; margin-bottom:5px; color:#166534;">你的數字卡 (請選擇 2 張)</div>
                 <div class="zone" id="handArea"></div>
@@ -99,13 +101,13 @@
 <script>
     const socket = io();
     let currentRoomId = null;
-    
-    // UI 狀態選擇
     let selectedHandIndices = [];
     let selectedMonsterIndex = null;
     let isMyTurnCurrent = false;
+    
+    let countdownInterval = null; // 計時器 ID
 
-    // Web Audio API 單例防呆
+    // 音效引擎
     let audioCtx = null;
     function playSound(type) {
         try {
@@ -135,7 +137,7 @@
                 gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
                 osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-            } else { // click
+            } else { 
                 osc.frequency.setValueAtTime(800, audioCtx.currentTime);
                 gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
@@ -148,19 +150,19 @@
 
     function createRoom() {
         const roomId = document.getElementById('roomInput').value.trim();
-        if (!roomId) { alert("請輸入房號！"); return; }
+        if (!roomId) return alert("請輸入房號！");
         socket.emit('create_room', roomId);
     }
 
     function joinRoom() {
         const roomId = document.getElementById('roomInput').value.trim();
-        if (!roomId) { alert("請輸入房號！"); return; }
+        if (!roomId) return alert("請輸入房號！");
         socket.emit('join_room', roomId);
     }
 
     socket.on('room_created', (roomId) => {
         currentRoomId = roomId;
-        document.getElementById('lobby').innerHTML = `<h3 style='color:#3b82f6;'>🏠 房間 [${roomId}] 已建立！</h3><p>等待另一位幻獸大師加入...</p>`;
+        document.getElementById('lobby').innerHTML = `<h3 style='color:#3b82f6;'>🏠 房間 [${roomId}] 已建立！</h3><p>等待另一位大師加入...</p>`;
     });
 
     socket.on('error_msg', (msg) => alert(msg));
@@ -169,9 +171,10 @@
         currentRoomId = roomId;
         document.getElementById('lobby').classList.add('hidden');
         document.getElementById('gameArea').classList.remove('hidden');
-        appendLog(`🎉 成功登陸島嶼！目標：100分！`);
+        appendLog(`🎉 對戰開始！每回合限時 15 秒！`);
     });
 
+    // 每當回合切換、收到最新狀態時，重置前端的 15 秒倒數 UI
     socket.on('game_state_update', ({ myState, opState, fieldMonsters, monstersLeft, isMyTurn }) => {
         isMyTurnCurrent = isMyTurn;
         document.getElementById('myScore').innerText = myState.score;
@@ -180,19 +183,41 @@
 
         const indicator = document.getElementById('turnIndicator');
         if (isMyTurn) {
-            indicator.innerText = "⭐ 你的回合";
+            indicator.innerText = "⭐ 你的回合 ⭐";
             indicator.style.color = "#16a34a";
+            indicator.style.fontWeight = "bold";
         } else {
             indicator.innerText = "⏳ 對手思考中...";
             indicator.style.color = "#ef4444";
+            indicator.style.fontWeight = "normal";
         }
 
-        // 清空選擇狀態
+        // --- 重置與啟動前端計時器 ---
+        clearInterval(countdownInterval);
+        let timeLeft = 15;
+        const timerBox = document.getElementById('timerBox');
+        const timerText = document.getElementById('timerText');
+        
+        timerBox.classList.remove('timer-alert');
+        timerText.innerText = timeLeft;
+
+        countdownInterval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft <= 0) {
+                timeLeft = 0;
+                clearInterval(countdownInterval);
+            }
+            if (timeLeft <= 3 && isMyTurn) {
+                timerBox.classList.add('timer-alert'); // 剩 3 秒發出紅光警告
+            }
+            timerText.innerText = timeLeft;
+        }, 1000);
+        // --------------------------------
+
         selectedHandIndices = [];
         selectedMonsterIndex = null;
         updateActionButtons();
 
-        // 渲染幻獸區
         const fieldArea = document.getElementById('fieldArea');
         fieldArea.innerHTML = "";
         fieldMonsters.forEach((monster, idx) => {
@@ -205,7 +230,6 @@
                 </div>`;
         });
 
-        // 渲染手牌區
         const handArea = document.getElementById('handArea');
         handArea.innerHTML = "";
         myState.hand.forEach((num, idx) => {
@@ -238,11 +262,9 @@
         const cardEl = document.getElementById(`card-${idx}`);
         
         if (selectedHandIndices.includes(idx)) {
-            // 取消選擇
             selectedHandIndices = selectedHandIndices.filter(i => i !== idx);
             cardEl.classList.remove('selected');
         } else {
-            // 選擇 (最多2張)
             if (selectedHandIndices.length >= 2) {
                 let firstIdx = selectedHandIndices.shift();
                 document.getElementById(`card-${firstIdx}`).classList.remove('selected');
@@ -265,10 +287,10 @@
 
         if (selectedHandIndices.length === 1 && selectedMonsterIndex === null) {
             btnDiscard.disabled = false;
-            btnDiscard.innerText = "♻️ 棄牌重抽 (結束回合)";
+            btnDiscard.innerText = "♻️ 棄牌重抽";
         } else {
             btnDiscard.disabled = true;
-            btnDiscard.innerText = "♻️ 棄牌重抽 (需只選1張卡)";
+            btnDiscard.innerText = "♻️ 棄牌重抽";
         }
     }
 
@@ -286,6 +308,7 @@
 
     socket.on('battle_log', (data) => { appendLog(data.msg); });
     socket.on('game_over', ({ msg, winner }) => {
+        clearInterval(countdownInterval); // 遊戲結束停止計時器
         if (winner) {
             if (winner === socket.id) alert("🏆 恭喜你達到目標，成為首席幻獸大師！\n" + msg);
             else alert("😢 對手先達到目標了，請再接再厲！\n" + msg);
