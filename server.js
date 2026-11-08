@@ -11,7 +11,6 @@ const io = new Server(server, {
 
 app.use(express.static(__dirname));
 
-// 幻獸資料庫
 const MONSTER_DB = [
     { hp: 12, pts: 10, name: "史萊姆", emoji: "💧" },
     { hp: 15, pts: 10, name: "草行鳥", emoji: "🌿" },
@@ -32,24 +31,18 @@ const MONSTER_DB = [
     { hp: 81, pts: 40, name: "烈焰魔龍", emoji: "🐉" }
 ];
 
-// 隨機抽取 1~9 的卡牌
 function drawNumberCard() {
     return Math.floor(Math.random() * 9) + 1;
 }
 
-// ==========================================
-// 🛡️ 絕對保底系統：確保每回合手牌中「必定有解」
-// ==========================================
+// 絕對保底系統
 function checkAndFixHands(room) {
     if (!room || room.state.fieldMonsters.length === 0) return;
-
-    // 掃描每一位玩家的手牌
     room.players.forEach(pid => {
         let pData = room.state.playerData[pid];
         if (!pData || pData.hand.length < 2) return;
 
         let hasValidPair = false;
-        // 檢查 5 張手牌中，是否有任兩張相乘等於場上幻獸的 HP
         for (let i = 0; i < pData.hand.length; i++) {
             for (let j = i + 1; j < pData.hand.length; j++) {
                 const product = pData.hand[i] * pData.hand[j];
@@ -61,24 +54,16 @@ function checkAndFixHands(room) {
             if (hasValidPair) break;
         }
 
-        // 如果手牌真的是「死牌」(完全無法打敗任何一隻)，系統強制介入修正！
         if (!hasValidPair) {
-            // 隨機鎖定場上的一隻幻獸作為救援目標
             const target = room.state.fieldMonsters[Math.floor(Math.random() * room.state.fieldMonsters.length)];
-            
-            // 找出能打敗牠的所有因數配對
             let possiblePairs = [];
             for (let i = 1; i <= 9; i++) {
                 if (target.hp % i === 0 && target.hp / i <= 9) {
                     possiblePairs.push([i, target.hp / i]);
                 }
             }
-
             if (possiblePairs.length > 0) {
-                // 隨機選一組配對
                 const pair = possiblePairs[Math.floor(Math.random() * possiblePairs.length)];
-                
-                // 從玩家的 5 張牌中隨機挑選 2 個位置，偷偷替換成必殺牌
                 let indices = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5).slice(0, 2);
                 pData.hand[indices[0]] = pair[0];
                 pData.hand[indices[1]] = pair[1];
@@ -86,68 +71,68 @@ function checkAndFixHands(room) {
         }
     });
 }
+
+// ==========================================
+// ⏱️ 回合倒數計時系統
+// ==========================================
+function startTurnTimer(room, roomId) {
+    if (room.timer) clearTimeout(room.timer);
+    
+    // 設定 15 秒 (15000 毫秒) 的限時
+    room.timer = setTimeout(() => {
+        if (rooms[roomId]) { // 確保房間還存在
+            io.to(roomId).emit('play_sound', { type: 'fail' });
+            io.to(roomId).emit('battle_log', { msg: `⏱️ 時間到！動作太慢，自動放棄回合。` });
+            switchTurn(rooms[roomId], roomId);
+        }
+    }, 15000);
+}
 // ==========================================
 
 let rooms = {};
 
 io.on('connection', (socket) => {
     socket.on('create_room', (roomId) => {
-        if (!roomId || typeof roomId !== 'string') {
-            socket.emit('error_msg', '房號格式不正確！');
-            return;
-        }
+        if (!roomId || typeof roomId !== 'string') return socket.emit('error_msg', '房號不正確！');
         roomId = roomId.trim();
-        if (rooms[roomId]) {
-            socket.emit('error_msg', '房間已存在，請直接加入！');
-            return;
-        }
+        if (rooms[roomId]) return socket.emit('error_msg', '房間已存在，請直接加入！');
         
         let shuffledMonsters = [...MONSTER_DB].sort(() => Math.random() - 0.5);
         
         rooms[roomId] = {
             players: [socket.id],
+            timer: null, // 初始化計時器變數
             state: {
                 turn: socket.id,
                 fieldMonsters: shuffledMonsters.splice(0, 3),
                 monsterDeck: shuffledMonsters,
-                playerData: {
-                    [socket.id]: { score: 0, hand: Array.from({length: 5}, drawNumberCard) }
-                }
+                playerData: { [socket.id]: { score: 0, hand: Array.from({length: 5}, drawNumberCard) } }
             }
         };
         
-        // 建房後立刻校正手牌，確保有解
         checkAndFixHands(rooms[roomId]);
-        
         socket.join(roomId);
         socket.emit('room_created', roomId);
     });
 
     socket.on('join_room', (roomId) => {
-        if (!roomId || !rooms[roomId]) {
-            socket.emit('error_msg', '房間不存在！');
-            return;
-        }
+        if (!roomId || !rooms[roomId]) return socket.emit('error_msg', '房間不存在！');
         roomId = roomId.trim();
         const room = rooms[roomId];
-        if (room.players.length >= 2) {
-            socket.emit('error_msg', '房間已滿！');
-            return;
-        }
+        if (room.players.length >= 2) return socket.emit('error_msg', '房間已滿！');
         if (room.players.includes(socket.id)) return;
 
         room.players.push(socket.id);
         room.state.playerData[socket.id] = { score: 0, hand: Array.from({length: 5}, drawNumberCard) };
         
-        // 玩家加入後立刻校正雙方手牌，確保起手皆有解
         checkAndFixHands(room);
-        
         socket.join(roomId);
         io.to(roomId).emit('game_start', { roomId });
+        
         updateGameState(roomId);
+        startTurnTimer(room, roomId); // 雙方到齊，啟動第一回合計時！
     });
 
-    // 玩家發動攻擊
     socket.on('attack', ({ roomId, cardIndices, monsterIndex }) => {
         const room = rooms[roomId];
         if (!room || room.state.turn !== socket.id) return;
@@ -161,51 +146,42 @@ io.on('connection', (socket) => {
 
         if (num1 === undefined || num2 === undefined || !targetMonster) return;
 
-        // 乘法判定
+        // 玩家進行了有效操作，暫停計時防衝突
+        clearTimeout(room.timer);
+
         if (num1 * num2 === targetMonster.hp) {
-            // 討伐成功
             pData.score += targetMonster.pts;
             io.to(roomId).emit('play_sound', { type: 'success' });
             io.to(roomId).emit('battle_log', { msg: `✨ 討伐成功！${num1} × ${num2} = ${targetMonster.hp}，獲得 ${targetMonster.pts} 分！` });
 
-            // 移除手牌並補新牌
             cardIndices.sort((a, b) => b - a).forEach(idx => pData.hand.splice(idx, 1));
             pData.hand.push(drawNumberCard(), drawNumberCard());
             
-            // 替換場上的幻獸
             room.state.fieldMonsters.splice(monsterIndex, 1);
-            if (room.state.monsterDeck.length > 0) {
-                room.state.fieldMonsters.push(room.state.monsterDeck.shift());
-            }
+            if (room.state.monsterDeck.length > 0) room.state.fieldMonsters.push(room.state.monsterDeck.shift());
 
-            // 【重要】場上幻獸更新了，再次檢查並校正雙方手牌，避免對手突然變死牌！
             checkAndFixHands(room);
             checkWinCondition(room, roomId);
         } else {
-            // 討伐失敗
             pData.score = Math.max(0, pData.score - 5);
             io.to(roomId).emit('play_sound', { type: 'fail' });
             io.to(roomId).emit('battle_log', { msg: `❌ 討伐失敗！${num1} × ${num2} 不等於 ${targetMonster.hp}，扣 5 分！` });
         }
-        
         switchTurn(room, roomId);
     });
 
-    // 棄牌重抽
     socket.on('discard', ({ roomId, cardIndex }) => {
         const room = rooms[roomId];
         if (!room || room.state.turn !== socket.id) return;
-        
         const pData = room.state.playerData[socket.id];
         if (!pData || typeof cardIndex !== 'number') return;
 
-        // 丟棄一張，抽一張新的
+        clearTimeout(room.timer); // 暫停計時
+
         pData.hand.splice(cardIndex, 1)[0];
         pData.hand.push(drawNumberCard());
         
-        // 棄牌後同樣觸發手牌檢查
         checkAndFixHands(room);
-        
         io.to(roomId).emit('play_sound', { type: 'draw' });
         io.to(roomId).emit('battle_log', { msg: `🔄 玩家棄牌重抽，回合結束。` });
         
@@ -216,6 +192,7 @@ io.on('connection', (socket) => {
         for (let roomId in rooms) {
             let room = rooms[roomId];
             if (room && room.players.includes(socket.id)) {
+                clearTimeout(room.timer); // 清除計時器
                 io.to(roomId).emit('battle_log', { msg: `⚠️ 對手已斷線，遊戲結束。` });
                 const winnerId = room.players.find(id => id !== socket.id) || socket.id;
                 io.to(roomId).emit('game_over', { msg: '對手逃跑了，你獲得了勝利！' });
@@ -229,6 +206,7 @@ function switchTurn(room, roomId) {
     if (!room) return;
     room.state.turn = room.players.find(id => id !== room.state.turn);
     updateGameState(roomId);
+    startTurnTimer(room, roomId); // 換人後，重新啟動 15 秒計時器
 }
 
 function checkWinCondition(room, roomId) {
@@ -252,6 +230,7 @@ function checkWinCondition(room, roomId) {
     }
 
     if (isGameOver) {
+        clearTimeout(room.timer); // 遊戲結束，停止計時
         if (winnerId === 'draw') {
             io.to(roomId).emit('game_over', { msg: '平手！你們都是優秀的幻獸大師！' });
         } else {
