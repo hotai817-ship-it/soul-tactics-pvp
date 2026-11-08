@@ -3,316 +3,294 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>《英魂決：時空交錯》房間式即時對戰空間</title>
+    <title>《九九幻獸島》即時對戰</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        :root { --gold: #D4AF37; --bg: #0f172a; --panel: rgba(26, 43, 76, 0.95); }
-        * { box-sizing: border-box; }
+        :root { --primary: #3b82f6; --bg: #f0fdfa; --text: #0f172a; --card-bg: #ffffff; }
+        * { box-sizing: border-box; font-family: 'Comic Sans MS', 'PingFang TC', sans-serif; }
         body { 
-            font-family: sans-serif; background: var(--bg); color: #f8fafc; margin: 0; 
-            min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
-            -webkit-user-select: none; user-select: none;
+            background: var(--bg); color: var(--text); margin: 0; 
+            min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            -webkit-user-select: none; user-select: none; overflow: hidden;
         }
-        .container { width: 100%; max-width: 1200px; height: 100vh; max-height: 950px; display: flex; flex-direction: column; padding: 10px; }
-        h1 { color: var(--gold); font-size: clamp(1.4rem, 2.5vw, 2rem); margin: 5px 0; text-align: center; }
-        .btn { background: linear-gradient(#d4af37, #aa771c); color: #111; border: 2px solid #ffe066; padding: 12px 24px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: clamp(0.95rem, 1.5vw, 1.1rem); margin: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); touch-action: manipulation; }
-        .input-box { background: #1e293b; border: 2px solid var(--gold); color: white; padding: 12px; border-radius: 6px; font-size: 1.1rem; width: 200px; text-align: center; margin: 8px; outline: none; }
-        .hud { background: var(--panel); border: 2px solid var(--gold); padding: 10px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: clamp(0.95rem, 1.5vw, 1.15rem); font-weight: bold; }
-        .arena { display: grid; grid-template-rows: 1fr 1fr; gap: 10px; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 10px; flex-grow: 1; overflow: hidden; border: 1px solid #334155; }
-        .zone { display: flex; gap: 12px; justify-content: center; align-items: center; width: 100%; overflow-x: auto; padding: 5px; min-height: 180px; -webkit-overflow-scrolling: touch; }
-        .card { 
-            background: #FFFDF0; color: #1e293b; border: 3px solid var(--gold); border-radius: 10px; 
-            width: clamp(110px, 16vw, 135px); height: clamp(150px, 22vw, 185px); padding: 8px; 
-            display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; flex-shrink: 0; box-shadow: 0 6px 12px rgba(0,0,0,0.5);
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-            transition: transform 0.15s;
+        .container { width: 100%; max-width: 900px; height: 100vh; display: flex; flex-direction: column; padding: 10px; }
+        h1 { color: #0284c7; text-align: center; margin: 5px 0; font-size: clamp(1.5rem, 3vw, 2.2rem); text-shadow: 2px 2px 0px #bae6fd; }
+        
+        .btn { background: #f59e0b; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 20px; cursor: pointer; font-size: 1.1rem; margin: 5px; box-shadow: 0 4px 0 #b45309; transition: transform 0.1s; }
+        .btn:active { transform: translateY(4px); box-shadow: none; }
+        .btn:disabled { background: #94a3b8; box-shadow: 0 4px 0 #64748b; cursor: not-allowed; }
+        
+        .input-box { border: 2px solid #0284c7; padding: 12px; border-radius: 12px; font-size: 1.1rem; width: 200px; text-align: center; outline: none; }
+        
+        .hud { background: #e0f2fe; border: 3px solid #7dd3fc; padding: 10px 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: bold; margin-bottom: 10px;}
+        
+        .arena { flex-grow: 1; display: flex; flex-direction: column; justify-content: space-around; background: #cffafe; border-radius: 15px; padding: 10px; border: 3px dashed #38bdf8; }
+        .zone { display: flex; gap: 10px; justify-content: center; align-items: center; overflow-x: auto; min-height: 140px; }
+        
+        /* 幻獸卡牌樣式 */
+        .monster-card {
+            background: #fef08a; border: 4px solid #eab308; border-radius: 12px; width: 100px; height: 130px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.2s; position: relative;
         }
-        @media (hover: hover) {
-            .card:hover { transform: translateY(-5px); }
+        .monster-card.selected { border-color: #ef4444; box-shadow: 0 0 15px #ef4444; transform: scale(1.1); }
+        .monster-hp { font-size: 2.2rem; font-weight: 900; color: #b91c1c; }
+        .monster-pts { position: absolute; top: -10px; right: -10px; background: #3b82f6; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; border: 2px solid white; }
+        
+        /* 數字手牌樣式 */
+        .number-card {
+            background: white; border: 3px solid #94a3b8; border-radius: 12px; width: 70px; height: 100px;
+            display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 900; color: #1e293b;
+            cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.2s;
         }
-        .log { background: #000; color: #38bdf8; font-family: monospace; padding: 10px; height: 75px; overflow-y: auto; text-align: left; border-radius: 6px; font-size: clamp(0.8rem, 1.2vw, 0.95rem); border: 1px solid #334155; }
-        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 15px; }
-        .modal-content { background: #1e293b; border: 3px solid var(--gold); padding: 25px; border-radius: 12px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-        .modal-btn { background: #3b82f6; color: white; border: none; padding: 14px; margin: 8px 0; border-radius: 8px; width: 100%; cursor: pointer; text-align: left; font-weight: bold; font-size: clamp(0.95rem, 1.5vw, 1.05rem); touch-action: manipulation; }
-        .modal-btn:hover { background: #2563eb; }
-        .modal-close-btn { background: #ef4444; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; touch-action: manipulation; }
-        .modal-close-btn:hover { background: #dc2626; }
+        .number-card.selected { border-color: #22c55e; background: #dcfce7; color: #15803d; transform: translateY(-10px); }
+        
+        .action-bar { display: flex; justify-content: center; gap: 15px; margin-top: 10px; }
+        
+        .log { background: white; color: #334155; padding: 10px; height: 80px; overflow-y: auto; text-align: left; border-radius: 10px; border: 2px solid #cbd5e1; font-size: 0.95rem; margin-top: 10px;}
+        
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>《英魂決：時空交錯》</h1>
+    <h1>🌟《九九幻獸島》🌟</h1>
     
-    <div id="lobby" style="margin: auto; text-align: center; background: var(--panel); padding: 35px; border: 2px solid var(--gold); border-radius: 15px;">
-        <h3 style="color: var(--gold); margin-top:0; font-size: 1.5rem;">輸入房號開始對戰</h3>
-        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 15px;">人物卡直接部署，發動策略卡或主戰人物攻擊時將觸發歷史考驗答題！</p>
-        <input type="text" id="roomInput" class="input-box" placeholder="例如: 8888"><br>
-        <button class="btn" onclick="playSound('click'); createRoom();">🏠 建立房間</button>
-        <button class="btn" onclick="playSound('click'); joinRoom();">🔑 加入房間</button>
+    <!-- 大廳 -->
+    <div id="lobby" style="margin: auto; text-align: center; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+        <h3 style="color: var(--primary); margin-top:0;">尋找因數的對決！</h3>
+        <p>找出兩張手牌相乘等於幻獸 HP，將其擊敗！</p>
+        <input type="text" id="roomInput" class="input-box" placeholder="輸入房號 (例: 99)"><br><br>
+        <button class="btn" onclick="playSound('click'); createRoom();">開創島嶼 (建立房間)</button>
+        <button class="btn" style="background:#3b82f6; box-shadow:0 4px 0 #1d4ed8;" onclick="playSound('click'); joinRoom();">登陸島嶼 (加入房間)</button>
     </div>
 
-    <div id="gameArea" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1; gap: 8px; overflow: hidden;">
+    <!-- 遊戲區 -->
+    <div id="gameArea" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1; overflow: hidden;">
         <div class="hud">
-            <div>對手 HP: <span id="opHp" style="color:#ef4444;">300</span></div>
-            <div id="turnIndicator">回合狀態</div>
-            <div>我的 HP: <span id="myHp" style="color:#22c55e;">300</span></div>
+            <div>對手分數: <span id="opScore" style="color:#ef4444; font-size:1.3rem;">0</span></div>
+            <div id="turnIndicator" style="color:#f59e0b; font-size:1.3rem;">回合狀態</div>
+            <div>我的分數: <span id="myScore" style="color:#22c55e; font-size:1.3rem;">0</span></div>
         </div>
 
         <div class="arena">
+            <!-- 幻獸區 -->
             <div>
-                <div style="color:var(--gold); font-size:0.85em; text-align:left;">對手陣地 (主戰人物與支援區)</div>
-                <div class="zone" id="opActive"></div>
+                <div style="text-align:center; font-weight:bold; margin-bottom:5px; color:#0369a1;">野生幻獸區 (點擊鎖定目標) - 剩餘: <span id="deckCount">0</span> 隻</div>
+                <div class="zone" id="fieldArea"></div>
             </div>
+            
+            <!-- 手牌區 -->
             <div>
-                <div style="color:var(--gold); font-size:0.85em; text-align:left;">我方陣地 (點擊主戰人物答題：答對 60 點 / 答錯 20 點傷害)</div>
-                <div class="zone" id="myActive"></div>
+                <div style="text-align:center; font-weight:bold; margin-bottom:5px; color:#166534;">你的數字卡 (請選擇 2 張)</div>
+                <div class="zone" id="handArea"></div>
             </div>
         </div>
 
-        <div>
-            <div style="color:var(--gold); font-size:0.85em; text-align:left; margin-bottom:3px;">手牌區 (人物卡直接部署，輔助卡觸發策略考驗)</div>
-            <div class="zone" id="myHand" style="min-height: 160px; background: rgba(0,0,0,0.3); border-radius: 8px;"></div>
+        <div class="action-bar">
+            <button class="btn" id="btnAttack" onclick="executeAttack()" style="background:#ef4444; box-shadow:0 4px 0 #b91c1c;">⚔️ 發動討伐！</button>
+            <button class="btn" id="btnDiscard" onclick="executeDiscard()" style="background:#8b5cf6; box-shadow:0 4px 0 #6d28d9;">♻️ 棄牌重抽</button>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-            <div class="log" id="logBox" style="flex-grow: 1;">[系統] 準備就緒。</div>
-        </div>
-    </div>
-</div>
-
-<!-- 歷史考驗問答互動視窗 -->
-<div id="questionModal" class="modal hidden">
-    <div class="modal-content">
-        <h3 id="modalTitle" style="color:var(--gold); margin-top:0;">📜 歷史考驗與戰技激發</h3>
-        <p id="qText" style="font-size: clamp(1rem, 1.5vw, 1.15rem); margin: 20px 0; line-height: 1.5;"></p>
-        <div id="qOptions"></div>
-        <button class="modal-close-btn" onclick="forfeitTurnAction()">❌ 放棄作答 (視為回合結束)</button>
+        <div class="log" id="logBox">歡迎來到九九幻獸島！最先獲得 100 分的人獲勝！</div>
     </div>
 </div>
 
 <script>
     const socket = io();
     let currentRoomId = null;
-    let pendingSupportCardName = null;
-    let isModalOpen = false;
+    
+    // UI 狀態選擇
+    let selectedHandIndices = [];
+    let selectedMonsterIndex = null;
+    let isMyTurnCurrent = false;
 
+    // Web Audio API 單例防呆
+    let audioCtx = null;
     function playSound(type) {
         try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            osc.connect(gain); gain.connect(audioCtx.destination);
 
-            if (type === 'deploy') {
-                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.15);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.15);
-            } else if (type === 'attack_success') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-            } else if (type === 'attack_fail') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.25);
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.25);
-            } else if (type === 'heal') {
+            if (type === 'success') {
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
-                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(1200, audioCtx.currentTime + 0.2);
                 gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
                 osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-            } else {
-                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            } else if (type === 'fail') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'draw') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else { // click
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
                 gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
                 osc.start(); osc.stop(audioCtx.currentTime + 0.05);
             }
-        } catch (e) {}
+        } catch (e) { console.error(e); }
     }
 
-    socket.on('play_sound', (data) => {
-        playSound(data.type);
-    });
+    socket.on('play_sound', (data) => playSound(data.type));
 
     function createRoom() {
         const roomId = document.getElementById('roomInput').value.trim();
-        if (!roomId) { alert("請輸入房間號碼！"); return; }
+        if (!roomId) { alert("請輸入房號！"); return; }
         socket.emit('create_room', roomId);
     }
 
     function joinRoom() {
         const roomId = document.getElementById('roomInput').value.trim();
-        if (!roomId) { alert("請輸入房間號碼！"); return; }
+        if (!roomId) { alert("請輸入房號！"); return; }
         socket.emit('join_room', roomId);
     }
 
     socket.on('room_created', (roomId) => {
         currentRoomId = roomId;
-        document.getElementById('lobby').innerHTML = `<h3 style='color:var(--gold);'>🏠 房間 [${roomId}] 建立成功！</h3><p style='color:#38bdf8;'>等待對手加入中...</p>`;
+        document.getElementById('lobby').innerHTML = `<h3 style='color:#3b82f6;'>🏠 房間 [${roomId}] 已建立！</h3><p>等待另一位幻獸大師加入...</p>`;
     });
 
-    socket.on('error_msg', (msg) => { 
-        alert(msg); 
-        isModalOpen = false; 
-    });
+    socket.on('error_msg', (msg) => alert(msg));
 
     socket.on('game_start', ({ roomId }) => {
         currentRoomId = roomId;
         document.getElementById('lobby').classList.add('hidden');
         document.getElementById('gameArea').classList.remove('hidden');
-        appendLog(`🎉 成功進入房間 [${roomId}]，遊戲開始！`);
+        appendLog(`🎉 成功登陸島嶼！目標：100分！`);
     });
 
-    socket.on('game_state_update', ({ myState, opState, isMyTurn }) => {
-        document.getElementById('myHp').innerText = myState.hp;
-        document.getElementById('opHp').innerText = opState.hp;
+    socket.on('game_state_update', ({ myState, opState, fieldMonsters, monstersLeft, isMyTurn }) => {
+        isMyTurnCurrent = isMyTurn;
+        document.getElementById('myScore').innerText = myState.score;
+        document.getElementById('opScore').innerText = opState.score;
+        document.getElementById('deckCount').innerText = monstersLeft;
 
         const indicator = document.getElementById('turnIndicator');
         if (isMyTurn) {
-            let actionText = myState.hasPlayedCard ? "⭐ 已出牌，請點擊主戰人物進攻" : "⭐ 請點選手牌出牌（人物直接部署，策略觸發考驗），或點擊英雄進攻";
-            indicator.innerText = actionText;
-            indicator.style.color = "#4ade80";
+            indicator.innerText = "⭐ 你的回合";
+            indicator.style.color = "#16a34a";
         } else {
-            indicator.innerText = "⏳ 對手回合中...";
-            indicator.style.color = "#f87171";
+            indicator.innerText = "⏳ 對手思考中...";
+            indicator.style.color = "#ef4444";
         }
 
-        const handDiv = document.getElementById('myHand');
-        handDiv.innerHTML = "";
-        myState.hand.forEach((card, idx) => {
-            let tagColor = card.type === '人物' ? '#78350f' : '#1e3a8a';
-            let canPlay = isMyTurn && !myState.hasPlayedCard && !isModalOpen;
-            let opacity = canPlay ? '1' : '0.5';
-            
-            handDiv.innerHTML += `
-                <div class="card" style="opacity: ${opacity};" onclick="playCard(${idx}, ${canPlay})">
-                    <div style="font-size:0.75em; font-weight:bold; color:${tagColor};">[${card.dynasty}] ${card.type}</div>
-                    <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${card.name}</div>
-                    <div style="font-size:0.6em; color:#475569; overflow:hidden; max-height:45px;">${card.desc}</div>
-                    <div style="font-size:0.65em; background:#fef3c7; font-weight:bold; color:#b45309; text-align:center;">${canPlay ? (card.type === '人物' ? '點擊直接部署' : '點擊策略考驗') : '等待中'}</div>
+        // 清空選擇狀態
+        selectedHandIndices = [];
+        selectedMonsterIndex = null;
+        updateActionButtons();
+
+        // 渲染幻獸區
+        const fieldArea = document.getElementById('fieldArea');
+        fieldArea.innerHTML = "";
+        fieldMonsters.forEach((monster, idx) => {
+            fieldArea.innerHTML += `
+                <div class="monster-card" id="monster-${idx}" onclick="toggleMonster(${idx})">
+                    <div class="monster-pts">${monster.pts}</div>
+                    <div style="font-size: 2rem;">${monster.emoji}</div>
+                    <div class="monster-hp">${monster.hp}</div>
+                    <div style="font-size: 0.8rem; font-weight:bold;">${monster.name}</div>
                 </div>`;
         });
 
-        const myActive = document.getElementById('myActive');
-        let supportHtml = myState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px; margin-right:4px;">🛡️ ${c.name}</span>`).join('');
+        // 渲染手牌區
+        const handArea = document.getElementById('handArea');
+        handArea.innerHTML = "";
+        myState.hand.forEach((num, idx) => {
+            handArea.innerHTML += `
+                <div class="number-card" id="card-${idx}" onclick="toggleCard(${idx})">
+                    ${num}
+                </div>`;
+        });
+    });
+
+    function toggleMonster(idx) {
+        if (!isMyTurnCurrent) return;
+        playSound('click');
+        if (selectedMonsterIndex === idx) {
+            selectedMonsterIndex = null;
+            document.getElementById(`monster-${idx}`).classList.remove('selected');
+        } else {
+            if (selectedMonsterIndex !== null) {
+                document.getElementById(`monster-${selectedMonsterIndex}`).classList.remove('selected');
+            }
+            selectedMonsterIndex = idx;
+            document.getElementById(`monster-${idx}`).classList.add('selected');
+        }
+        updateActionButtons();
+    }
+
+    function toggleCard(idx) {
+        if (!isMyTurnCurrent) return;
+        playSound('click');
+        const cardEl = document.getElementById(`card-${idx}`);
         
-        if (myState.active) {
-            let canAttack = isMyTurn && !isModalOpen;
-            let activeOpacity = canAttack ? '1' : '0.6';
-            myActive.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:100%;">
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <div class="card" style="border:3px solid #22c55e; opacity: ${activeOpacity};" onclick="triggerAttack(${canAttack})">
-                            <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${myState.active.dynasty}] 主戰人物</div>
-                            <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${myState.active.name}</div>
-                            <div style="font-size:0.6em; color:#475569;">${myState.active.skill}</div>
-                            <div style="font-size:0.65em; background:#dcfce7; color:#15803d; font-weight:bold; text-align:center;">${canAttack ? '⚔️ 戰技攻擊(答對60/錯20)' : '等待回合'}</div>
-                        </div>
-                    </div>
-                    ${supportHtml ? `<div style="font-size:0.85rem; color:#38bdf8;">支援區: ${supportHtml}</div>` : ''}
-                </div>`;
+        if (selectedHandIndices.includes(idx)) {
+            // 取消選擇
+            selectedHandIndices = selectedHandIndices.filter(i => i !== idx);
+            cardEl.classList.remove('selected');
         } else {
-            myActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">尚未部署主戰人物（請從手牌點擊人物卡直接部署） ${supportHtml ? '<br>支援區: ' + supportHtml : ''}</div>`;
+            // 選擇 (最多2張)
+            if (selectedHandIndices.length >= 2) {
+                let firstIdx = selectedHandIndices.shift();
+                document.getElementById(`card-${firstIdx}`).classList.remove('selected');
+            }
+            selectedHandIndices.push(idx);
+            cardEl.classList.add('selected');
         }
+        updateActionButtons();
+    }
 
-        const opActive = document.getElementById('opActive');
-        let opSupportHtml = opState.supportArea.map(c => `<span style="font-size:0.75rem; background:#1e3a8a; color:white; padding:4px 8px; border-radius:4px;">🛡️ ${c.name}</span>`).join('');
-        if (opState.active) {
-            opActive.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
-                    <div class="card" style="border:3px solid #ef4444;">
-                        <div style="font-size:0.75em; font-weight:bold; color:#78350f;">[${opState.active.dynasty}] 對手主戰</div>
-                        <div style="font-size:0.9em; font-weight:bold; color:#78350f; text-align:center;">${opState.active.name}</div>
-                        <div style="font-size:0.6em; color:#475569;">${opState.active.skill}</div>
-                        <div style="font-size:0.65em; background:#fee2e2; color:#991b1b; font-weight:bold; text-align:center;">部署中</div>
-                    </div>
-                    ${opSupportHtml ? `<div style="font-size:0.85rem; color:#38bdf8;">支援區: ${opSupportHtml}</div>` : ''}
-                </div>`;
+    function updateActionButtons() {
+        const btnAttack = document.getElementById('btnAttack');
+        const btnDiscard = document.getElementById('btnDiscard');
+        
+        if (selectedHandIndices.length === 2 && selectedMonsterIndex !== null) {
+            btnAttack.disabled = false;
         } else {
-            opActive.innerHTML = `<div style="color:#64748b; font-size:0.95rem;">對手尚未部署歷史人物</div>`;
+            btnAttack.disabled = true;
         }
-    });
 
-    function playCard(cardIndex, canPlay) {
-        if (!canPlay || isModalOpen) return;
-        playSound('click');
-        socket.emit('play_card', { roomId: currentRoomId, cardIndex });
-    }
-
-    socket.on('show_support_question', ({ qData, cardName }) => {
-        isModalOpen = true;
-        pendingSupportCardName = cardName;
-        document.getElementById('modalTitle').innerText = `📜 策略考驗 - 【${cardName}】`;
-        document.getElementById('qText').innerText = qData.q;
-        const optDiv = document.getElementById('qOptions');
-        optDiv.innerHTML = "";
-        qData.opts.forEach((opt, idx) => {
-            let isCorrect = (idx === qData.correctIndex);
-            optDiv.innerHTML += `<button class="modal-btn" onclick="submitSupportAnswer(${isCorrect})">${opt}</button>`;
-        });
-        document.getElementById('questionModal').classList.remove('hidden');
-    });
-
-    function submitSupportAnswer(isCorrect) {
-        document.getElementById('questionModal').classList.add('hidden');
-        isModalOpen = false;
-        socket.emit('resolve_support_card', { roomId: currentRoomId, cardName: pendingSupportCardName, answerCorrect: isCorrect });
-        pendingSupportCardName = null;
-    }
-
-    function triggerAttack(canAttack) {
-        if (!canAttack || isModalOpen) return;
-        playSound('click');
-        isModalOpen = true;
-        socket.emit('get_attack_question', { roomId: currentRoomId });
-    }
-
-    socket.on('show_attack_question', ({ qData }) => {
-        isModalOpen = true;
-        document.getElementById('modalTitle').innerText = "⚔️ 戰技激發 (答對60點 / 答錯20點)";
-        document.getElementById('qText').innerText = qData.q;
-        const optDiv = document.getElementById('qOptions');
-        optDiv.innerHTML = "";
-        qData.opts.forEach((opt, idx) => {
-            let isCorrect = (idx === qData.correctIndex);
-            optDiv.innerHTML += `<button class="modal-btn" onclick="submitAttackAnswer(${isCorrect})">${opt}</button>`;
-        });
-        document.getElementById('questionModal').classList.remove('hidden');
-    });
-
-    function submitAttackAnswer(isCorrect) {
-        document.getElementById('questionModal').classList.add('hidden');
-        isModalOpen = false;
-        socket.emit('attack', { roomId: currentRoomId, answerCorrect: isCorrect });
-    }
-
-    function forfeitTurnAction() {
-        document.getElementById('questionModal').classList.add('hidden');
-        isModalOpen = false;
-        if (currentRoomId) {
-            socket.emit('forfeit_turn', { roomId: currentRoomId });
+        if (selectedHandIndices.length === 1 && selectedMonsterIndex === null) {
+            btnDiscard.disabled = false;
+            btnDiscard.innerText = "♻️ 棄牌重抽 (結束回合)";
+        } else {
+            btnDiscard.disabled = true;
+            btnDiscard.innerText = "♻️ 棄牌重抽 (需只選1張卡)";
         }
-        pendingSupportCardName = null;
+    }
+
+    function executeAttack() {
+        if (selectedHandIndices.length !== 2 || selectedMonsterIndex === null) return;
+        playSound('click');
+        socket.emit('attack', { roomId: currentRoomId, cardIndices: selectedHandIndices, monsterIndex: selectedMonsterIndex });
+    }
+
+    function executeDiscard() {
+        if (selectedHandIndices.length !== 1) return;
+        playSound('click');
+        socket.emit('discard', { roomId: currentRoomId, cardIndex: selectedHandIndices[0] });
     }
 
     socket.on('battle_log', (data) => { appendLog(data.msg); });
-    socket.on('game_over', ({ winner }) => {
-        if (winner === socket.id) {
-            alert("🎉 恭喜您在對戰中獲得勝利！");
+    socket.on('game_over', ({ msg, winner }) => {
+        if (winner) {
+            if (winner === socket.id) alert("🏆 恭喜你達到目標，成為首席幻獸大師！\n" + msg);
+            else alert("😢 對手先達到目標了，請再接再厲！\n" + msg);
         } else {
-            alert("❌ 勝敗乃兵家常事，請捲土重來！");
+            alert("ℹ️ 遊戲結束：\n" + msg);
         }
         location.reload();
     });
