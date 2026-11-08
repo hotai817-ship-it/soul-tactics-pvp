@@ -1,17 +1,16 @@
 {
-  "name": "9x9-monster-island",
+  "name": "atlantis-math-escape",
   "version": "1.0.0",
-  "description": "小學乘數表即時對戰房間卡牌遊戲",
+  "description": "小六數學特訓：亞特蘭提斯六維度密室",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "multiplayer",
-    "game",
     "math",
-    "socket.io"
+    "education",
+    "escape-room"
   ],
   "author": "",
   "license": "ISC",
